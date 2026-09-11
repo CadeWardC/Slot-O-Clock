@@ -40,6 +40,8 @@ export interface RoomMeta {
   /** manual pacing: set by the host's continue button to leave the outcome screen */
   forceNext?: boolean;
   outcome?: OutcomeInfo | null;
+  /** server-time TTL — any client may delete the room once past it (see state/gc.ts) */
+  expiresAt?: number;
   settings: RoomSettings;
 }
 

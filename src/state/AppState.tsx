@@ -20,6 +20,7 @@ import {
 } from 'firebase/database';
 import { db, ensureAuth } from '../firebase';
 import { serverNow } from './serverTime';
+import { ROOM_TTL_MS, sweepExpiredRooms } from './gc';
 import type { PlayerInfo, RoomMode, RoomSettings } from '../engine/types';
 import { allGames, gameById } from '../games';
 import { triviaTopics } from '../games/Trivia/definition';
@@ -122,13 +123,24 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       setAuthReady(true);
       return;
     }
+    let swept = false;
     ensureAuth()
-      .then(setUid)
+      .then((uid) => {
+        setUid(uid);
+        // lazy GC: every app open sweeps abandoned rooms past their TTL
+        if (!swept) {
+          swept = true;
+          void sweepExpiredRooms(db!);
+        }
+      })
       .catch((e) => {
         console.error(e);
         setNotice('Sign-in failed — is your Firebase project set up? (see README)');
       })
       .finally(() => setAuthReady(true));
+    return () => {
+      swept = true;
+    };
   }, []);
 
   const notify = useCallback((text: string) => {
@@ -203,12 +215,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         const existing = await get(roomRef);
         if (existing.exists()) continue;
         try {
-          // multi-path update: rules grant creation per-leaf (meta creation
-          // window + own player node); a racing creator loses on rules.
-          await update(roomRef, {
-            meta: {
+          // root-level multi-path update: rules grant creation per-leaf
+          // (meta creation window + own player node + roomIndex entry);
+          // a racing creator loses on rules. roomIndex lists the room for
+          // TTL garbage collection (see state/gc.ts).
+          const expiresAt = serverNow() + ROOM_TTL_MS;
+          await update(ref(db), {
+            [`rooms/${code}/meta`]: {
               code,
               createdAt: serverNow(),
+              expiresAt,
               ownerUid: myUid,
               mode: opts.mode,
               phase: 'lobby',
@@ -224,8 +240,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
                 triviaTopics: triviaTopics.map((t) => t.id),
               },
             },
+            [`roomIndex/${code}`]: expiresAt,
             ...(opts.mode === 'party'
-              ? { [`players/${myUid}`]: newPlayer(myUid, opts.name, opts.emoji, { isHost: true }) }
+              ? { [`rooms/${code}/players/${myUid}`]: newPlayer(myUid, opts.name, opts.emoji, { isHost: true }) }
               : {}),
           });
           saveSession({ code, uid: myUid });
@@ -389,6 +406,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const endGame = useCallback(async () => {
     if (!db || !session) return;
     await remove(ref(db, `rooms/${session.code}`)).catch(() => {});
+    // index entry is removable once the room itself is gone (rules)
+    await remove(ref(db, `roomIndex/${session.code}`)).catch(() => {});
     saveSession(null);
   }, [db, session, saveSession]);
 

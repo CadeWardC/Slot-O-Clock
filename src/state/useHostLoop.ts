@@ -12,6 +12,7 @@ import {
 } from 'firebase/database';
 import { db } from '../firebase';
 import { serverNow } from './serverTime';
+import { ROOM_TTL_MS } from './gc';
 import { activePlayers, INTRO_MS, OUTCOME_MS, type GameInputEntry, type RoomData } from '../types';
 import { allGames, gameById } from '../games';
 import { mulberry32, shuffled } from '../engine/rng';
@@ -300,6 +301,15 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
 
     const unsubRoom = onValue(ref(rdb, `rooms/${code}`), () => void advance());
     const iv = window.setInterval(() => void advance(), 400);
+    // keep the room's TTL ahead of a live session so GC never collects it
+    // (1 min under the 24h rules cap to absorb clock/latency skew)
+    const refreshTtl = () => {
+      const until = serverNow() + ROOM_TTL_MS - 60000;
+      set(ref(rdb, `rooms/${code}/meta/expiresAt`), until).catch(() => {});
+      set(ref(rdb, `roomIndex/${code}`), until).catch(() => {});
+    };
+    const ttlIv = window.setInterval(refreshTtl, 10 * 60 * 1000);
+    refreshTtl();
     const onVis = () => document.visibilityState === 'visible' && void advance();
     document.addEventListener('visibilitychange', onVis);
 
@@ -309,6 +319,7 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
       unsubRoom();
       unsubInputs();
       window.clearInterval(iv);
+      window.clearInterval(ttlIv);
       document.removeEventListener('visibilitychange', onVis);
     };
   }, [uid, isAuthority, room?.meta?.code, active]);

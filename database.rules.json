@@ -6,10 +6,13 @@
       "$room": {
         ".read": "auth != null",
 
-        ".write": "auth != null && data.child('meta/ownerUid').val() === auth.uid",
+        ".write": "auth != null && (data.child('meta/ownerUid').val() === auth.uid || (data.exists() && data.child('meta/expiresAt').isNumber() && data.child('meta/expiresAt').val() < now))",
 
         "meta": {
           ".write": "auth != null && ((!data.exists() && newData.child('createdAt').val() > now - 120000 && newData.child('createdAt').val() < now + 120000) || (data.child('ownerUid').val() === auth.uid && data.child('createdAt').val() > now - 43200000))",
+          "expiresAt": {
+            ".write": "auth != null && (newData.isNumber() && newData.val() <= now + 86400000 && (!data.exists() || newData.val() >= data.val()))"
+          },
           "ownerUid": {
             ".write": "auth != null && ((!data.exists()) || data.val() === auth.uid || (root.child('rooms/' + $room + '/players/' + data.val() + '/connected').val() === false && root.child('rooms/' + $room + '/players/' + auth.uid).exists()))"
           }
@@ -45,6 +48,13 @@
             ".validate": "newData.hasChildren(['at', 'text'])"
           }
         }
+      }
+    },
+
+    "roomIndex": {
+      ".read": "auth != null",
+      "$room": {
+        ".write": "auth != null && ((!data.exists() && newData.isNumber() && newData.val() <= now + 86400000) || (data.isNumber() && ((newData.isNumber() && newData.val() >= data.val() && newData.val() <= now + 86400000) || (!newData.exists() && (data.val() < now || root.child('rooms/' + $room).exists() === false)))))"
       }
     }
   }
