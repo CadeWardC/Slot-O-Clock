@@ -6,7 +6,8 @@ import { Lobby } from './screens/Lobby';
 import { GameScreen } from './screens/GameScreen';
 import { RoomGone, SetupScreen, Splash } from './screens/SetupScreen';
 import { Toast } from './components/ui';
-import { Component, type ReactNode } from 'react';
+import { SlotIntro } from './components/SlotIntro';
+import { Component, useCallback, useState, type ReactNode } from 'react';
 
 /** A crashing game must never blank the whole app. */
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: unknown }> {
@@ -56,8 +57,13 @@ function Root() {
 }
 
 export default function App() {
+  // Plays once per page load, over the top of whatever is still booting.
+  const [intro, setIntro] = useState(true);
+  const closeIntro = useCallback(() => setIntro(false), []);
+
   return (
     <AppStateProvider>
+      {intro && <SlotIntro onDone={closeIntro} />}
       <Root />
     </AppStateProvider>
   );
