@@ -1,6 +1,5 @@
 import type { GameViewProps } from '../../engine/types';
 import type { CatInput, CatState } from './definition';
-import { TARGET_COUNT } from './definition';
 
 export function View({
   state,
@@ -23,43 +22,33 @@ export function View({
 
   const punisher = players.find((p) => p.uid === state.punisherUid) ?? null;
   const iHoldTheButton = punisher?.uid === me.uid;
-  const doneReady = state.named >= TARGET_COUNT;
+  const actor = players.find((p) => p.uid === actorUid);
 
   return (
     <div className="gv">
       <span className="pr-rule-badge">🗂️ Category</span>
       <div className="pr-card">
-        <p className="pr-prefix">Name {TARGET_COUNT} things in…</p>
+        <p className="pr-prefix">Name 4 things in…</p>
         <h2 className="pr-prompt">{state.category}</h2>
       </div>
 
       <p className="cat-pool">stacked drinks: {'🍺'.repeat(Math.min(state.pool, 8))} ×{state.pool}</p>
 
       {isActor ? (
-        <>
+        <div className="cat-actions">
           <button
-            className="btn btn-primary btn-lg btn-full cat-name-btn"
-            disabled={doneReady}
-            onClick={() => submitInput({ action: 'named' })}
+            className="btn btn-gold btn-lg"
+            onClick={() => submitInput({ action: 'done' })}
           >
-            {doneReady ? `${TARGET_COUNT}/${TARGET_COUNT} — done!` : `I named one — ${state.named}/${TARGET_COUNT}`}
+            DONE ✅
           </button>
-          <div className="cat-actions">
-            <button
-              className="btn btn-gold btn-md"
-              disabled={!doneReady}
-              onClick={() => submitInput({ action: 'done' })}
-            >
-              DONE ✅
-            </button>
-            <button
-              className="btn btn-danger btn-md"
-              onClick={() => submitInput({ action: 'giveup' })}
-            >
-              give up (+2) 💀
-            </button>
-          </div>
-        </>
+          <button
+            className="btn btn-danger btn-lg"
+            onClick={() => submitInput({ action: 'giveup' })}
+          >
+            GIVE UP (+2) 💀
+          </button>
+        </div>
       ) : variant === 'shared' ? (
         // one phone for the group: anyone may stack a penalty
         <button className="btn btn-claim cat-punish" onClick={() => submitInput({ action: 'penalty' })}>
@@ -77,10 +66,9 @@ export function View({
         </p>
       )}
 
-      {!isActor && (
+      {!isActor && actor && (
         <p className="muted small">
-          namer: {players.find((p) => p.uid === actorUid)?.emoji}{' '}
-          {players.find((p) => p.uid === actorUid)?.name} — {state.named}/{TARGET_COUNT}
+          namer: {actor.emoji} {actor.name}
         </p>
       )}
     </div>

@@ -17,8 +17,6 @@ const CATEGORIES = pack as Category[];
 export interface CatState {
   category: string;
   phase: 'naming' | 'done';
-  /** how many of the 4 the actor has named */
-  named: number;
   /** penalty drinks stacked by the group while the actor stalls */
   pool: number;
   /** player currently holding the "+1 drink" button */
@@ -27,7 +25,7 @@ export interface CatState {
 }
 
 export interface CatInput {
-  action: 'named' | 'done' | 'giveup' | 'penalty';
+  action: 'done' | 'giveup' | 'penalty';
 }
 
 /** Next holder of the +1 button: follows the claimed order, skipping the actor. */
@@ -90,7 +88,6 @@ export const definition: GameDefinition<CatState, CatInput> = {
     return {
       category: CATEGORIES[Math.floor(ctx.rng() * CATEGORIES.length)].c,
       phase: 'naming',
-      named: 0,
       pool: 0,
       punisherUid: randomPunisher(ctx),
       resultLine: null,
@@ -108,10 +105,7 @@ export const definition: GameDefinition<CatState, CatInput> = {
       if (!input || state.phase !== 'naming') return { state };
       const iAmActor = event.uid === ctx.actorUid;
 
-      if (input.action === 'named' && iAmActor) {
-        return { state: { ...state, named: Math.min(TARGET, state.named + 1) } };
-      }
-      if (input.action === 'done' && iAmActor && state.named >= TARGET) {
+      if (input.action === 'done' && iAmActor) {
         return finish(state, ctx, false);
       }
       if (input.action === 'giveup' && iAmActor) {
@@ -139,5 +133,4 @@ export const definition: GameDefinition<CatState, CatInput> = {
   View,
 };
 
-export const TARGET_COUNT = TARGET;
 export default definition;
