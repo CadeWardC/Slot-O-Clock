@@ -248,7 +248,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
           saveSession({ code, uid: myUid });
           return;
         } catch (e) {
-          if (typeof e === 'object' && e && 'code' in e && (e as { code?: string }).code === 'permission-denied') {
+          const code = (typeof e === 'object' && e && 'code' in e) ? (e as { code?: string }).code : undefined;
+          if (code === 'permission-denied' || code === 'PERMISSION_DENIED') {
             continue; // someone claimed this code mid-flight — try another
           }
           throw e;
