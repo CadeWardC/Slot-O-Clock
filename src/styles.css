@@ -9,7 +9,6 @@
   --text: #f3eefc;
   --muted: #9d92c4;
   --gold: #ffc94d;
-  --gold2: #ffb020;
   --magenta: #ff4fa3;
   --cyan: #4fd8ff;
   --green: #46e08b;
@@ -66,12 +65,12 @@ a { color: var(--cyan); }
 .btn-full { width: 100%; }
 
 .btn-primary {
-  background: linear-gradient(160deg, var(--magenta), #c2337e);
+  background: var(--magenta);
   color: #fff;
   box-shadow: 0 6px 22px rgba(255, 79, 163, 0.35);
 }
 .btn-gold {
-  background: linear-gradient(160deg, var(--gold), var(--gold2));
+  background: var(--gold);
   color: #3a2400;
   box-shadow: 0 6px 24px rgba(255, 176, 32, 0.4);
 }
@@ -83,8 +82,8 @@ a { color: var(--cyan); }
 .btn-danger { background: rgba(255, 95, 110, 0.14); color: var(--red); border: 1.5px solid rgba(255, 95, 110, 0.4); }
 
 .btn-claim {
-  background: linear-gradient(160deg, var(--gold), var(--magenta));
-  color: #fff;
+  background: var(--gold);
+  color: #3a2400;
   font-size: 1.5rem;
   padding: 26px 20px;
   animation: claimPulse 1.4s ease-in-out infinite;
@@ -105,10 +104,7 @@ a { color: var(--cyan); }
   margin: 4px 0;
   font-weight: 900;
   letter-spacing: 0.03em;
-  background: linear-gradient(120deg, var(--gold), #fff2c9 40%, var(--magenta));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--gold);
 }
 .logo-tag { color: var(--muted); margin: 0; }
 .home-actions { display: flex; flex-direction: column; gap: 12px; }
@@ -572,11 +568,11 @@ a { color: var(--cyan); }
   transition: background 0.05s;
 }
 .rx-red {
-  background: radial-gradient(circle at 35% 30%, #ff7b86, #b32435);
+  background: var(--red);
   box-shadow: 0 0 40px rgba(255, 95, 110, 0.4);
 }
 .rx-green {
-  background: radial-gradient(circle at 35% 30%, #7dffb1, #18a55c);
+  background: var(--green);
   box-shadow: 0 0 70px rgba(70, 224, 139, 0.7);
   animation: claimPulse 0.6s ease-in-out infinite;
 }
