@@ -1,0 +1,80 @@
+{
+  "numbers": {
+    "name": "Numbers",
+    "emoji": "🖐",
+    "prompts": [
+      "How many drinks deep are you right now?",
+      "How many hours did you sleep last night?",
+      "How many phones are in this room right now?",
+      "How many people here have you kissed?",
+      "How many shots could you handle right now?",
+      "How many unread messages do you have?",
+      "How many tattoos do you have?",
+      "How many countries have you visited?",
+      "How many siblings do you have?",
+      "How many times have you moved house?",
+      "How many glasses of water did you drink today?",
+      "How many times have you been in love?",
+      "How drunk are you right now, 0 to 10?",
+      "How many concerts have you been to?",
+      "How many pairs of shoes do you own?",
+      "How many times this week did you cook for yourself?",
+      "How many movies have you seen this year?",
+      "How many times have you thrown up from drinking?",
+      "How many piercings do you have?",
+      "How many streaming subscriptions do you pay for?"
+    ]
+  },
+  "point": {
+    "name": "Point",
+    "emoji": "👉",
+    "prompts": [
+      "Point at the person who would survive longest in a zombie apocalypse",
+      "Point at the person most likely to become famous",
+      "Point at the person who would bail first on a night out",
+      "Point at the person who will have the worst hangover tomorrow",
+      "Point at the best liar in this room",
+      "Point at the person who would get lost in their own city",
+      "Point at the person who is secretly the most competitive",
+      "Point at the person who would text their ex first",
+      "Point at the cheapest person here",
+      "Point at the person who would win a karaoke battle",
+      "Point at the person most likely to marry a millionaire",
+      "Point at the person who would cry at a movie first",
+      "Point at the worst driver here",
+      "Point at the person who would last longest without their phone",
+      "Point at the person who tells the best stories",
+      "Point at the biggest baby when they're sick",
+      "Point at the person most likely to survive a week of camping",
+      "Point at the person with the most controversial opinions",
+      "Point at the person who talks the most trash",
+      "Point at the person who would be worst on a game show"
+    ]
+  },
+  "raise": {
+    "name": "Raise Hand",
+    "emoji": "✋",
+    "prompts": [
+      "Raise your hand if you have ever gone skinny dipping",
+      "Raise your hand if you have ever lied on a résumé",
+      "Raise your hand if you have ever snuck out at night",
+      "Raise your hand if you have ever cried at work",
+      "Raise your hand if you have ever ghosted someone",
+      "Raise your hand if you have ever stolen something from a store",
+      "Raise your hand if you have ever faked being sick to skip plans",
+      "Raise your hand if you have ever fallen asleep at the cinema",
+      "Raise your hand if you have ever sent a text to the wrong person",
+      "Raise your hand if you have ever sung karaoke completely sober",
+      "Raise your hand if you have ever peed in a pool",
+      "Raise your hand if you have ever broken a bone",
+      "Raise your hand if you have ever been on TV",
+      "Raise your hand if you have ever kissed someone in this room",
+      "Raise your hand if you have ever eaten food off the floor",
+      "Raise your hand if you have ever googled yourself",
+      "Raise your hand if you have ever talked your way out of a ticket",
+      "Raise your hand if you have ever fallen over in public while sober",
+      "Raise your hand if you have ever worn the same clothes three days straight",
+      "Raise your hand if you have ever pretended to know a song you'd never heard"
+    ]
+  }
+}

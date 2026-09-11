@@ -14,7 +14,7 @@ export const auth: Auth | null = app ? getAuth(app) : null;
 // Local development against the Firebase Emulator Suite:
 //   VITE_USE_EMULATOR=1 npm run dev
 // (requires: npx firebase emulators:start --only database,auth)
-if (import.meta.env.VITE_USE_EMULATOR === '1' && db && auth) {
+if (import.meta.env?.VITE_USE_EMULATOR === '1' && db && auth) {
   try {
     connectDatabaseEmulator(db, 'localhost', 9000);
     connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });

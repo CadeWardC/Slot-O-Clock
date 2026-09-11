@@ -17,6 +17,8 @@ A multiplayer **drinking-minigame party game** for phones. One player creates a 
 | Trivia | 🧠 | Everyone answers on their phone. Wrong answers drink, fastest correct scores. Question packs organized by topic. |
 | Never Have I Ever | 🙈 | A prompt appears, everyone votes — guilty side, innocent side, or the brave minority drinks (rule rotates). |
 | Categories | 🗂️ | Name 4 things in the category while the group stacks drinks: a +1 drink button jumps player to player. Done = drink what stacked, give up = stacked +2. |
+| Poisoning the Drinks | ☠️ | Half are poisoners, half are drinkers — each poisoner secretly spikes ONE of their victim's 4 cups, then the drinker picks one. Safe cup → the poisoner drinks 2, poisoned → the drinker drinks 2. Odd group: the leftover drinks against The House. |
+| Fake It Till You Make It | 🕵️ | Three rounds, one secret faker per round (everyone else gets the same secret prompt). Make the move on three — hold up fingers 🖐, point at someone 👉, or raise a hand ✋ — then argue and vote. Caught faker drinks 3; a faker who slips away makes everyone else drink 1. |
 
 ## Setup (one-time, ~5 minutes)
 

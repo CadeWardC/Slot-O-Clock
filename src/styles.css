@@ -711,3 +711,193 @@ a { color: var(--cyan); }
 .cat-actions { display: flex; gap: 10px; width: 100%; }
 .cat-actions .btn { flex: 1; }
 .cat-punish { width: 100%; max-width: 320px; font-size: 1.3rem; padding: 22px; }
+
+/* --- poison --- */
+.ps-badge {
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  border: 1.5px solid var(--line);
+  color: var(--muted);
+}
+.ps-badge-poison {
+  color: var(--red);
+  border-color: rgba(255, 95, 110, 0.4);
+  background: rgba(255, 95, 110, 0.12);
+}
+.ps-badge-drink {
+  color: var(--green);
+  border-color: rgba(70, 224, 139, 0.4);
+  background: rgba(70, 224, 139, 0.12);
+}
+.ps-cups { display: flex; gap: 10px; justify-content: center; }
+.ps-cup {
+  width: min(74px, 20vw);
+  padding: 12px 0 8px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  color: var(--text);
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition: border-color 0.12s;
+}
+.ps-cup:not(:disabled):active { transform: scale(0.93); border-color: var(--red); }
+.ps-cup:disabled { opacity: 0.45; cursor: default; }
+.ps-cup-emoji { font-size: 2rem; }
+.ps-cup-num { font-size: 0.75rem; color: var(--muted); font-weight: 700; }
+.ps-pairs { width: 100%; display: flex; flex-direction: column; gap: 6px; }
+.ps-pair {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: var(--card); border-radius: 12px; padding: 8px 14px;
+  font-size: 0.9rem;
+}
+.ps-done { color: var(--green); font-weight: 800; }
+.ps-vs { color: var(--muted); font-size: 0.8rem; }
+.ps-reveal {
+  width: 100%;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  animation: slideIn 0.35s ease;
+}
+.ps-reveal-names { margin: 0; font-weight: 800; }
+.ps-hit { border-color: var(--red); background: rgba(255, 95, 110, 0.1); }
+.ps-dodge { border-color: var(--green); background: rgba(70, 224, 139, 0.08); }
+.ps-reveal-cups { display: flex; gap: 8px; justify-content: center; }
+.ps-mini {
+  width: 46px; height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--card2);
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  font-size: 1.25rem;
+}
+.ps-mini-poison { border-color: var(--red); background: rgba(255, 95, 110, 0.2); animation: sympop 0.4s ease; }
+.ps-mini-pick { border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 201, 77, 0.35); }
+.ps-verdict { margin: 0; font-size: 0.92rem; }
+
+/* --- fake it till you make it --- */
+.fk-card {
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 22px;
+  padding: 22px 18px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: bounceIn 0.35s ease;
+}
+.fk-card-faker {
+  border-color: var(--magenta);
+  background: rgba(255, 79, 163, 0.08);
+  box-shadow: 0 0 30px rgba(255, 79, 163, 0.18);
+}
+.fk-card-label {
+  color: var(--muted);
+  margin: 0;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+.fk-prompt { margin: 0; font-size: 1.35rem; line-height: 1.35; }
+.fk-faker-line { margin: 0; font-size: 1.5rem; color: var(--magenta); letter-spacing: 0.02em; }
+.fk-card-hint { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+.fk-peek { width: 100%; user-select: none; -webkit-user-select: none; }
+.fk-call { margin: 0; font-weight: 800; font-size: 1.05rem; }
+
+.fk-nums {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+.fk-num {
+  background: var(--card);
+  border: 2px solid var(--line);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 16px 0;
+  font-size: 1.25rem;
+  font-weight: 900;
+  font-family: inherit;
+  cursor: pointer;
+}
+.fk-num:active { transform: scale(0.93); border-color: var(--cyan); }
+
+.fk-people {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  width: 100%;
+}
+.fk-person {
+  background: var(--card);
+  border: 2px solid var(--line);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 14px 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fk-person:active { transform: scale(0.96); border-color: var(--magenta); }
+.fk-person-emoji { font-size: 1.2rem; }
+
+.fk-raise { display: flex; gap: 10px; width: 100%; }
+.fk-raise-yes,
+.fk-raise-no {
+  flex: 1;
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  padding: 22px 8px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--text);
+  background: var(--card);
+}
+.fk-raise-yes { border-color: var(--green); background: rgba(70, 224, 139, 0.12); }
+.fk-raise-no { border-color: var(--red); background: rgba(255, 95, 110, 0.12); }
+.fk-raise-yes:active,
+.fk-raise-no:active { transform: scale(0.96); }
+
+.fk-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.fk-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 16px;
+  animation: slideIn 0.35s ease;
+}
+.fk-row-faker { border-color: var(--magenta); background: rgba(255, 79, 163, 0.1); }
+.fk-row-who { font-weight: 700; }
+.fk-row-val { font-weight: 900; color: var(--gold); }
+.fk-spy { margin-left: 6px; }
+.fk-secret-was { margin: 0; color: var(--muted); }
+.fk-secret-text { color: var(--text); font-weight: 800; }
