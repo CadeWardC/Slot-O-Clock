@@ -120,6 +120,7 @@ Trivia questions and prompts are plain JSON in [`src/content/`](./src/content/) 
 ## House rules & notes
 
 - 🧊 **Sober mode** in lobby settings counts *points* instead of sips.
+- ⏸ **Between rounds**: *auto* rolls into the next game after a pause (15s), or *host* parks each round on the outcome screen until the host taps Continue.
 - ⚖️ **Drink intensity**: light (×0.5) / normal / wild (×2).
 - The room dies with its host ("end game"), and rooms auto-expire after ~12h via rules.
 - 🍻 Know your limits — this is for fun with friends. Play responsibly.

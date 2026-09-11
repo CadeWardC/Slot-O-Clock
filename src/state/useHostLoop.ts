@@ -107,6 +107,9 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
       for (const fx of effects) {
         if (fx.type === 'TIMER') {
           await set(ref(rdb, `rooms/${code}/game/timerEndsAt`), serverNow() + fx.ms).catch(() => {});
+        } else if (fx.type === 'CLEAR_INPUTS') {
+          // multi-phase games restart the shared-phone pass-around per phase
+          await set(ref(rdb, `rooms/${code}/game/inputs`), null).catch(() => {});
         } else if (fx.type === 'DRINKS') {
           await applyDrinks(fx.assignments);
         } else if (fx.type === 'SCORE') {
@@ -143,7 +146,12 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
                 assignments: fx.assignments ?? [],
                 note: fx.note ?? null,
               },
-              outcomeEndsAt: serverNow() + OUTCOME_MS,
+              // manual pacing has no deadline — the host's continue sets forceNext
+              outcomeEndsAt:
+                (meta()?.settings.roundPacing ?? 'auto') === 'manual'
+                  ? null
+                  : serverNow() + OUTCOME_MS,
+              forceNext: false,
             }).catch(() => {});
           } else {
             await applyEffects([fx]);
@@ -256,6 +264,8 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
       }
 
       if (m.phase === 'outcome') {
+        // manual pacing: pause until the host taps continue (forceNext)
+        if (m.settings.roundPacing === 'manual' && !m.forceNext) return;
         const endsAt = m.outcomeEndsAt ?? now;
         if (now >= endsAt) {
           const enabled = (m.settings.enabledGames ?? []).filter((id) => gameById.has(id));
@@ -281,6 +291,8 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
             'meta/actorUid': nextActor,
             'meta/introEndsAt': now + INTRO_MS,
             'meta/outcome': null,
+            'meta/forceNext': false,
+            'meta/outcomeEndsAt': null,
           }).catch(() => {});
         }
       }

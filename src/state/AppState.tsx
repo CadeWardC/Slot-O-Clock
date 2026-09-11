@@ -220,6 +220,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
                 pointsMode: false,
                 sipMultiplier: 1,
                 enabledGames: allGames.map((g) => g.id),
+                roundPacing: 'auto',
                 triviaTopics: triviaTopics.map((t) => t.id),
               },
             },
@@ -365,7 +366,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     } else if (m.phase === 'intro') {
       await update(ref(db, rpath('meta')), { introEndsAt: now }).catch(() => {});
     } else if (m.phase === 'outcome') {
-      await update(ref(db, rpath('meta')), { outcomeEndsAt: now }).catch(() => {});
+      // works for both pacings: auto short-circuits the deadline,
+      // manual requires the explicit forceNext flag
+      await update(ref(db, rpath('meta')), { outcomeEndsAt: now, forceNext: true }).catch(() => {});
     } else if (m.phase === 'playing') {
       const gid = m.rotation[m.gameIndex] ?? '';
       const g = gameById.get(gid);

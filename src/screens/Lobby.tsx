@@ -175,6 +175,20 @@ export function Lobby() {
               ))}
             </div>
           </div>
+          <div className="setting-row">
+            <span>Between rounds</span>
+            <div className="seg">
+              {(['auto', 'manual'] as const).map((p) => (
+                <button
+                  key={p}
+                  className={`seg-cell ${(meta.settings.roundPacing ?? 'auto') === p ? 'on' : ''}`}
+                  onClick={() => updateSettings({ roundPacing: p })}
+                >
+                  {p === 'auto' ? 'auto ▶▶' : 'host ▶'}
+                </button>
+              ))}
+            </div>
+          </div>
         </section>
       )}
 

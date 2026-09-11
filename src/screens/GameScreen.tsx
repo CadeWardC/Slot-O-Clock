@@ -276,6 +276,7 @@ function OutcomeView({ room }: { room: RoomData }) {
   if (!outcome) return null;
   // RTDB drops empty arrays — `assignments` can read back undefined
   const assignments = outcome.assignments ?? [];
+  const manual = (room.meta.settings.roundPacing ?? 'auto') === 'manual';
 
   return (
     <div className="outcome">
@@ -302,11 +303,23 @@ function OutcomeView({ room }: { room: RoomData }) {
       {outcome.note && assignments.length > 0 && (
         <p className="outcome-note">{outcome.note}</p>
       )}
-      <TimerBar deadline={room.meta.outcomeEndsAt} totalMs={OUTCOME_MS} />
-      {isAuthority && (
-        <Button variant="gold" onClick={() => hostSkipRound()}>
-          Next round ▶
-        </Button>
+      {manual ? (
+        isAuthority ? (
+          <Button variant="gold" size="lg" onClick={() => hostSkipRound()}>
+            Continue ▶
+          </Button>
+        ) : (
+          <p className="muted">⏸ paused — the host continues when everyone's ready</p>
+        )
+      ) : (
+        <>
+          <TimerBar deadline={room.meta.outcomeEndsAt} totalMs={OUTCOME_MS} />
+          {isAuthority && (
+            <Button variant="gold" onClick={() => hostSkipRound()}>
+              Next round ▶
+            </Button>
+          )}
+        </>
       )}
     </div>
   );

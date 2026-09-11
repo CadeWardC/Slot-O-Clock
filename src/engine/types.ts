@@ -43,6 +43,11 @@ export interface RoomSettings {
   sipMultiplier: number;
   /** game ids enabled for this room's rotation */
   enabledGames: string[];
+  /**
+   * Between-round pacing: 'auto' advances after a pause (default, and the
+   * fallback for legacy rooms); 'manual' waits for the host to continue.
+   */
+  roundPacing?: 'auto' | 'manual';
   /** trivia topic ids enabled for the Booze Trivia question pool (all if missing — legacy rooms) */
   triviaTopics?: string[];
 }
@@ -78,6 +83,12 @@ export type Effect =
   | { type: 'SCORE'; uid: string; delta: number }
   /** arm a server-fair countdown; a TIME_UP event fires when it hits zero */
   | { type: 'TIMER'; ms: number }
+  /**
+   * Wipe the recorded inputs for this game — multi-phase games use this
+   * between phases so the shared-phone pass-around gate restarts and
+   * `answeredUids`/`myInput` reflect the new phase only.
+   */
+  | { type: 'CLEAR_INPUTS' }
   /** end the round; `assignments` are applied AND shown on the outcome screen */
   | { type: 'END'; assignments?: DrinkAssignment[]; note?: string | null };
 

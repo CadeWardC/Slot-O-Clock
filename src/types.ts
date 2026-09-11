@@ -1,7 +1,8 @@
 import type { DrinkAssignment, PlayerInfo, RoomMode, RoomSettings } from './engine/types';
 
 export const INTRO_MS = 5000;
-export const OUTCOME_MS = 9000;
+/** auto-advance delay between rounds (auto pacing) */
+export const OUTCOME_MS = 15000;
 export const ROOM_TTL_MS = 12 * 60 * 60 * 1000; // 12h, mirrored in database.rules.json
 
 export type RoomPhase = 'lobby' | 'claim' | 'intro' | 'playing' | 'outcome' | 'ended';
@@ -35,7 +36,9 @@ export interface RoomMeta {
   /** actor for the current round, derived from turnOrder by the host loop */
   actorUid: string | null;
   introEndsAt?: number;
-  outcomeEndsAt?: number;
+  outcomeEndsAt?: number | null;
+  /** manual pacing: set by the host's continue button to leave the outcome screen */
+  forceNext?: boolean;
   outcome?: OutcomeInfo | null;
   settings: RoomSettings;
 }
