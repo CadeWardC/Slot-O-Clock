@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
+import { useCountdown } from '../../components/ui';
 import type { GameViewProps } from '../../engine/types';
-import { SYMBOLS, type SlotsInput, type SlotsState } from './definition';
+import { SYMBOLS, type SlotsInput, type SlotsState, type SpinResult } from './definition';
 
 function Reel({ sym, spinning, index }: { sym: number; spinning: boolean; index: number }) {
   return (
@@ -17,33 +19,88 @@ function Reel({ sym, spinning, index }: { sym: number; spinning: boolean; index:
   );
 }
 
-export function View({ state, isActor, myInput, submitInput }: GameViewProps<SlotsState, SlotsInput>) {
-  const canSpin = isActor && state.phase === 'idle' && !myInput;
+function Machine({ spin, spinning }: { spin: SpinResult | undefined; spinning: boolean }) {
+  const reels = spin?.reels ?? [-1, -1, -1];
+  return (
+    <div className={`slots-cabinet ${spin && !spinning && spin.sips === 0 ? 'slots-win' : ''}`}>
+      <div className="slots-reels">
+        {reels.map((s, i) => (
+          <Reel key={i} sym={s} spinning={spinning} index={i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function View({
+  state,
+  me,
+  players,
+  actorUid,
+  variant,
+  timerEndsAt,
+  submitInput,
+}: GameViewProps<SlotsState, SlotsInput>) {
+  const spins = state.spins ?? {};
+  const mine = spins[me.uid];
+  const canSpin = !mine;
+
+  // short local animation while the result lands
+  const [spinning, setSpinning] = useState(false);
+  useEffect(() => {
+    if (!spinning) return;
+    const t = window.setTimeout(() => setSpinning(false), 1200);
+    return () => window.clearTimeout(t);
+  }, [spinning]);
+
+  const others = players.filter((p) => p.uid !== me.uid && spins[p.uid]);
+  const left = useCountdown(timerEndsAt);
+  const actor = players.find((p) => p.uid === actorUid);
 
   return (
     <div className="gv">
-      <div className={`slots-cabinet ${state.phase === 'result' ? 'slots-win' : ''}`}>
-        <div className="slots-reels">
-          {state.reels.map((s, i) => (
-            <Reel key={i} sym={s} spinning={state.phase === 'spinning'} index={i} />
-          ))}
-        </div>
-      </div>
+      <Machine spin={mine} spinning={spinning} />
 
-      {state.phase === 'idle' && (
-        <>
-          <h2>{isActor ? 'Pull the lever!' : 'Waiting for the spinner…'}</h2>
-          {canSpin && (
-            <button className="btn btn-gold btn-lg btn-full slots-lever" onClick={() => submitInput({ action: 'spin' })}>
-              SPIN 🎰
-            </button>
-          )}
-        </>
+      {canSpin ? (
+        variant === 'shared' && me.uid !== actorUid ? null : (
+          <button
+            className="btn btn-gold btn-lg btn-full slots-lever"
+            onClick={() => {
+              setSpinning(true);
+              submitInput({ action: 'spin' });
+            }}
+          >
+            SPIN 🎰
+          </button>
+        )
+      ) : (
+        <h2 className={`slots-line ${spinning ? '' : 'slots-line-pop'}`}>
+          {spinning ? '…' : mine.line}
+        </h2>
       )}
 
-      {state.phase === 'spinning' && <h2 className="slots-line">…</h2>}
+      {variant === 'shared' && !canSpin && actor && (
+        <p className="muted">
+          {actor.uid === me.uid ? 'Your spin!' : `${actor.emoji} ${actor.name} spun`}
+        </p>
+      )}
 
-      {state.phase === 'result' && <h2 className="slots-line slots-line-pop">{state.line}</h2>}
+      {variant === 'party' && (
+        <p className="muted small">
+          {Object.keys(spins).length}/{players.length} spun
+          {left != null ? ` · ${Math.ceil(left / 1000)}s` : ''}
+        </p>
+      )}
+
+      {others.length > 0 && (
+        <div className="tr-verdicts">
+          {others.map((p) => (
+            <span key={p.uid} className={`tr-verdict ${spins[p.uid].sips > 0 ? 'tr-bad' : 'tr-ok'}`}>
+              {p.emoji} {p.name}: {spins[p.uid].line}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

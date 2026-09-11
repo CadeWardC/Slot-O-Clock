@@ -11,27 +11,33 @@ export const SYMBOLS = ['🍺', '🍻', '🥃', '🍷', '🍹', '🍒', '🎰', 
 const WILD = 6;
 const SKULL = 7;
 
-const SPIN_MS = 2400;
-const RESULT_MS = 3800;
+/** how long players have to spin before the round ends */
+const SPIN_WINDOW_MS = 30000;
 
-export interface SlotsState {
-  phase: 'idle' | 'spinning' | 'result';
+export interface SpinResult {
   reels: number[];
   line: string;
-  assignments: DrinkAssignment[];
+  sips: number;
+}
+
+export interface SlotsState {
+  /** server-time the round began — scalar anchor so the state node
+   *  survives RTDB dropping the empty `spins` map */
+  startedAt: number;
+  /** per-player results, keyed by uid (RTDB drops empty maps — read with ?? {}) */
+  spins: Record<string, SpinResult>;
 }
 
 export interface SlotsInput {
   action: 'spin';
 }
 
-function evaluate(reels: number[], ctx: GameContext): { line: string; assignments: DrinkAssignment[] } {
-  const actor = ctx.players.find((p) => p.uid === ctx.actorUid) ?? ctx.players[0];
-  const others = ctx.players.filter((p) => p.uid !== actor.uid);
+/** Per-player paytable — your reels decide YOUR fate. */
+function spinFor(rng: () => number): SpinResult {
+  const reels = [-1, -1, -1].map(() => Math.floor(rng() * SYMBOLS.length));
   const wilds = reels.filter((s) => s === WILD).length;
   const nonWild = reels.filter((s) => s !== WILD);
 
-  // find the most common non-wild symbol
   let bestSym = -1;
   let bestCount = 0;
   for (const s of nonWild) {
@@ -42,43 +48,41 @@ function evaluate(reels: number[], ctx: GameContext): { line: string; assignment
     }
   }
   const effective = bestCount + wilds;
-  const everyoneElse = (sips: number, reason: string) =>
-    others.map((p) => ({ uid: p.uid, sips, reason }));
+  const e = bestSym >= 0 ? SYMBOLS[bestSym] : '🎰';
 
   if (nonWild.length === 0) {
-    return {
-      line: '🎰🎰🎰 JACKPOT!',
-      assignments: everyoneElse(3, 'JACKPOT! 🎰🎰🎰'),
-    };
+    return { reels, line: '🎰🎰🎰 JACKPOT — safe!', sips: 0 };
   }
   if (effective >= 3) {
     if (bestSym === SKULL) {
-      return {
-        line: '💀💀💀 TRIPLE SKULL!',
-        assignments: [{ uid: actor.uid, sips: 5, reason: 'Triple Skull — finish it! 💀' }],
-      };
+      return { reels, line: '💀💀💀 FINISH YOUR DRINK!', sips: 5 };
     }
-    const emoji = SYMBOLS[bestSym];
-    return {
-      line: `${emoji}${emoji}${emoji} TRIPLE!`,
-      assignments: everyoneElse(2, `Triple ${emoji}!`),
-    };
+    return { reels, line: `${e}${e}${e} TRIPLE — safe!`, sips: 0 };
   }
   if (effective >= 2) {
-    const emoji = SYMBOLS[bestSym];
-    const idx = ctx.players.findIndex((p) => p.uid === actor.uid);
-    const neighbor = ctx.players[(idx + 1) % ctx.players.length];
-    return {
-      line: `Pair of ${emoji}!`,
-      assignments:
-        neighbor && neighbor.uid !== actor.uid
-          ? [{ uid: neighbor.uid, sips: 2, reason: `Pair of ${emoji} — spinner's neighbor!` }]
-          : [{ uid: actor.uid, sips: 2, reason: `Pair of ${emoji}` }],
-    };
+    return { reels, line: `Pair of ${e} — drink 2`, sips: 2 };
   }
+  return { reels, line: 'No match — drink 1', sips: 1 };
+}
+
+function endRound(state: SlotsState, ctx: GameContext): ReduceResult<SlotsState> {
+  const assignments: DrinkAssignment[] = [];
+  for (const p of ctx.players) {
+    const spin = state.spins[p.uid];
+    if (spin && spin.sips > 0) {
+      assignments.push({ uid: p.uid, sips: spin.sips, reason: spin.line });
+    }
+  }
+  const spun = Object.keys(state.spins).length;
   return {
-    line: 'No match — house wins 🎩',
-    assignments: [{ uid: actor.uid, sips: 1, reason: 'No match' }],
+    state,
+    effects: [
+      {
+        type: 'END',
+        assignments,
+        note: `${spun}/${ctx.players.length} spun the machine`,
+      },
+    ],
   };
 }
 
@@ -87,35 +91,35 @@ export const definition: GameDefinition<SlotsState, SlotsInput> = {
   name: 'Slot Machine',
   emoji: '🎰',
   rules:
-    'The spinner pulls the lever. Triples make everyone else drink, 💀💀💀 makes the spinner finish theirs, 🎰 is wild — and no match means the house wins.',
+    'Everyone spins their own machine at the same time. 💀💀💀 and you finish your drink, a pair costs 2, no match costs 1 — any other triple keeps you safe. 🎰 is wild.',
   minPlayers: 1,
+  sharedInput: 'actor', // shared phone: only the actor spins
 
-  createInitialState(): SlotsState {
-    return { phase: 'idle', reels: [-1, -1, -1], line: '', assignments: [] };
+  createInitialState(ctx: GameContext): SlotsState {
+    return { startedAt: ctx.now, spins: {} };
   },
 
   reduce(state, event: GameEvent<SlotsInput>, ctx: GameContext): ReduceResult<SlotsState> {
+    if (event.type === 'BEGIN') {
+      return { state, effects: [{ type: 'TIMER', ms: SPIN_WINDOW_MS }] };
+    }
+
     if (event.type === 'INPUT') {
       if (event.input?.action !== 'spin') return { state };
-      if (state.phase !== 'idle' || event.uid !== ctx.actorUid) return { state };
-      return {
-        state: { ...state, phase: 'spinning' },
-        effects: [{ type: 'TIMER', ms: SPIN_MS }],
-      };
+      const spins = state.spins ?? {};
+      if (spins[event.uid]) return { state }; // one spin per player
+      // shared phone: only the actor plays
+      if (ctx.settings.mode === 'shared' && event.uid !== ctx.actorUid) return { state };
+      const next = { ...spins, [event.uid]: spinFor(ctx.rng) };
+      const nextState = { ...state, spins: next };
+      if (Object.keys(next).length >= ctx.players.length) {
+        return endRound(nextState, ctx);
+      }
+      return { state: nextState };
     }
 
     if (event.type === 'TIME_UP') {
-      if (state.phase === 'spinning') {
-        const reels = [-1, -1, -1].map(() => Math.floor(ctx.rng() * SYMBOLS.length));
-        const { line, assignments } = evaluate(reels, ctx);
-        return {
-          state: { ...state, phase: 'result', reels, line, assignments },
-          effects: [{ type: 'TIMER', ms: RESULT_MS }],
-        };
-      }
-      if (state.phase === 'result') {
-        return { state, effects: [{ type: 'END', assignments: state.assignments, note: state.line }] };
-      }
+      return endRound(state, ctx); // window closed — stragglers just don't spin
     }
 
     return { state };

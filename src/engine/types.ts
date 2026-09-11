@@ -43,6 +43,8 @@ export interface RoomSettings {
   sipMultiplier: number;
   /** game ids enabled for this room's rotation */
   enabledGames: string[];
+  /** trivia topic ids enabled for the Booze Trivia question pool (all if missing — legacy rooms) */
+  triviaTopics?: string[];
 }
 
 export interface GameContext {
@@ -50,6 +52,8 @@ export interface GameContext {
   players: PlayerInfo[];
   /** player who claimed this round via I'll Start / I'm Next */
   actorUid: string | null;
+  /** the room's claimed turn order (ceremony result); may be empty */
+  turnOrder: string[];
   settings: RoomSettings;
   /** seeded 0..1 rng — use for all randomness so it stays host-authoritative */
   rng: () => number;
@@ -110,6 +114,14 @@ export interface GameDefinition<S = any, I = any> {
   /** shown on the intro splash — one or two short sentences */
   rules: string;
   minPlayers: number;
+  /**
+   * Shared-phone input mode:
+   *  - 'all' (default): every player submits something — the engine gates
+   *    inputs pass-the-phone style.
+   *  - 'actor': only the turn actor plays — the phone goes straight to
+   *    them (Slots, Categories).
+   */
+  sharedInput?: 'all' | 'actor';
   createInitialState(ctx: GameContext): S;
   reduce(state: S, event: GameEvent<I>, ctx: GameContext): ReduceResult<S>;
   View: ComponentType<GameViewProps<S, I>>;

@@ -12,10 +12,11 @@ A multiplayer **drinking-minigame party game** for phones. One player creates a 
 
 | Game | Emoji | How it works |
 |---|---|---|
-| Slot Machine | 🎰 | The spinner pulls the lever on every phone. Triples make everyone else drink, 💀💀💀 makes the spinner finish theirs, 🎰 is wild, no match = house wins. |
+| Slot Machine | 🎰 | Everyone spins their own machine at the same time. 💀💀💀 and you finish your drink, a pair costs 2, no match costs 1 — any other triple keeps you safe (🎰 wild). Shared phone: only the actor spins. |
 | Reaction Duel | ⚡ | Wait for green, tap fast. Early taps drink 2, slowest finger drinks 2. Server-synced clocks keep it fair. |
-| Booze Trivia | 🧠 | Everyone answers on their phone. Wrong answers drink, fastest correct scores. |
-| Prompt Deck | 🫵 | "Never have I ever…" votes — guilty side, innocent side, or the brave minority drinks (rule rotates). |
+| Trivia | 🧠 | Everyone answers on their phone. Wrong answers drink, fastest correct scores. Question packs organized by topic. |
+| Never Have I Ever | 🙈 | A prompt appears, everyone votes — guilty side, innocent side, or the brave minority drinks (rule rotates). |
+| Categories | 🗂️ | Name 4 things in the category while the group stacks drinks: a +1 drink button jumps player to player. Done = drink what stacked, give up = stacked +2. |
 
 ## Setup (one-time, ~5 minutes)
 

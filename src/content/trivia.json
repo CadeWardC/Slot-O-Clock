@@ -1,42 +1,3666 @@
-[
-  { "q": "What is the most consumed alcoholic beverage in the world?", "a": ["Beer", "Wine", "Vodka", "Soju"], "c": 0 },
-  { "q": "Which country invented champagne?", "a": ["France", "Italy", "Spain", "Germany"], "c": 0 },
-  { "q": "What spirit is the base of a classic margarita?", "a": ["Vodka", "Gin", "Tequila", "Rum"], "c": 2 },
-  { "q": "From what is tequila made?", "a": ["Agave", "Cactus", "Corn", "Sugarcane"], "c": 0 },
-  { "q": "What does 'IPA' stand for?", "a": ["International Pale Ale", "India Pale Ale", "Irish Porter Ale", "Italian Premium Ale"], "c": 1 },
-  { "q": "Which nation drinks the most beer per person?", "a": ["Germany", "USA", "Czechia", "Ireland"], "c": 2 },
-  { "q": "What is the main ingredient in wine?", "a": ["Apples", "Barley", "Grapes", "Rice"], "c": 2 },
-  { "q": "A 'Caipirinha' is the national cocktail of which country?", "a": ["Portugal", "Brazil", "Argentina", "Cuba"], "c": 1 },
-  { "q": "What color is absinthe traditionally?", "a": ["Red", "Black", "Green", "Clear"], "c": 2 },
-  { "q": "Which beer is known as 'The King of Beers'?", "a": ["Heineken", "Budweiser", "Corona", "Stella Artois"], "c": 1 },
-  { "q": "Juniper berries are the signature flavor of which spirit?", "a": ["Gin", "Rum", "Whiskey", "Absinthe"], "c": 0 },
-  { "q": "What do you call a beer glass shaped like a weizen glass but smaller?", "a": ["Pilsner glass", "Snifter", "Pint", "Stein"], "c": 0 },
-  { "q": "Sake is primarily made from what grain?", "a": ["Wheat", "Rice", "Millet", "Corn"], "c": 1 },
-  { "q": "What is the alcohol content of standard vodka in most countries?", "a": ["20%", "30%", "40%", "60%"], "c": 2 },
-  { "q": "A 'Moscow Mule' is traditionally served in what vessel?", "a": ["Copper mug", "Mason jar", "Highball", "Wine glass"], "c": 0 },
-  { "q": "Which of these is NOT a wine grape variety?", "a": ["Merlot", "Cabernet", "Chardonnay", "Fuggles"], "c": 3 },
-  { "q": "Where did the cocktail 'Mojito' originate?", "a": ["Mexico", "Cuba", "Jamaica", "Brazil"], "c": 1 },
-  { "q": "What is the world's best-selling spirit category?", "a": ["Vodka", "Whiskey", "Rum", "Baijiu"], "c": 3 },
-  { "q": "'Guinness' is what type of beer?", "a": ["Lager", "Stout", "IPA", "Wheat beer"], "c": 1 },
-  { "q": "What ingredient makes a 'Red Eye' cocktail unappetizing?", "a": ["Raw egg", "Tomato juice", "Hot sauce", "Tonic"], "c": 1 },
-  { "q": "How many standard shots are in a fifth (750ml) bottle?", "a": ["About 8", "About 12", "About 17", "About 25"], "c": 2 },
-  { "q": "Which country consumes the most wine per person?", "a": ["Italy", "France", "Portugal", "Vatican City"], "c": 3 },
-  { "q": "What is the German word for a beer garden?", "a": ["Bierhaus", "Biergarten", "Brauhaus", "Kneipe"], "c": 1 },
-  { "q": "'Angostura bitters' originated on which island?", "a": ["Trinidad", "Jamaica", "Barbados", "Cuba"], "c": 0 },
-  { "q": "What does the Spanish word 'cerveza' mean?", "a": ["Wine", "Cider", "Beer", "Cheers"], "c": 2 },
-  { "q": "Which holiday is associated with green beer?", "a": ["Oktoberfest", "St. Patrick's Day", "Cinco de Mayo", "New Year's"], "c": 1 },
-  { "q": "What is a 'sommelier' an expert in?", "a": ["Cheese", "Cigars", "Wine", "Coffee"], "c": 2 },
-  { "q": "Bourbon must be made from at least 51% of what grain?", "a": ["Wheat", "Rye", "Corn", "Barley"], "c": 2 },
-  { "q": "'Oktoberfest' actually begins in which month?", "a": ["August", "September", "October", "November"], "c": 1 },
-  { "q": "What fruit is used to flavor a 'Daiquiri'?", "a": ["Lime", "Lemon", "Orange", "Pineapple"], "c": 0 },
-  { "q": "Which of these is a Japanese whisky brand?", "a": ["Jameson", "Yamazaki", "Chivas", "Jack Daniel's"], "c": 1 },
-  { "q": "What is the term for beer brewed without hops?", "a": ["Gruit", "Lambic", "Sahti", "Kvass"], "c": 0 },
-  { "q": "In Mexico, what is the worm famously found in (some) mezcal bottles?", "a": ["Butterfly larva", "Moth larva", "Beetle", "Centipede"], "c": 1 },
-  { "q": "'Aperol Spritz' includes Prosecco and what else?", "a": ["Soda water", "Tonic", "Cola", "Lemonade"], "c": 0 },
-  { "q": "What unit measures the color of beer?", "a": ["IBU", "SRM", "ABV", "OG"], "c": 1 },
-  { "q": "The 'Pina Colada' song celebrated escaping to which island?", "a": ["Bahamas", "Bermuda", "Jamaica", "Hawaii"], "c": 1 },
-  { "q": "Scotch whisky must be aged in oak for at least how long?", "a": ["1 year", "3 years", "5 years", "10 years"], "c": 1 },
-  { "q": "What's the main difference between lager and ale?", "a": ["Color", "Yeast & temperature", "Alcohol", "Country"], "c": 1 },
-  { "q": "Which cocktail is 'shaken, not stirred' by James Bond?", "a": ["Manhattan", "Negroni", "Martini", "Gimlet"], "c": 2 },
-  { "q": "What is 'craft beer' lobby group nickname for big macro breweries?", "a": ["Big Beer", "The Barons", "Macro Corp", "Hops Inc"], "c": 0 }
-]
+{
+  "booze": {
+    "name": "Booze",
+    "emoji": "🍺",
+    "questions": [
+      {
+        "q": "What is the most consumed alcoholic beverage in the world?",
+        "a": [
+          "Beer",
+          "Wine",
+          "Vodka",
+          "Soju"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which country invented champagne?",
+        "a": [
+          "Italy",
+          "France",
+          "Spain",
+          "Germany"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What spirit is the base of a classic margarita?",
+        "a": [
+          "Vodka",
+          "Gin",
+          "Tequila",
+          "Rum"
+        ],
+        "c": 2
+      },
+      {
+        "q": "From what is tequila made?",
+        "a": [
+          "Cactus",
+          "Corn",
+          "Sugarcane",
+          "Agave"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What does 'IPA' stand for?",
+        "a": [
+          "India Pale Ale",
+          "International Pale Ale",
+          "Irish Porter Ale",
+          "Italian Premium Ale"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which nation drinks the most beer per person?",
+        "a": [
+          "Germany",
+          "Czechia",
+          "USA",
+          "Ireland"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is the main ingredient in wine?",
+        "a": [
+          "Apples",
+          "Barley",
+          "Grapes",
+          "Rice"
+        ],
+        "c": 2
+      },
+      {
+        "q": "A 'Caipirinha' is the national cocktail of which country?",
+        "a": [
+          "Portugal",
+          "Argentina",
+          "Cuba",
+          "Brazil"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What color is absinthe traditionally?",
+        "a": [
+          "Green",
+          "Red",
+          "Black",
+          "Clear"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which beer is known as 'The King of Beers'?",
+        "a": [
+          "Heineken",
+          "Budweiser",
+          "Corona",
+          "Stella Artois"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Juniper berries are the signature flavor of which spirit?",
+        "a": [
+          "Rum",
+          "Whiskey",
+          "Gin",
+          "Absinthe"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What do you call a beer glass shaped like a weizen glass but smaller?",
+        "a": [
+          "Snifter",
+          "Pint",
+          "Stein",
+          "Pilsner glass"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Sake is primarily made from what grain?",
+        "a": [
+          "Rice",
+          "Wheat",
+          "Millet",
+          "Corn"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What is the alcohol content of standard vodka in most countries?",
+        "a": [
+          "20%",
+          "40%",
+          "30%",
+          "60%"
+        ],
+        "c": 1
+      },
+      {
+        "q": "A 'Moscow Mule' is traditionally served in what vessel?",
+        "a": [
+          "Mason jar",
+          "Highball",
+          "Copper mug",
+          "Wine glass"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which of these is NOT a wine grape variety?",
+        "a": [
+          "Merlot",
+          "Cabernet",
+          "Chardonnay",
+          "Fuggles"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Where did the cocktail 'Mojito' originate?",
+        "a": [
+          "Cuba",
+          "Mexico",
+          "Jamaica",
+          "Brazil"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What is the world's best-selling spirit category?",
+        "a": [
+          "Vodka",
+          "Baijiu",
+          "Whiskey",
+          "Rum"
+        ],
+        "c": 1
+      },
+      {
+        "q": "'Guinness' is what type of beer?",
+        "a": [
+          "Lager",
+          "IPA",
+          "Stout",
+          "Wheat beer"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What ingredient makes a 'Red Eye' cocktail unappetizing?",
+        "a": [
+          "Raw egg",
+          "Hot sauce",
+          "Tonic",
+          "Tomato juice"
+        ],
+        "c": 3
+      },
+      {
+        "q": "How many standard shots are in a fifth (750ml) bottle?",
+        "a": [
+          "About 17",
+          "About 8",
+          "About 12",
+          "About 25"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which country consumes the most wine per person?",
+        "a": [
+          "Italy",
+          "Vatican City",
+          "France",
+          "Portugal"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is the German word for a beer garden?",
+        "a": [
+          "Bierhaus",
+          "Brauhaus",
+          "Biergarten",
+          "Kneipe"
+        ],
+        "c": 2
+      },
+      {
+        "q": "'Angostura bitters' originated on which island?",
+        "a": [
+          "Jamaica",
+          "Barbados",
+          "Cuba",
+          "Trinidad"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What does the Spanish word 'cerveza' mean?",
+        "a": [
+          "Beer",
+          "Wine",
+          "Cider",
+          "Cheers"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which holiday is associated with green beer?",
+        "a": [
+          "Oktoberfest",
+          "St. Patrick's Day",
+          "Cinco de Mayo",
+          "New Year's"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is a 'sommelier' an expert in?",
+        "a": [
+          "Cheese",
+          "Cigars",
+          "Wine",
+          "Coffee"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Bourbon must be made from at least 51% of what grain?",
+        "a": [
+          "Wheat",
+          "Rye",
+          "Barley",
+          "Corn"
+        ],
+        "c": 3
+      },
+      {
+        "q": "'Oktoberfest' actually begins in which month?",
+        "a": [
+          "September",
+          "August",
+          "October",
+          "November"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What is the base spirit of a 'Daiquiri'?",
+        "a": [
+          "Vodka",
+          "Rum",
+          "Gin",
+          "Tequila"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which spirit is Scotland's most famous export?",
+        "a": [
+          "Irish cream",
+          "Cognac",
+          "Scotch whisky",
+          "Grappa"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What fruit is used to flavor a classic 'Lambic' beer?",
+        "a": [
+          "Banana",
+          "Apple",
+          "Peach",
+          "Cherry (Kriek)"
+        ],
+        "c": 3
+      },
+      {
+        "q": "'Soju' is a traditional drink of which country?",
+        "a": [
+          "Korea",
+          "China",
+          "Japan",
+          "Vietnam"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What does 'proof' roughly mean in alcohol terms?",
+        "a": [
+          "Half the ABV %",
+          "Twice the ABV %",
+          "Age in years",
+          "Calories per shot"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which herb gives 'Jägermeister' many of its 56 botanicals... and its name?",
+        "a": [
+          "Wolfsbane",
+          "Sage",
+          "Hunter's herb (master of the hunt)",
+          "Mint"
+        ],
+        "c": 2
+      },
+      {
+        "q": "A 'Screwdriver' cocktail mixes vodka with what?",
+        "a": [
+          "Cranberry juice",
+          "Cola",
+          "Grapefruit juice",
+          "Orange juice"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which country is the birthplace of 'pisco'?",
+        "a": [
+          "Chile (and Peru — they feud over it)",
+          "Mexico",
+          "Spain",
+          "Portugal"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What is the wine term for the year grapes were harvested?",
+        "a": [
+          "Terroir",
+          "Vintage",
+          "Cru",
+          "Bouquet"
+        ],
+        "c": 1
+      },
+      {
+        "q": "'Arrack' is a distilled drink popular in which region?",
+        "a": [
+          "Scandinavia",
+          "Andes",
+          "Middle East & South Asia",
+          "Central Europe"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What cocktail is made with whiskey, sweet vermouth and bitters?",
+        "a": [
+          "Martini",
+          "Negroni",
+          "Sidecar",
+          "Manhattan"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which of these is a Mexican beer with a lime-wedge ritual?",
+        "a": [
+          "Corona",
+          "Tsingtao",
+          "Singha",
+          "Efes"
+        ],
+        "c": 0
+      }
+    ]
+  },
+  "screen": {
+    "name": "Movies & TV",
+    "emoji": "🎬",
+    "questions": [
+      {
+        "q": "Which movie features Jack Dawson and Rose DeWitt Bukater?",
+        "a": [
+          "Titanic",
+          "The Notebook",
+          "Pearl Harbor",
+          "Casablanca"
+        ],
+        "c": 0
+      },
+      {
+        "q": "In The Matrix, which color pill does Neo swallow?",
+        "a": [
+          "Blue",
+          "Red",
+          "Green",
+          "Yellow"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Who directed 'Jurassic Park'?",
+        "a": [
+          "James Cameron",
+          "Ridley Scott",
+          "Steven Spielberg",
+          "George Lucas"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What is Darth Vader's real name?",
+        "a": [
+          "Obi-Wan Kenobi",
+          "Luke Skywalker",
+          "Sheev Palpatine",
+          "Anakin Skywalker"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which sitcom's gang hangs out at Central Perk?",
+        "a": [
+          "Friends",
+          "How I Met Your Mother",
+          "Seinfeld",
+          "Cheers"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Walter White is the antihero of which series?",
+        "a": [
+          "Better Call Saul",
+          "Breaking Bad",
+          "The Wire",
+          "Ozark"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What's the name of the cowboy doll in Toy Story?",
+        "a": [
+          "Buzz",
+          "Jessie",
+          "Woody",
+          "Bullseye"
+        ],
+        "c": 2
+      },
+      {
+        "q": "In Harry Potter, which house is Harry sorted into?",
+        "a": [
+          "Ravenclaw",
+          "Hufflepuff",
+          "Slytherin",
+          "Gryffindor"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which Disney film features the ice queen Elsa?",
+        "a": [
+          "Frozen",
+          "Moana",
+          "Tangled",
+          "Brave"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Who played Iron Man in the Marvel movies?",
+        "a": [
+          "Chris Evans",
+          "Robert Downey Jr.",
+          "Mark Ruffalo",
+          "Chris Hemsworth"
+        ],
+        "c": 1
+      },
+      {
+        "q": "In the US version of The Office, what's the paper company called?",
+        "a": [
+          "Vance Refrigeration",
+          "Staples",
+          "Dunder Mifflin",
+          "Sabre"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What is the highest-grossing film of all time (unadjusted)?",
+        "a": [
+          "Avengers: Endgame",
+          "Titanic",
+          "Star Wars: The Force Awakens",
+          "Avatar"
+        ],
+        "c": 3
+      },
+      {
+        "q": "In Lord of the Rings, how many rings were given to Men?",
+        "a": [
+          "Nine",
+          "Three",
+          "Five",
+          "Seven"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which show is set in the (very strange) town of Hawkins, Indiana?",
+        "a": [
+          "Twin Peaks",
+          "Stranger Things",
+          "Riverdale",
+          "Dark"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Bruce Wayne is the secret identity of which hero?",
+        "a": [
+          "Superman",
+          "Green Arrow",
+          "Batman",
+          "The Flash"
+        ],
+        "c": 2
+      },
+      {
+        "q": "In Finding Nemo, what species is Nemo?",
+        "a": [
+          "Blue tang",
+          "Angelfish",
+          "Pufferfish",
+          "Clownfish"
+        ],
+        "c": 3
+      },
+      {
+        "q": "'Life is like a box of chocolates' is a quote from which film?",
+        "a": [
+          "Forrest Gump",
+          "Big",
+          "Cast Away",
+          "The Green Mile"
+        ],
+        "c": 0
+      },
+      {
+        "q": "In Game of Thrones, what's the name of Jon Snow's direwolf?",
+        "a": [
+          "Grey Wind",
+          "Ghost",
+          "Summer",
+          "Shaggydog"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Who directed 'Pulp Fiction'?",
+        "a": [
+          "Martin Scorsese",
+          "The Coen Brothers",
+          "Quentin Tarantino",
+          "David Fincher"
+        ],
+        "c": 2
+      },
+      {
+        "q": "In The Simpsons, what brand does Homer drink?",
+        "a": [
+          "Buzz Cola",
+          "Flaming Moe's",
+          "Fudd",
+          "Duff"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What's the haunted hotel called in The Shining?",
+        "a": [
+          "The Overlook Hotel",
+          "The Bates Motel",
+          "The Grand Budapest",
+          "Hotel California"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which film won the first-ever Oscar for Best Animated Feature?",
+        "a": [
+          "Monsters, Inc.",
+          "Shrek",
+          "Spirited Away",
+          "Toy Story"
+        ],
+        "c": 1
+      },
+      {
+        "q": "In Ghostbusters, what is Slimer?",
+        "a": [
+          "A demon dog",
+          "An alien",
+          "A ghost",
+          "A cursed statue"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which actor plays Captain Jack Sparrow?",
+        "a": [
+          "Orlando Bloom",
+          "Geoffrey Rush",
+          "Javier Bardem",
+          "Johnny Depp"
+        ],
+        "c": 3
+      },
+      {
+        "q": "In Breaking Bad, what does Walter White cook?",
+        "a": [
+          "Blue methamphetamine",
+          "Heroin",
+          "Crack",
+          "LSD"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which Pixar movie opens with an old man's house lifted by balloons?",
+        "a": [
+          "Coco",
+          "Up",
+          "Inside Out",
+          "WALL-E"
+        ],
+        "c": 1
+      },
+      {
+        "q": "In Seinfeld, what is Kramer's first name?",
+        "a": [
+          "Bob",
+          "Carl",
+          "Cosmo",
+          "Kenny"
+        ],
+        "c": 2
+      },
+      {
+        "q": "'May the Force be with you' comes from which franchise?",
+        "a": [
+          "Star Trek",
+          "Dune",
+          "Stargate",
+          "Star Wars"
+        ],
+        "c": 3
+      },
+      {
+        "q": "The Bada Bing strip club appears in which series?",
+        "a": [
+          "The Sopranos",
+          "The Wire",
+          "Boardwalk Empire",
+          "Peaky Blinders"
+        ],
+        "c": 0
+      },
+      {
+        "q": "At the end of Titanic, what does old Rose do with the necklace?",
+        "a": [
+          "Sells it",
+          "Throws it into the ocean",
+          "Gives it to her granddaughter",
+          "Buries it"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Who directed both 'Inception' and 'Interstellar'?",
+        "a": [
+          "Denis Villeneuve",
+          "Ridley Scott",
+          "Christopher Nolan",
+          "James Cameron"
+        ],
+        "c": 2
+      },
+      {
+        "q": "In Home Alone, where is the family flying for Christmas?",
+        "a": [
+          "London",
+          "Rome",
+          "New York",
+          "Paris"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What planet is Superman from?",
+        "a": [
+          "Krypton",
+          "Daxam",
+          "Oa",
+          "Zenn-La"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Ron Burgundy is the anchor of which comedy?",
+        "a": [
+          "Step Brothers",
+          "Anchorman",
+          "Talladega Nights",
+          "The Other Guys"
+        ],
+        "c": 1
+      },
+      {
+        "q": "In The Lion King, what's Simba's father called?",
+        "a": [
+          "Scar",
+          "Rafiki",
+          "Mufasa",
+          "Zazu"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which cartoon family lives in Quahog, Rhode Island?",
+        "a": [
+          "The Belchers",
+          "The Smiths",
+          "The Flinstones",
+          "The Griffins"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What color is Luke Skywalker's lightsaber in Return of the Jedi?",
+        "a": [
+          "Green",
+          "Blue",
+          "Red",
+          "Purple"
+        ],
+        "c": 0
+      },
+      {
+        "q": "'You can't handle the truth!' is shouted in which film?",
+        "a": [
+          "Scent of a Woman",
+          "A Few Good Men",
+          "Jerry Maguire",
+          "The Departed"
+        ],
+        "c": 1
+      },
+      {
+        "q": "In Peaky Blinders, what's the gang's signature accessory?",
+        "a": [
+          "Pocket watches",
+          "Canes",
+          "Flat caps",
+          "Leather gloves"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which film was the first non-English-language Best Picture winner?",
+        "a": [
+          "Crouching Tiger, Hidden Dragon",
+          "Roma",
+          "Life Is Beautiful",
+          "Parasite"
+        ],
+        "c": 3
+      }
+    ]
+  },
+  "music": {
+    "name": "Music",
+    "emoji": "🎵",
+    "questions": [
+      {
+        "q": "How many strings does a standard guitar have?",
+        "a": [
+          "Six",
+          "Four",
+          "Five",
+          "Seven"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which band released 'Bohemian Rhapsody'?",
+        "a": [
+          "The Beatles",
+          "Queen",
+          "Led Zeppelin",
+          "Pink Floyd"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Who is known as the 'King of Pop'?",
+        "a": [
+          "Elvis Presley",
+          "Prince",
+          "Michael Jackson",
+          "James Brown"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which Beatle played bass?",
+        "a": [
+          "John Lennon",
+          "George Harrison",
+          "Ringo Starr",
+          "Paul McCartney"
+        ],
+        "c": 3
+      },
+      {
+        "q": "'Sweet Child o' Mine' is a hit by which band?",
+        "a": [
+          "Guns N' Roses",
+          "Aerosmith",
+          "Mötley Crüe",
+          "Bon Jovi"
+        ],
+        "c": 0
+      },
+      {
+        "q": "ABBA shot to fame representing which country?",
+        "a": [
+          "Norway",
+          "Sweden",
+          "Denmark",
+          "Finland"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What does 'DJ' stand for?",
+        "a": [
+          "Digital Jockey",
+          "Disc Junkie",
+          "Disc Jockey",
+          "Deck Jammer"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which rapper's real name is Marshall Mathers?",
+        "a": [
+          "Jay-Z",
+          "Dr. Dre",
+          "Snoop Dogg",
+          "Eminem"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which instrument has 88 keys?",
+        "a": [
+          "Piano",
+          "Organ",
+          "Accordion",
+          "Harpsichord"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Madonna's 'Like a Virgin' was released in which decade?",
+        "a": [
+          "70s",
+          "80s",
+          "90s",
+          "2000s"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Bono is the frontman of which band?",
+        "a": [
+          "R.E.M.",
+          "Coldplay",
+          "U2",
+          "Radiohead"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which genre was born in New Orleans from brass bands and blues?",
+        "a": [
+          "Country",
+          "Ska",
+          "Disco",
+          "Jazz"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which album cover shows a band crossing a zebra crossing?",
+        "a": [
+          "Abbey Road",
+          "Revolver",
+          "Let It Be",
+          "Help!"
+        ],
+        "c": 0
+      },
+      {
+        "q": "'Smells Like Teen Spirit' is by which band?",
+        "a": [
+          "Pearl Jam",
+          "Nirvana",
+          "Soundgarden",
+          "Alice in Chains"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which artist released the album '1989'?",
+        "a": [
+          "Adele",
+          "Katy Perry",
+          "Taylor Swift",
+          "Lorde"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Tupac and The Notorious B.I.G. are legends of which genre?",
+        "a": [
+          "Rock",
+          "House",
+          "Reggaeton",
+          "Hip hop"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What's the best-selling album of all time?",
+        "a": [
+          "Thriller",
+          "Back in Black",
+          "The Dark Side of the Moon",
+          "Bat Out of Hell"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which of these is a woodwind instrument?",
+        "a": [
+          "Trumpet",
+          "Clarinet",
+          "Violin",
+          "Timpani"
+        ],
+        "c": 1
+      },
+      {
+        "q": "'Wonderwall' is a signature song of which band?",
+        "a": [
+          "Blur",
+          "Radiohead",
+          "Oasis",
+          "The Verve"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which singer is nicknamed 'Queen Bey'?",
+        "a": [
+          "Rihanna",
+          "Mariah Carey",
+          "Ariana Grande",
+          "Beyoncé"
+        ],
+        "c": 3
+      },
+      {
+        "q": "AC/DC formed in which country?",
+        "a": [
+          "Australia",
+          "England",
+          "USA",
+          "Scotland"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What's the name of the BTS fanbase?",
+        "a": [
+          "BLINK",
+          "ARMY",
+          "EXO-L",
+          "Once"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which composer famously went deaf?",
+        "a": [
+          "Mozart",
+          "Bach",
+          "Beethoven",
+          "Chopin"
+        ],
+        "c": 2
+      },
+      {
+        "q": "'Hotel California' is by which band?",
+        "a": [
+          "Fleetwood Mac",
+          "Lynyrd Skynyrd",
+          "The Doors",
+          "The Eagles"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which dance move is Michael Jackson famous for?",
+        "a": [
+          "Moonwalk",
+          "The Floss",
+          "The Twist",
+          "The Robot"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Reggae originated in which country?",
+        "a": [
+          "Cuba",
+          "Jamaica",
+          "Trinidad",
+          "Nigeria"
+        ],
+        "c": 1
+      },
+      {
+        "q": "The Grammy Awards honor achievements in what field?",
+        "a": [
+          "Film",
+          "Theater",
+          "Music",
+          "Television"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Yo-Yo Ma is a virtuoso of which instrument?",
+        "a": [
+          "Violin",
+          "Piano",
+          "Flute",
+          "Cello"
+        ],
+        "c": 3
+      },
+      {
+        "q": "'Livin' on a Prayer' is an anthem by which band?",
+        "a": [
+          "Bon Jovi",
+          "Def Leppard",
+          "Journey",
+          "Kiss"
+        ],
+        "c": 0
+      },
+      {
+        "q": "On a track, 'feat.' stands for what?",
+        "a": [
+          "Feature-length",
+          "Featuring",
+          "Festival edit",
+          "Freeform"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Nena sang '99 Luftballons' in which language?",
+        "a": [
+          "Dutch",
+          "Swedish",
+          "German",
+          "Danish"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Karaoke machines were invented in which country?",
+        "a": [
+          "USA",
+          "China",
+          "Philippines",
+          "Japan"
+        ],
+        "c": 3
+      },
+      {
+        "q": "In solfège, which note comes after 'do, re, mi, fa, sol, la'?",
+        "a": [
+          "Ti",
+          "Do again",
+          "Si",
+          "Ho"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Johnny Cash is most associated with which genre?",
+        "a": [
+          "Jazz",
+          "Country",
+          "Blues",
+          "Folk rock"
+        ],
+        "c": 1
+      },
+      {
+        "q": "The tongue-and-lips logo belongs to which band?",
+        "a": [
+          "Kiss",
+          "Aerosmith",
+          "The Rolling Stones",
+          "The Who"
+        ],
+        "c": 2
+      },
+      {
+        "q": "'Wannabe' was the debut single of which group?",
+        "a": [
+          "TLC",
+          "Destiny's Child",
+          "All Saints",
+          "Spice Girls"
+        ],
+        "c": 3
+      },
+      {
+        "q": "'Old Town Road' went viral on which app?",
+        "a": [
+          "TikTok",
+          "Vine",
+          "Musical.ly",
+          "Instagram"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Elvis Presley is called the king of what?",
+        "a": [
+          "Pop",
+          "Rock 'n' roll",
+          "Country",
+          "Swing"
+        ],
+        "c": 1
+      },
+      {
+        "q": "David Bowie's alter ego was the 'Thin White...' what?",
+        "a": [
+          "Knight",
+          "Duchess",
+          "Duke",
+          "Baron"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which streaming service is famous for its 'Discover Weekly' playlists?",
+        "a": [
+          "Apple Music",
+          "Tidal",
+          "Deezer",
+          "Spotify"
+        ],
+        "c": 3
+      }
+    ]
+  },
+  "world": {
+    "name": "Geography",
+    "emoji": "🌍",
+    "questions": [
+      {
+        "q": "What is the capital of Australia?",
+        "a": [
+          "Canberra",
+          "Sydney",
+          "Melbourne",
+          "Perth"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which river flows through Egypt?",
+        "a": [
+          "Congo",
+          "Nile",
+          "Niger",
+          "Zambezi"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Mount Everest sits on the border of Nepal and which country?",
+        "a": [
+          "India",
+          "Bhutan",
+          "China",
+          "Pakistan"
+        ],
+        "c": 2
+      },
+      {
+        "q": "As of 2026, which country has the largest population?",
+        "a": [
+          "China",
+          "USA",
+          "Indonesia",
+          "India"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What is the largest ocean on Earth?",
+        "a": [
+          "Pacific",
+          "Atlantic",
+          "Indian",
+          "Arctic"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What is the largest hot desert in the world?",
+        "a": [
+          "Gobi",
+          "Sahara",
+          "Kalahari",
+          "Arabian"
+        ],
+        "c": 1
+      },
+      {
+        "q": "In which city is the Eiffel Tower?",
+        "a": [
+          "Lyon",
+          "Marseille",
+          "Paris",
+          "Nice"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which US state is the largest by area?",
+        "a": [
+          "Texas",
+          "California",
+          "Montana",
+          "Alaska"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What is the smallest country in the world?",
+        "a": [
+          "Vatican City",
+          "Monaco",
+          "Nauru",
+          "San Marino"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Russia spans which two continents?",
+        "a": [
+          "Asia and Africa",
+          "Europe and Asia",
+          "Europe and Africa",
+          "Asia and North America"
+        ],
+        "c": 1
+      },
+      {
+        "q": "The majority of the Amazon rainforest lies in which country?",
+        "a": [
+          "Peru",
+          "Colombia",
+          "Brazil",
+          "Venezuela"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What is the capital of Canada?",
+        "a": [
+          "Toronto",
+          "Montreal",
+          "Vancouver",
+          "Ottawa"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which country is shaped like a boot?",
+        "a": [
+          "Italy",
+          "Portugal",
+          "Greece",
+          "Croatia"
+        ],
+        "c": 0
+      },
+      {
+        "q": "The Great Barrier Reef lies off the coast of which country?",
+        "a": [
+          "Indonesia",
+          "Australia",
+          "Philippines",
+          "Mexico"
+        ],
+        "c": 1
+      },
+      {
+        "q": "In which sea can you float without trying because of the salt?",
+        "a": [
+          "Red Sea",
+          "Black Sea",
+          "Dead Sea",
+          "Caspian Sea"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which mountain range divides Europe from Asia?",
+        "a": [
+          "Alps",
+          "Caucasus",
+          "Carpathians",
+          "Urals"
+        ],
+        "c": 3
+      },
+      {
+        "q": "How many continents are there?",
+        "a": [
+          "Seven",
+          "Five",
+          "Six",
+          "Eight"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which country has a maple leaf on its flag?",
+        "a": [
+          "Norway",
+          "Canada",
+          "Lebanon",
+          "Japan"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is the capital of Japan?",
+        "a": [
+          "Kyoto",
+          "Osaka",
+          "Tokyo",
+          "Nagoya"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which African country successfully resisted European colonization?",
+        "a": [
+          "Kenya",
+          "South Africa",
+          "Egypt",
+          "Ethiopia"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Machu Picchu is located in which country?",
+        "a": [
+          "Peru",
+          "Bolivia",
+          "Chile",
+          "Ecuador"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which strait separates Europe from Africa at its narrowest point?",
+        "a": [
+          "Bosphorus",
+          "Strait of Gibraltar",
+          "Strait of Hormuz",
+          "Bering Strait"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is the largest country in South America?",
+        "a": [
+          "Argentina",
+          "Colombia",
+          "Brazil",
+          "Peru"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which city is nicknamed 'The Big Apple'?",
+        "a": [
+          "Chicago",
+          "Boston",
+          "Los Angeles",
+          "New York"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Istanbul sits in which country?",
+        "a": [
+          "Turkey",
+          "Greece",
+          "Bulgaria",
+          "Italy"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which river flows through New Orleans?",
+        "a": [
+          "Missouri",
+          "Mississippi",
+          "Colorado",
+          "Ohio"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which is the coldest continent?",
+        "a": [
+          "Arctic",
+          "Greenland",
+          "Antarctica",
+          "Siberia (region)"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What is the tallest waterfall in the world?",
+        "a": [
+          "Niagara Falls",
+          "Victoria Falls",
+          "Iguazu Falls",
+          "Angel Falls"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which country claims the most islands?",
+        "a": [
+          "Sweden",
+          "Finland",
+          "Canada",
+          "Norway"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which country is famous for its fjords?",
+        "a": [
+          "Iceland",
+          "Norway",
+          "Ireland",
+          "Scotland"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is the capital of Brazil?",
+        "a": [
+          "Rio de Janeiro",
+          "São Paulo",
+          "Brasília",
+          "Salvador"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which two countries share the world's longest international border?",
+        "a": [
+          "Russia–China",
+          "Argentina–Chile",
+          "India–Bangladesh",
+          "Canada–USA"
+        ],
+        "c": 3
+      },
+      {
+        "q": "The Grand Canyon is in which US state?",
+        "a": [
+          "Arizona",
+          "Utah",
+          "Nevada",
+          "Colorado"
+        ],
+        "c": 0
+      },
+      {
+        "q": "The Statue of Liberty was a gift from which country?",
+        "a": [
+          "England",
+          "France",
+          "Spain",
+          "Italy"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is the capital of South Korea?",
+        "a": [
+          "Busan",
+          "Incheon",
+          "Seoul",
+          "Daegu"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which large island country lies off the southeast coast of Africa?",
+        "a": [
+          "Sri Lanka",
+          "Iceland",
+          "Taiwan",
+          "Madagascar"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What is the most widely spoken language of Brazil?",
+        "a": [
+          "Portuguese",
+          "Spanish",
+          "French",
+          "Dutch"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Vatican City is enclaved within which city?",
+        "a": [
+          "Milan",
+          "Rome",
+          "Florence",
+          "Venice"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is the highest mountain in Africa?",
+        "a": [
+          "Mount Kenya",
+          "Atlas Mountains",
+          "Kilimanjaro",
+          "Mount Meru"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which country was formerly known as Persia?",
+        "a": [
+          "Iraq",
+          "Turkey",
+          "Afghanistan",
+          "Iran"
+        ],
+        "c": 3
+      }
+    ]
+  },
+  "past": {
+    "name": "History",
+    "emoji": "📜",
+    "questions": [
+      {
+        "q": "In which year did World War II end?",
+        "a": [
+          "1945",
+          "1943",
+          "1944",
+          "1946"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Who was the first President of the United States?",
+        "a": [
+          "Thomas Jefferson",
+          "George Washington",
+          "John Adams",
+          "Benjamin Franklin"
+        ],
+        "c": 1
+      },
+      {
+        "q": "The Berlin Wall fell in which year?",
+        "a": [
+          "1987",
+          "1991",
+          "1989",
+          "1990"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which Egyptian queen was allied (and involved) with Mark Antony?",
+        "a": [
+          "Nefertiti",
+          "Hatshepsut",
+          "Ankhesenamun",
+          "Cleopatra"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which ship sank in 1912 after hitting an iceberg?",
+        "a": [
+          "Titanic",
+          "Lusitania",
+          "Britannic",
+          "Carpathia"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Who was the primary author of the Declaration of Independence?",
+        "a": [
+          "George Washington",
+          "Thomas Jefferson",
+          "Benjamin Franklin",
+          "John Adams"
+        ],
+        "c": 1
+      },
+      {
+        "q": "The French Revolution began in which year?",
+        "a": [
+          "1776",
+          "1799",
+          "1789",
+          "1812"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Who led Nazi Germany during World War II?",
+        "a": [
+          "Hermann Göring",
+          "Otto von Bismarck",
+          "Paul von Hindenburg",
+          "Adolf Hitler"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which civilization built Machu Picchu?",
+        "a": [
+          "The Inca",
+          "The Maya",
+          "The Aztec",
+          "The Olmec"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Who was the first human to walk on the moon?",
+        "a": [
+          "Buzz Aldrin",
+          "Neil Armstrong",
+          "Yuri Gagarin",
+          "Michael Collins"
+        ],
+        "c": 1
+      },
+      {
+        "q": "The first modern Olympic Games (1896) were held in which city?",
+        "a": [
+          "Paris",
+          "London",
+          "Athens",
+          "Rome"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Who discovered penicillin?",
+        "a": [
+          "Louis Pasteur",
+          "Marie Curie",
+          "Edward Jenner",
+          "Alexander Fleming"
+        ],
+        "c": 3
+      },
+      {
+        "q": "The Great Fire of London happened in which year?",
+        "a": [
+          "1666",
+          "1605",
+          "1690",
+          "1588"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which Macedonian king had conquered much of the known world by age 30?",
+        "a": [
+          "Philip II",
+          "Alexander the Great",
+          "Pyrrhus",
+          "Perseus"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which Roman emperor legendarily 'fiddled' while Rome burned?",
+        "a": [
+          "Caligula",
+          "Augustus",
+          "Nero",
+          "Commodus"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Who painted the Mona Lisa?",
+        "a": [
+          "Michelangelo",
+          "Raphael",
+          "Donatello",
+          "Leonardo da Vinci"
+        ],
+        "c": 3
+      },
+      {
+        "q": "On which Japanese city was the first atomic bomb dropped?",
+        "a": [
+          "Hiroshima",
+          "Nagasaki",
+          "Osaka",
+          "Kobe"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Who was Britain's Prime Minister for most of World War II?",
+        "a": [
+          "Neville Chamberlain",
+          "Winston Churchill",
+          "Clement Attlee",
+          "Stanley Baldwin"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which empire built the Colosseum?",
+        "a": [
+          "Greek",
+          "Ottoman",
+          "Roman",
+          "Persian"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What was the name of the ship that carried the Pilgrims to America in 1620?",
+        "a": [
+          "Santa María",
+          "Golden Hind",
+          "Discovery",
+          "Mayflower"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Who founded the Mongol Empire?",
+        "a": [
+          "Genghis Khan",
+          "Kublai Khan",
+          "Attila the Hun",
+          "Tamerlane"
+        ],
+        "c": 0
+      },
+      {
+        "q": "The Renaissance began in which country?",
+        "a": [
+          "France",
+          "Italy",
+          "England",
+          "Spain"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Who was the first woman to win a Nobel Prize?",
+        "a": [
+          "Rosalind Franklin",
+          "Ada Lovelace",
+          "Marie Curie",
+          "Florence Nightingale"
+        ],
+        "c": 2
+      },
+      {
+        "q": "American Prohibition in the 1920s banned the sale of what?",
+        "a": [
+          "Tobacco",
+          "Firearms",
+          "Gambling",
+          "Alcohol"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Who invented the movable-type printing press in Europe?",
+        "a": [
+          "Johannes Gutenberg",
+          "Leonardo da Vinci",
+          "William Caxton",
+          "Aldus Manutius"
+        ],
+        "c": 0
+      },
+      {
+        "q": "The American war between North and South (1861–65) is called what?",
+        "a": [
+          "The Revolutionary War",
+          "The Civil War",
+          "The War of 1812",
+          "The Spanish–American War"
+        ],
+        "c": 1
+      },
+      {
+        "q": "'Et tu, Brute?' are the dying words attributed to whom?",
+        "a": [
+          "Marc Antony",
+          "Brutus",
+          "Julius Caesar",
+          "Pompey"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which English king famously had six wives?",
+        "a": [
+          "Henry VII",
+          "Edward VI",
+          "Richard III",
+          "Henry VIII"
+        ],
+        "c": 3
+      },
+      {
+        "q": "The Great Pyramid of Giza was built as a tomb for which pharaoh?",
+        "a": [
+          "Khufu",
+          "Tutankhamun",
+          "Ramesses II",
+          "Djoser"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Who led India's non-violent independence movement?",
+        "a": [
+          "Jawaharlal Nehru",
+          "Mahatma Gandhi",
+          "Bhagat Singh",
+          "Subhas Chandra Bose"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What was the 14th-century epidemic that killed a third of Europe?",
+        "a": [
+          "Smallpox",
+          "The Spanish flu",
+          "The Black Death",
+          "The Justinian Plague"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which explorer reached the Americas in 1492?",
+        "a": [
+          "Vasco da Gama",
+          "Ferdinand Magellan",
+          "John Cabot",
+          "Christopher Columbus"
+        ],
+        "c": 3
+      },
+      {
+        "q": "In which year did the Soviet Union dissolve?",
+        "a": [
+          "1991",
+          "1989",
+          "1990",
+          "1993"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What did the fiercest Viking warriors get called?",
+        "a": [
+          "Huscarls",
+          "Berserkers",
+          "Thralls",
+          "Jomsvikings"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Pharaohs ruled which ancient country?",
+        "a": [
+          "Mesopotamia",
+          "Nubia",
+          "Egypt",
+          "Assyria"
+        ],
+        "c": 2
+      },
+      {
+        "q": "The Cold War was a standoff between the USA and which superpower?",
+        "a": [
+          "China",
+          "Nazi Germany",
+          "Imperial Japan",
+          "The Soviet Union"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Who wrote 'The Communist Manifesto' with Friedrich Engels?",
+        "a": [
+          "Karl Marx",
+          "Vladimir Lenin",
+          "Leon Trotsky",
+          "Joseph Proudhon"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which Roman city was buried by the eruption of Mount Vesuvius?",
+        "a": [
+          "Carthage",
+          "Pompeii",
+          "Ostia",
+          "Ravenna"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which US president issued the Emancipation Proclamation?",
+        "a": [
+          "Andrew Jackson",
+          "Ulysses S. Grant",
+          "Abraham Lincoln",
+          "James Buchanan"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which French leader was finally defeated at Waterloo?",
+        "a": [
+          "Louis XIV",
+          "Charles de Gaulle",
+          "Robespierre",
+          "Napoleon Bonaparte"
+        ],
+        "c": 3
+      }
+    ]
+  },
+  "science": {
+    "name": "Science & Nature",
+    "emoji": "🔬",
+    "questions": [
+      {
+        "q": "Which planet is known as the Red Planet?",
+        "a": [
+          "Mars",
+          "Venus",
+          "Jupiter",
+          "Mercury"
+        ],
+        "c": 0
+      },
+      {
+        "q": "How many bones are in the adult human body?",
+        "a": [
+          "186",
+          "206",
+          "196",
+          "216"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What gas do plants absorb from the air for photosynthesis?",
+        "a": [
+          "Oxygen",
+          "Nitrogen",
+          "Carbon dioxide",
+          "Hydrogen"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What is the chemical symbol for gold?",
+        "a": [
+          "Ag",
+          "Gd",
+          "Go",
+          "Au"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What is the largest planet in our solar system?",
+        "a": [
+          "Jupiter",
+          "Saturn",
+          "Neptune",
+          "Earth"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What natural force keeps your feet on the ground?",
+        "a": [
+          "Magnetism",
+          "Gravity",
+          "Friction",
+          "Inertia"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is the hardest naturally occurring substance?",
+        "a": [
+          "Quartz",
+          "Steel",
+          "Diamond",
+          "Granite"
+        ],
+        "c": 2
+      },
+      {
+        "q": "How many teeth does a normal adult human have?",
+        "a": [
+          "28",
+          "30",
+          "34",
+          "32"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What is the center of an atom called?",
+        "a": [
+          "The nucleus",
+          "The electron shell",
+          "The core",
+          "The ion"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What is the largest animal on Earth?",
+        "a": [
+          "African elephant",
+          "Blue whale",
+          "Giraffe",
+          "Whale shark"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What does DNA stand for?",
+        "a": [
+          "Dinucleic acid",
+          "Dual nucleotide array",
+          "Deoxyribonucleic acid",
+          "Deoxyribose nitrogen acid"
+        ],
+        "c": 2
+      },
+      {
+        "q": "How many legs does a spider have?",
+        "a": [
+          "Six",
+          "Ten",
+          "Twelve",
+          "Eight"
+        ],
+        "c": 3
+      },
+      {
+        "q": "At what temperature does water boil (at sea level, Celsius)?",
+        "a": [
+          "100°C",
+          "90°C",
+          "95°C",
+          "110°C"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which planet is famous for its rings?",
+        "a": [
+          "Mars",
+          "Saturn",
+          "Uranus",
+          "Neptune"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is the most abundant gas in Earth's atmosphere?",
+        "a": [
+          "Oxygen",
+          "Carbon dioxide",
+          "Nitrogen",
+          "Argon"
+        ],
+        "c": 2
+      },
+      {
+        "q": "A group of lions is called a what?",
+        "a": [
+          "Pack",
+          "Herd",
+          "Troop",
+          "Pride"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which blood cells fight infection?",
+        "a": [
+          "White blood cells",
+          "Red blood cells",
+          "Platelets",
+          "Plasma cells"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which galaxy contains our solar system?",
+        "a": [
+          "Andromeda",
+          "The Milky Way",
+          "Triangulum",
+          "Sombrero"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What's the fastest land animal?",
+        "a": [
+          "Lion",
+          "Pronghorn",
+          "Cheetah",
+          "Greyhound"
+        ],
+        "c": 2
+      },
+      {
+        "q": "How long does sunlight take to reach Earth?",
+        "a": [
+          "About 8 seconds",
+          "About 8 hours",
+          "About 8 days",
+          "About 8 minutes"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which metal is liquid at room temperature?",
+        "a": [
+          "Mercury",
+          "Lead",
+          "Tin",
+          "Gallium"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What is the largest organ of the human body?",
+        "a": [
+          "The liver",
+          "The skin",
+          "The brain",
+          "The lungs"
+        ],
+        "c": 1
+      },
+      {
+        "q": "A group of crows is called a what?",
+        "a": [
+          "A parliament",
+          "A gaggle",
+          "A murder",
+          "A charm"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What does H₂O represent?",
+        "a": [
+          "Salt",
+          "Oxygen gas",
+          "Hydrogen peroxide",
+          "Water"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which vitamin does your skin make from sunlight?",
+        "a": [
+          "Vitamin D",
+          "Vitamin A",
+          "Vitamin B12",
+          "Vitamin C"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which is the smallest planet in our solar system?",
+        "a": [
+          "Mars",
+          "Mercury",
+          "Pluto",
+          "Venus"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What kind of animal is a dolphin?",
+        "a": [
+          "A fish",
+          "A reptile",
+          "A mammal",
+          "An amphibian"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which particles orbit the nucleus of an atom?",
+        "a": [
+          "Protons",
+          "Neutrons",
+          "Quarks",
+          "Electrons"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What organelle is called the powerhouse of the cell?",
+        "a": [
+          "The mitochondria",
+          "The nucleus",
+          "The ribosome",
+          "The Golgi body"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which is the only mammal capable of true flight?",
+        "a": [
+          "Flying squirrel",
+          "Bat",
+          "Colugo",
+          "Sugar glider"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Who proposed the theory of evolution by natural selection?",
+        "a": [
+          "Isaac Newton",
+          "Gregor Mendel",
+          "Charles Darwin",
+          "Alfred Wegener"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Roughly how fast does light travel?",
+        "a": [
+          "3,000 km/s",
+          "30,000 km/s",
+          "3,000,000 km/s",
+          "300,000 km/s"
+        ],
+        "c": 3
+      },
+      {
+        "q": "How many planets are in our solar system (officially)?",
+        "a": [
+          "Eight",
+          "Seven",
+          "Nine",
+          "Ten"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Water turning into vapor is called what?",
+        "a": [
+          "Condensation",
+          "Evaporation",
+          "Sublimation",
+          "Precipitation"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is a baby kangaroo called?",
+        "a": [
+          "A kit",
+          "A cub",
+          "A joey",
+          "A pup"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What part of a plant does most of the photosynthesis?",
+        "a": [
+          "The roots",
+          "The stem",
+          "The flowers",
+          "The leaves"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which sea creature has three hearts?",
+        "a": [
+          "Octopus",
+          "Shark",
+          "Jellyfish",
+          "Lobster"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Whose blood type is the universal donor?",
+        "a": [
+          "AB positive",
+          "O negative",
+          "A negative",
+          "B positive"
+        ],
+        "c": 1
+      },
+      {
+        "q": "The study of fossils is called what?",
+        "a": [
+          "Archaeology",
+          "Geology",
+          "Paleontology",
+          "Anthropology"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which planet rotates on its side?",
+        "a": [
+          "Venus",
+          "Neptune",
+          "Saturn",
+          "Uranus"
+        ],
+        "c": 3
+      }
+    ]
+  },
+  "sports": {
+    "name": "Sports",
+    "emoji": "⚽",
+    "questions": [
+      {
+        "q": "How many players from one soccer team are on the field?",
+        "a": [
+          "Eleven",
+          "Nine",
+          "Ten",
+          "Twelve"
+        ],
+        "c": 0
+      },
+      {
+        "q": "In which sport do you perform a slam dunk?",
+        "a": [
+          "Volleyball",
+          "Basketball",
+          "Handball",
+          "Netball"
+        ],
+        "c": 1
+      },
+      {
+        "q": "How often are the Summer Olympics held?",
+        "a": [
+          "Every 2 years",
+          "Every 3 years",
+          "Every 4 years",
+          "Every 5 years"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Wimbledon is a famous tournament in which sport?",
+        "a": [
+          "Cricket",
+          "Croquet",
+          "Badminton",
+          "Tennis"
+        ],
+        "c": 3
+      },
+      {
+        "q": "In bowling, what is a perfect game score?",
+        "a": [
+          "300",
+          "100",
+          "200",
+          "500"
+        ],
+        "c": 0
+      },
+      {
+        "q": "How many rings are on the Olympic flag?",
+        "a": [
+          "Four",
+          "Five",
+          "Six",
+          "Seven"
+        ],
+        "c": 1
+      },
+      {
+        "q": "In golf, what is one stroke under par called?",
+        "a": [
+          "Eagle",
+          "Bogey",
+          "Birdie",
+          "Albatross"
+        ],
+        "c": 2
+      },
+      {
+        "q": "In which sport do you hit a shuttlecock?",
+        "a": [
+          "Squash",
+          "Table tennis",
+          "Racquetball",
+          "Badminton"
+        ],
+        "c": 3
+      },
+      {
+        "q": "A touchdown is worth how many points (before the extra point)?",
+        "a": [
+          "Six",
+          "Three",
+          "Seven",
+          "Eight"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What is the maximum break in snooker?",
+        "a": [
+          "100",
+          "147",
+          "120",
+          "155"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What color jersey does the Tour de France leader wear?",
+        "a": [
+          "Green",
+          "White",
+          "Yellow",
+          "Polka dot"
+        ],
+        "c": 2
+      },
+      {
+        "q": "How many players per side in a rugby union team?",
+        "a": [
+          "Thirteen",
+          "Fourteen",
+          "Sixteen",
+          "Fifteen"
+        ],
+        "c": 3
+      },
+      {
+        "q": "In tennis, what word means a score of zero?",
+        "a": [
+          "Love",
+          "Nil",
+          "Duck",
+          "Zip"
+        ],
+        "c": 0
+      },
+      {
+        "q": "The ancient Olympic Games originated in which country?",
+        "a": [
+          "Italy",
+          "Greece",
+          "Egypt",
+          "Turkey"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What is the national sport of Japan?",
+        "a": [
+          "Judo",
+          "Baseball",
+          "Sumo wrestling",
+          "Kendo"
+        ],
+        "c": 2
+      },
+      {
+        "q": "In darts, what's the highest score with a single dart?",
+        "a": [
+          "50",
+          "57",
+          "65",
+          "60"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which sport is called 'the sport of kings'?",
+        "a": [
+          "Horse racing",
+          "Polo",
+          "Golf",
+          "Chess"
+        ],
+        "c": 0
+      },
+      {
+        "q": "How long is a standard soccer match (excluding stoppage time)?",
+        "a": [
+          "60 minutes",
+          "90 minutes",
+          "75 minutes",
+          "100 minutes"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which tennis Grand Slam is played on clay courts?",
+        "a": [
+          "Wimbledon",
+          "US Open",
+          "French Open",
+          "Australian Open"
+        ],
+        "c": 2
+      },
+      {
+        "q": "In baseball, how many strikes make an out?",
+        "a": [
+          "Two",
+          "Four",
+          "Five",
+          "Three"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What do bowlers call three strikes in a row?",
+        "a": [
+          "A turkey",
+          "A triple",
+          "A hawk",
+          "A triple crown"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What's the name of the Super Bowl trophy?",
+        "a": [
+          "The Heisman Trophy",
+          "The Vince Lombardi Trophy",
+          "The Stanley Cup",
+          "The Commissioner's Trophy"
+        ],
+        "c": 1
+      },
+      {
+        "q": "In ice hockey, how many players per team are on the ice?",
+        "a": [
+          "Five",
+          "Seven",
+          "Six",
+          "Eight"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What does MVP stand for?",
+        "a": [
+          "Most Violent Player",
+          "Maximum Victory Points",
+          "Most Versatile Pro",
+          "Most Valuable Player"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Usain Bolt is a legend of which sport?",
+        "a": [
+          "Sprinting",
+          "Swimming",
+          "Long jump",
+          "Cycling"
+        ],
+        "c": 0
+      },
+      {
+        "q": "In most martial arts, what color belt is the highest rank?",
+        "a": [
+          "White",
+          "Black",
+          "Brown",
+          "Red"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which sport combines cross-country skiing and rifle shooting?",
+        "a": [
+          "Triathlon",
+          "Nordic combined",
+          "Biathlon",
+          "Orienteering"
+        ],
+        "c": 2
+      },
+      {
+        "q": "A standard round of golf has how many holes?",
+        "a": [
+          "Nine",
+          "Twelve",
+          "Twenty-one",
+          "Eighteen"
+        ],
+        "c": 3
+      },
+      {
+        "q": "In golf, what is a 'bogey'?",
+        "a": [
+          "One over par",
+          "One under par",
+          "Par exactly",
+          "Two over par"
+        ],
+        "c": 0
+      },
+      {
+        "q": "How far is a full marathon (rounded)?",
+        "a": [
+          "24.8 miles",
+          "26.2 miles",
+          "28 miles",
+          "30 miles"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which country has won the most FIFA World Cups?",
+        "a": [
+          "Germany",
+          "Italy",
+          "Brazil",
+          "Argentina"
+        ],
+        "c": 2
+      },
+      {
+        "q": "How many players per side in indoor volleyball?",
+        "a": [
+          "Five",
+          "Seven",
+          "Eight",
+          "Six"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Wickets and a pitch belong to which sport?",
+        "a": [
+          "Cricket",
+          "Croquet",
+          "Polo",
+          "Lacrosse"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Who holds the record for most Olympic gold medals?",
+        "a": [
+          "Usain Bolt",
+          "Michael Phelps",
+          "Larisa Latynina",
+          "Mark Spitz"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which sport's championship final is called the World Series?",
+        "a": [
+          "Cricket",
+          "Rugby league",
+          "Baseball",
+          "Poker"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What's the only sport ever played on the Moon?",
+        "a": [
+          "Javelin",
+          "Football",
+          "Frisbee",
+          "Golf"
+        ],
+        "c": 3
+      },
+      {
+        "q": "The Kentucky Derby, Preakness and which race make up horse racing's Triple Crown?",
+        "a": [
+          "The Belmont Stakes",
+          "The Royal Ascot",
+          "The Grand National",
+          "The Dubai World Cup"
+        ],
+        "c": 0
+      },
+      {
+        "q": "In soccer, which color card means ejection?",
+        "a": [
+          "Yellow",
+          "Red",
+          "Blue",
+          "Black"
+        ],
+        "c": 1
+      },
+      {
+        "q": "In Formula 1, which flag means the race is over?",
+        "a": [
+          "Green flag",
+          "White flag",
+          "Chequered flag",
+          "Blue flag"
+        ],
+        "c": 2
+      },
+      {
+        "q": "On ski slopes, what does a black diamond mark?",
+        "a": [
+          "Beginner run",
+          "Intermediate run",
+          "Closed run",
+          "Most difficult run"
+        ],
+        "c": 3
+      }
+    ]
+  },
+  "food": {
+    "name": "Food & Snacks",
+    "emoji": "🍕",
+    "questions": [
+      {
+        "q": "What's the main ingredient in guacamole?",
+        "a": [
+          "Avocado",
+          "Pea puree",
+          "Zucchini",
+          "Edamame"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Pizza originated in which country?",
+        "a": [
+          "Greece",
+          "Italy",
+          "USA",
+          "France"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Traditional pickles are made from which vegetable?",
+        "a": [
+          "Zucchini",
+          "Carrot",
+          "Cucumber",
+          "Green bean"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Sushi traditionally features raw what?",
+        "a": [
+          "Beef",
+          "Chicken",
+          "Pork",
+          "Fish"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which spice, the world's most expensive, comes from a crocus flower?",
+        "a": [
+          "Saffron",
+          "Cardamom",
+          "Vanilla",
+          "Cinnamon"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Marzipan is made from which nut?",
+        "a": [
+          "Walnut",
+          "Almond",
+          "Cashew",
+          "Hazelnut"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What's the primary ingredient in bread?",
+        "a": [
+          "Rice",
+          "Cornmeal",
+          "Flour",
+          "Oats"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which cheese is on a classic margherita pizza?",
+        "a": [
+          "Cheddar",
+          "Feta",
+          "Gouda",
+          "Mozzarella"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What does a 'julienne' cut produce?",
+        "a": [
+          "Thin matchstick strips",
+          "Tiny cubes",
+          "Rough chunks",
+          "Paper-thin rounds"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which fruit wears its seeds on the outside?",
+        "a": [
+          "Kiwi",
+          "Strawberry",
+          "Fig",
+          "Banana"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Tofu is made from which bean?",
+        "a": [
+          "Black beans",
+          "Chickpeas",
+          "Soybeans",
+          "Lentils"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Profiteroles are made from what kind of pastry?",
+        "a": [
+          "Puff pastry",
+          "Filo",
+          "Shortcrust",
+          "Choux"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which vegetable is nicknamed 'the stinking rose'?",
+        "a": [
+          "Garlic",
+          "Onion",
+          "Leek",
+          "Shallot"
+        ],
+        "c": 0
+      },
+      {
+        "q": "'Pulled pork' comes from which cut of the pig?",
+        "a": [
+          "Belly",
+          "Shoulder",
+          "Ham",
+          "Loin"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Basmati is a variety of what?",
+        "a": [
+          "Wheat",
+          "Lentil",
+          "Rice",
+          "Pepper"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which fruit contains the tenderizing enzyme bromelain?",
+        "a": [
+          "Mango",
+          "Papaya",
+          "Kiwi",
+          "Pineapple"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Kopi Luwak coffee is processed with the help of which animal?",
+        "a": [
+          "The Asian palm civet",
+          "The alpaca",
+          "The beaver",
+          "The mountain goat"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which of these is a cruciferous vegetable?",
+        "a": [
+          "Spinach",
+          "Broccoli",
+          "Asparagus",
+          "Celery"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Dark, milk and white are varieties of what?",
+        "a": [
+          "Tea",
+          "Wine",
+          "Chocolate",
+          "Bread flour"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Paella is the national dish of which country?",
+        "a": [
+          "Italy",
+          "Portugal",
+          "Mexico",
+          "Spain"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What compound makes chili peppers hot?",
+        "a": [
+          "Capsaicin",
+          "Piperine",
+          "Allicin",
+          "Gingerol"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Fajitas and tacos belong to which cuisine?",
+        "a": [
+          "Spanish",
+          "Mexican",
+          "Brazilian",
+          "Cuban"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Drying which fruit gives you raisins?",
+        "a": [
+          "Plums",
+          "Apricots",
+          "Grapes",
+          "Apples"
+        ],
+        "c": 2
+      },
+      {
+        "q": "The Caesar salad was invented in which country?",
+        "a": [
+          "Italy",
+          "Greece",
+          "France",
+          "Mexico"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What color is the flesh of a ripe kiwi?",
+        "a": [
+          "Green",
+          "Yellow",
+          "Orange",
+          "White"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Naan is a type of what?",
+        "a": [
+          "Rice dish",
+          "Bread",
+          "Curry",
+          "Dumpling"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Vanilla comes from which type of plant?",
+        "a": [
+          "A vine tuber",
+          "A cactus",
+          "An orchid",
+          "A palm"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Raw fish served WITHOUT rice is called what?",
+        "a": [
+          "Nigiri",
+          "Maki",
+          "Poke",
+          "Sashimi"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Caviar consists of the eggs of which fish?",
+        "a": [
+          "Sturgeon",
+          "Salmon",
+          "Tuna",
+          "Cod"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which herb gives traditional pesto its flavor?",
+        "a": [
+          "Parsley",
+          "Basil",
+          "Cilantro",
+          "Oregano"
+        ],
+        "c": 1
+      },
+      {
+        "q": "The Big Mac belongs to which fast-food chain?",
+        "a": [
+          "Burger King",
+          "Wendy's",
+          "McDonald's",
+          "KFC"
+        ],
+        "c": 2
+      },
+      {
+        "q": "A buffalo wing is made from what?",
+        "a": [
+          "Duck",
+          "Turkey",
+          "Quail",
+          "Chicken"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What does 'al dente' mean for pasta?",
+        "a": [
+          "Firm to the bite",
+          "Fully soft",
+          "Served cold",
+          "Extra oily"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which country consumes the most chocolate per person?",
+        "a": [
+          "Belgium",
+          "Switzerland",
+          "Germany",
+          "USA"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Statistically, what's the most shoplifted food in the world?",
+        "a": [
+          "Chocolate",
+          "Meat",
+          "Cheese",
+          "Alcohol"
+        ],
+        "c": 2
+      },
+      {
+        "q": "A bunch of bananas is called a what?",
+        "a": [
+          "A bunch... of course",
+          "A cluster",
+          "A crown",
+          "A hand"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Which insect makes honey?",
+        "a": [
+          "The honeybee",
+          "The wasp",
+          "The hornet",
+          "The bumblebee"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which of these is botanically a fruit?",
+        "a": [
+          "Carrot",
+          "Tomato",
+          "Celery",
+          "Potato"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Fish and chips traditionally uses which fish in the UK?",
+        "a": [
+          "Salmon",
+          "Tuna",
+          "Haddock or cod",
+          "Trout"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which spice gives curry its classic yellow color?",
+        "a": [
+          "Paprika",
+          "Cumin",
+          "Coriander",
+          "Turmeric"
+        ],
+        "c": 3
+      }
+    ]
+  },
+  "spicy": {
+    "name": "Spicy",
+    "emoji": "🌶️",
+    "questions": [
+      {
+        "q": "I'm long, hard, and round. I go in dry and come out wet. The more I'm jerked, the better I work. What am I?",
+        "a": [
+          "A seatbelt",
+          "A fishing rod",
+          "A garden hose",
+          "A tow cable"
+        ],
+        "c": 0
+      },
+      {
+        "q": "I'm hairy on the outside and moist on the inside. I start with C, end with T, and have U and N in the middle. What am I?",
+        "a": [
+          "A chestnut",
+          "A coconut",
+          "A cantaloupe",
+          "A currant"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What's white and sticky and better to spit than swallow?",
+        "a": [
+          "Milk",
+          "Mayonnaise",
+          "Toothpaste",
+          "Glue"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What word starts with F and ends in UCK?",
+        "a": [
+          "Flapjack",
+          "Fistbump",
+          "Femmernacker",
+          "Firetruck"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What four-letter word ending in K means intercourse?",
+        "a": [
+          "Talk",
+          "Walk",
+          "Work",
+          "Peek"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What does a man do standing up, a woman sitting down, and a dog on three legs?",
+        "a": [
+          "Pee",
+          "Shake hands",
+          "Eat dinner",
+          "Dance"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What starts with P, ends in ORN, and is a huge part of the film industry?",
+        "a": [
+          "Projector",
+          "Postborn",
+          "Popcorn",
+          "Prestorn"
+        ],
+        "c": 2
+      },
+      {
+        "q": "A cow has four of them and a woman has two of them. What are they?",
+        "a": [
+          "Eyes",
+          "Ears",
+          "Hips",
+          "Legs"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What gets wetter and wetter the more it dries?",
+        "a": [
+          "A towel",
+          "A river",
+          "A sponge",
+          "A raincoat"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What goes up but never comes down?",
+        "a": [
+          "Smoke",
+          "Your age",
+          "A balloon",
+          "The sun"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What has teeth but cannot bite?",
+        "a": [
+          "A saw",
+          "A zipper",
+          "A comb",
+          "A gear"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What has a neck but no head?",
+        "a": [
+          "A giraffe",
+          "A snake",
+          "A donkey",
+          "A bottle"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What gets bigger the more you take away from it?",
+        "a": [
+          "A hole",
+          "A balloon",
+          "A debt",
+          "An ego"
+        ],
+        "c": 0
+      },
+      {
+        "q": "I'm hard when dry and soft when wet. What am I?",
+        "a": [
+          "A towel",
+          "A sponge",
+          "Mud",
+          "A noodle"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What can you hold in your left hand but never in your right?",
+        "a": [
+          "Your breath",
+          "A left-handed glove",
+          "Your right hand",
+          "Nothing"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What has a head and a tail but no body?",
+        "a": [
+          "A snake",
+          "A comet",
+          "A kite",
+          "A coin"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What kind of tree fits in your hand?",
+        "a": [
+          "A palm tree",
+          "A bonsai",
+          "A sapling",
+          "A Christmas tree"
+        ],
+        "c": 0
+      },
+      {
+        "q": "The more of me you take, the more you leave behind. What am I?",
+        "a": [
+          "Photographs",
+          "Footsteps",
+          "Money",
+          "Breaths"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What has hands but can't clap?",
+        "a": [
+          "A mannequin",
+          "A glove",
+          "A clock",
+          "A robot"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What has one eye but can't see?",
+        "a": [
+          "A Cyclops",
+          "A potato",
+          "A hurricane",
+          "A needle"
+        ],
+        "c": 3
+      },
+      {
+        "q": "What can run but never walks, and has a mouth but never talks?",
+        "a": [
+          "A river",
+          "A rumor",
+          "A fridge",
+          "A clock"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which building has the most stories?",
+        "a": [
+          "The skyscraper",
+          "The library",
+          "The cinema",
+          "The newspaper office"
+        ],
+        "c": 1
+      },
+      {
+        "q": "What tastes better than it smells?",
+        "a": [
+          "Cheese",
+          "A rose",
+          "A tongue",
+          "Coffee"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What kind of band never plays music?",
+        "a": [
+          "A wedding band",
+          "A tribute band",
+          "A marching band",
+          "A rubber band"
+        ],
+        "c": 3
+      },
+      {
+        "q": "The Kama Sutra originated in which country?",
+        "a": [
+          "India",
+          "China",
+          "Thailand",
+          "Japan"
+        ],
+        "c": 0
+      },
+      {
+        "q": "Which European city is famous for its Red Light District?",
+        "a": [
+          "Hamburg",
+          "Amsterdam",
+          "Prague",
+          "Copenhagen"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Casanova, history's legendary lover, was from which country?",
+        "a": [
+          "France",
+          "Spain",
+          "Italy",
+          "Greece"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which shellfish has a reputation as an aphrodisiac?",
+        "a": [
+          "Mussels",
+          "Scallops",
+          "Clams",
+          "Oysters"
+        ],
+        "c": 3
+      },
+      {
+        "q": "Who wrote 'Fifty Shades of Grey'?",
+        "a": [
+          "E.L. James",
+          "Stephenie Meyer",
+          "Sylvia Day",
+          "Jackie Collins"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What is a 'merkin'?",
+        "a": [
+          "A French beret",
+          "A pubic wig",
+          "A corset style",
+          "A perfume bottle"
+        ],
+        "c": 1
+      },
+      {
+        "q": "Which creature has the largest reproductive organ relative to body size?",
+        "a": [
+          "The blue whale",
+          "The elephant",
+          "The barnacle",
+          "The argonaut octopus"
+        ],
+        "c": 2
+      },
+      {
+        "q": "In kink, what does the S and M in S&M stand for?",
+        "a": [
+          "Salt and massage",
+          "Silk and mesh",
+          "Sunday morning",
+          "Sadism and masochism"
+        ],
+        "c": 3
+      },
+      {
+        "q": "The word 'aphrodisiac' comes from the name of which goddess?",
+        "a": [
+          "Aphrodite",
+          "Athena",
+          "Hera",
+          "Artemis"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What's the world's best-selling condom brand?",
+        "a": [
+          "Trojan",
+          "Durex",
+          "Lifestyles",
+          "Okamoto"
+        ],
+        "c": 1
+      },
+      {
+        "q": "The Playboy Mansion was located in which city?",
+        "a": [
+          "Las Vegas",
+          "Miami",
+          "Los Angeles",
+          "New York"
+        ],
+        "c": 2
+      },
+      {
+        "q": "Which fruit was historically nicknamed the 'love apple'?",
+        "a": [
+          "The cherry",
+          "The fig",
+          "The pomegranate",
+          "The tomato"
+        ],
+        "c": 3
+      },
+      {
+        "q": "The jalapeño chili is named after a city in which country?",
+        "a": [
+          "Mexico",
+          "Peru",
+          "Chile",
+          "Spain"
+        ],
+        "c": 0
+      },
+      {
+        "q": "What scale measures the heat of chili peppers?",
+        "a": [
+          "The Richter scale",
+          "The Scoville scale",
+          "The Beaufort scale",
+          "The Briggs scale"
+        ],
+        "c": 1
+      },
+      {
+        "q": "The Love Parade, a giant EDM festival, was held in which country?",
+        "a": [
+          "Netherlands",
+          "Belgium",
+          "Germany",
+          "Spain"
+        ],
+        "c": 2
+      },
+      {
+        "q": "What does PDA stand for when couples overdo it in public?",
+        "a": [
+          "Personal dancing area",
+          "Public disturbance alert",
+          "Pretty damn annoying",
+          "Public display of affection"
+        ],
+        "c": 3
+      }
+    ]
+  }
+}

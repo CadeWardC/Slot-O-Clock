@@ -145,6 +145,33 @@ function PlayingView({ room }: { room: RoomData }) {
 
   if (!def || players.length === 0) return null;
 
+  // actor-only games in shared mode: the phone goes straight to the actor
+  if (variant === 'shared' && def.sharedInput === 'actor') {
+    const actor = players.find((p) => p.uid === room.meta.actorUid) ?? players[0];
+    return (
+      <div className="playing-wrap">
+        <def.View
+          state={room.game?.state ?? {}}
+          me={actor}
+          players={players}
+          actorUid={room.meta.actorUid}
+          isActor={true}
+          isAuthority={isAuthority}
+          myInput={latestInput(inputs, actor.uid)}
+          answeredUids={answeredUids}
+          timerEndsAt={room.game?.timerEndsAt ?? null}
+          submitInput={(input: unknown) => submitInput(input, actor.uid)}
+          variant="shared"
+        />
+        {isAuthority && (
+          <Button variant="ghost" size="sm" onClick={() => hostSkipRound()}>
+            skip round ⏭
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   if (variant === 'shared') {
     const holder = players.find((p) => !answeredUids.includes(p.uid)) ?? players[0];
     const awaiting = players.filter((p) => !answeredUids.includes(p.uid));
@@ -180,7 +207,7 @@ function PlayingView({ room }: { room: RoomData }) {
   return (
     <div className="playing-wrap">
       <def.View
-        state={room.game!.state}
+        state={room.game?.state ?? {}}
         me={me}
         players={players}
         actorUid={room.meta.actorUid}

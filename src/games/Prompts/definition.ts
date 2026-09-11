@@ -62,10 +62,10 @@ function reveal(state: PromptsState, ctx: GameContext): ReduceResult<PromptsStat
 
 export const definition: GameDefinition<PromptsState, PromptsInput> = {
   id: 'prompts',
-  name: 'Prompt Deck',
-  emoji: '🫵',
+  name: 'Never Have I Ever',
+  emoji: '🙈',
   rules:
-    'A "never have I ever" style prompt appears. Everyone votes honestly — the round rule decides which side drinks, and it changes every round!',
+    'A "never have I ever" prompt appears. Everyone votes honestly — the round rule decides which side drinks, and it changes every round!',
   minPlayers: 2,
 
   createInitialState(ctx: GameContext): PromptsState {

@@ -22,6 +22,7 @@ import { db, ensureAuth } from '../firebase';
 import { serverNow } from './serverTime';
 import type { PlayerInfo, RoomMode, RoomSettings } from '../engine/types';
 import { allGames, gameById } from '../games';
+import { triviaTopics } from '../games/Trivia/definition';
 import {
   activePlayers,
   randomRoomCode,
@@ -219,6 +220,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
                 pointsMode: false,
                 sipMultiplier: 1,
                 enabledGames: allGames.map((g) => g.id),
+                triviaTopics: triviaTopics.map((t) => t.id),
               },
             },
             ...(opts.mode === 'party'

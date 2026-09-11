@@ -76,6 +76,7 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
       return {
         players,
         actorUid: m.actorUid,
+        turnOrder: m.turnOrder ?? [],
         settings: m.settings,
         rng: mulberry32(hashSeed(`${code}:${m.round}`)),
         now: serverNow(),
@@ -229,6 +230,22 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
       }
 
       if (m.phase === 'playing') {
+        // self-heal: a game whose entire state was dropped by RTDB
+        // (empty objects/arrays vanish) gets re-initialized fresh
+        if (game()?.state == null) {
+          const d = currentDef();
+          const ctx = buildCtx();
+          if (d && ctx && game()) {
+            const s0 = d.createInitialState(ctx);
+            stateMirror = s0;
+            await update(ref(rdb, `rooms/${code}`), {
+              'game/state': s0,
+              'game/inputs': null,
+            }).catch(() => {});
+            dispatch({ type: 'BEGIN' });
+          }
+          return;
+        }
         const t = game()?.timerEndsAt;
         if (typeof t === 'number' && now >= t && timerSeen !== t) {
           timerSeen = t;

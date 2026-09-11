@@ -1,6 +1,7 @@
 import { useApp } from '../state/AppState';
 import { activePlayers, playerList } from '../types';
 import { allGames } from '../games';
+import { triviaTopics } from '../games/Trivia/definition';
 import { Button, PlayerChip, PlayerForm } from '../components/ui';
 
 export function Lobby() {
@@ -35,6 +36,25 @@ export function Lobby() {
     if (next.has(id)) next.delete(id);
     else next.add(id);
     updateSettings({ enabledGames: [...next] });
+  };
+
+  // rooms created before topics existed have no triviaTopics — treat as all on
+  const savedTopics = meta.settings.triviaTopics?.filter((id) =>
+    triviaTopics.some((t) => t.id === id),
+  );
+  const topicsOn = new Set(
+    savedTopics && savedTopics.length > 0 ? savedTopics : triviaTopics.map((t) => t.id),
+  );
+
+  const toggleTopic = (id: string) => {
+    if (topicsOn.has(id) && topicsOn.size === 1) {
+      notify('At least one trivia topic must stay on');
+      return;
+    }
+    const next = new Set(topicsOn);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    updateSettings({ triviaTopics: [...next] });
   };
 
   const setMultiplier = (m: number) => updateSettings({ sipMultiplier: m });
@@ -118,6 +138,25 @@ export function Lobby() {
               </button>
             ))}
           </div>
+
+          {enabled.has('trivia') && (
+            <>
+              <h3>Trivia topics</h3>
+              <div className="topic-toggles">
+                {triviaTopics.map((t) => (
+                  <button
+                    key={t.id}
+                    className={`topic-toggle ${topicsOn.has(t.id) ? 'on' : ''}`}
+                    onClick={() => toggleTopic(t.id)}
+                  >
+                    <span className="topic-toggle-emoji">{t.emoji}</span>
+                    <span className="topic-toggle-name">{t.name}</span>
+                    <span className="topic-toggle-count">{t.count}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           <h3>House rules</h3>
           <div className="setting-row">

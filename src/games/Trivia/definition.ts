@@ -24,7 +24,33 @@ export interface TriviaInput {
 }
 
 type Question = { q: string; a: string[]; c: number };
-const QUESTIONS = pack as Question[];
+type TopicPack = Record<string, { name: string; emoji: string; questions: Question[] }>;
+const TOPIC_PACK = pack as TopicPack;
+
+export interface TriviaTopic {
+  id: string;
+  name: string;
+  emoji: string;
+  count: number;
+}
+
+/** Topic metadata for settings UIs, in pack order. */
+export const triviaTopics: TriviaTopic[] = Object.entries(TOPIC_PACK).map(([id, t]) => ({
+  id,
+  name: t.name,
+  emoji: t.emoji,
+  count: t.questions.length,
+}));
+
+/**
+ * Question pool for the enabled topics. Unknown/missing selection
+ * (including rooms created before topics existed) falls back to all topics.
+ */
+export function questionsForTopics(enabled: string[] | null | undefined): Question[] {
+  const ids = (enabled ?? []).filter((id) => TOPIC_PACK[id]);
+  const pool = ids.length > 0 ? ids : Object.keys(TOPIC_PACK);
+  return pool.flatMap((id) => TOPIC_PACK[id].questions);
+}
 
 function reveal(state: TriviaState, ctx: GameContext): ReduceResult<TriviaState> {
   const question = state.q;
@@ -61,14 +87,15 @@ function reveal(state: TriviaState, ctx: GameContext): ReduceResult<TriviaState>
 
 export const definition: GameDefinition<TriviaState, TriviaInput> = {
   id: 'trivia',
-  name: 'Booze Trivia',
+  name: 'Trivia',
   emoji: '🧠',
   rules: 'A question appears — everyone answers on their phone. Wrong answers drink 1. Fastest correct answer scores.',
   minPlayers: 1,
 
   createInitialState(ctx: GameContext): TriviaState {
+    const questions = questionsForTopics(ctx.settings.triviaTopics);
     return {
-      q: QUESTIONS[Math.floor(ctx.rng() * QUESTIONS.length)],
+      q: questions[Math.floor(ctx.rng() * questions.length)],
       phase: 'question',
       answers: {},
       assignments: [],

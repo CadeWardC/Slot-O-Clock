@@ -248,6 +248,28 @@ a { color: var(--cyan); }
 .game-toggle-name { flex: 1; text-align: left; font-weight: 700; }
 .game-toggle-min { color: var(--muted); font-size: 0.8rem; }
 
+.topic-toggles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.topic-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  color: var(--text);
+  padding: 9px 11px;
+  cursor: pointer;
+  opacity: 0.55;
+}
+.topic-toggle.on { opacity: 1; border-color: var(--green); }
+.topic-toggle-emoji { font-size: 1.15rem; }
+.topic-toggle-name { flex: 1; text-align: left; font-weight: 700; font-size: 0.85rem; }
+.topic-toggle-count { color: var(--muted); font-size: 0.72rem; }
+
 .setting-row {
   display: flex;
   align-items: center;
@@ -682,3 +704,10 @@ a { color: var(--cyan); }
 .pr-vote-guilty { border-color: var(--magenta); background: rgba(255, 79, 163, 0.12); }
 .pr-vote-innocent { border-color: var(--cyan); background: rgba(79, 216, 255, 0.12); }
 
+
+/* --- categories --- */
+.cat-pool { font-weight: 800; color: var(--gold); margin: 0; letter-spacing: 0.05em; }
+.cat-name-btn { white-space: nowrap; }
+.cat-actions { display: flex; gap: 10px; width: 100%; }
+.cat-actions .btn { flex: 1; }
+.cat-punish { width: 100%; max-width: 320px; font-size: 1.3rem; padding: 22px; }
