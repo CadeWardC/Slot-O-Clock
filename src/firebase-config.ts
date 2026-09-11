@@ -12,11 +12,14 @@
 //    Realtime Database → data view, e.g.
 //    https://your-project-default-rtdb.firebaseio.com)
 export const firebaseConfig = {
-  apiKey: 'PASTE_API_KEY',
-  authDomain: 'PASTE_PROJECT_ID.firebaseapp.com',
-  databaseURL: 'PASTE_YOUR_RTDB_URL',
-  projectId: 'PASTE_PROJECT_ID',
-  appId: 'PASTE_APP_ID',
+  apiKey: 'AIzaSyAkHGxsxle6pLyzBpxVqk-2ouTOeEuczJ0',
+  authDomain: 'drunkenclam-248e6.firebaseapp.com',
+  databaseURL: 'https://drunkenclam-248e6-default-rtdb.firebaseio.com',
+  projectId: 'drunkenclam-248e6',
+  storageBucket: 'drunkenclam-248e6.firebasestorage.app',
+  messagingSenderId: '759380357175',
+  appId: '1:759380357175:web:f3282959c5ec80d4f5cfb2',
+  measurementId: 'G-2N0H4VGW7J',
 };
 
 export const isFirebaseConfigured =
