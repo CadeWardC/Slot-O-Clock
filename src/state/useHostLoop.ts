@@ -181,11 +181,26 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
       const now = serverNow();
 
       if (m.phase === 'claim') {
-        const claim = roomRef.current?.turnClaim?.[m.round];
-        if (claim?.uid) {
+        // One-time ordering ceremony: each claim appends the claimant to
+        // turnOrder. When everyone has a slot (or the host forces it),
+        // round 1 begins and the order runs the whole game.
+        let order = [...(m.turnOrder ?? [])];
+        const claim = roomRef.current?.turnClaim?.[order.length];
+        if (claim?.uid && !order.includes(claim.uid)) {
+          order = [...order, claim.uid];
+          // set() (not multi-path update): an array is only legal as a VALUE,
+          // never as update()'s path map — update(ref, array) throws.
+          await set(ref(rdb, `rooms/${code}/meta/turnOrder`), order).catch(() => {});
+        }
+        const players = activePlayers(roomRef.current);
+        const complete =
+          order.length > 0 &&
+          (order.length >= Math.max(1, players.length) || m.forceStart === true);
+        if (complete) {
           await update(ref(rdb, `rooms/${code}/meta`), {
             phase: 'intro',
-            actorUid: claim.uid,
+            round: 1,
+            actorUid: order[0],
             introEndsAt: now + INTRO_MS,
           }).catch(() => {});
         }
@@ -226,7 +241,7 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
       if (m.phase === 'outcome') {
         const endsAt = m.outcomeEndsAt ?? now;
         if (now >= endsAt) {
-          const enabled = m.settings.enabledGames.filter((id) => gameById.has(id));
+          const enabled = (m.settings.enabledGames ?? []).filter((id) => gameById.has(id));
           const pool = enabled.length > 0 ? enabled : allGames.map((g) => g.id);
           let rotation = m.rotation;
           let gameIndex = m.gameIndex + 1;
@@ -234,15 +249,20 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
             rotation = shuffled(pool, Math.random);
             gameIndex = 0;
           }
+          // next round runs straight into the intro — the claimed order
+          // cycles automatically, no claiming between rounds
+          const order = m.turnOrder ?? [];
+          const nextRoundNum = m.round + 1;
+          const nextActor = order.length > 0 ? order[(nextRoundNum - 1) % order.length] : null;
           stateMirror = null;
           await update(ref(rdb, `rooms/${code}`), {
             game: null,
-            'meta/phase': 'claim',
-            'meta/round': m.round + 1,
+            'meta/phase': 'intro',
+            'meta/round': nextRoundNum,
             'meta/rotation': rotation,
             'meta/gameIndex': gameIndex,
-            'meta/actorUid': null,
-            'meta/lastActorUid': m.actorUid,
+            'meta/actorUid': nextActor,
+            'meta/introEndsAt': now + INTRO_MS,
             'meta/outcome': null,
           }).catch(() => {});
         }

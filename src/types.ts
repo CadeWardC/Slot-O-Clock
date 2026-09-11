@@ -20,15 +20,20 @@ export interface RoomMeta {
   ownerUid: string;
   mode: RoomMode;
   phase: RoomPhase;
-  /** 1-based round counter; doubles as the turnClaim key */
+  /** 0 during the ordering ceremony, 1+ once rounds begin */
   round: number;
   /** shuffled pool of enabled game ids */
   rotation: string[];
   gameIndex: number;
-  /** claimed via I'll Start / I'm Next */
+  /**
+   * Turn order claimed once at game start via I'll Start / I'm Next.
+   * Round N's actor is turnOrder[(N - 1) % turnOrder.length].
+   */
+  turnOrder?: string[];
+  /** host escape hatch: lock in the current order without waiting for everyone */
+  forceStart?: boolean;
+  /** actor for the current round, derived from turnOrder by the host loop */
   actorUid: string | null;
-  /** actor of the previous round — excluded from the next I'm Next claim */
-  lastActorUid: string | null;
   introEndsAt?: number;
   outcomeEndsAt?: number;
   outcome?: OutcomeInfo | null;
@@ -58,6 +63,7 @@ export interface EventEntry {
 export interface RoomData {
   meta: RoomMeta;
   players: Record<string, PlayerInfo>;
+  /** turnClaim/{slot} = first player to claim that order position */
   turnClaim?: Record<string, { uid: string; at: number }>;
   game?: GameNode | null;
   events?: Record<string, EventEntry>;

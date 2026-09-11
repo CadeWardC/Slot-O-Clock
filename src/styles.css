@@ -322,6 +322,33 @@ a { color: var(--cyan); }
 .claim-upnext { color: var(--muted); margin: 0; }
 .claim-game { color: var(--text); font-weight: 800; }
 .claim h2 { margin: 0; }
+.claim-order {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  justify-content: center;
+  align-items: center;
+  max-width: 340px;
+}
+.claim-order-item {
+  background: var(--card);
+  border: 1.5px solid var(--gold);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  animation: slideIn 0.3s ease;
+}
+.claim-order-arrow { color: var(--muted); }
+.claim-order-pos {
+  background: var(--gold);
+  color: #3a2400;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  padding: 1px 7px;
+  margin-right: 4px;
+}
 .claim-taken-emoji { font-size: 4.5rem; animation: bounceIn 0.5s ease; }
 .claim-grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .claim-btn { width: 100%; max-width: 340px; }

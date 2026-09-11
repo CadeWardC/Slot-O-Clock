@@ -23,6 +23,7 @@ import { serverNow } from './serverTime';
 import type { PlayerInfo, RoomMode, RoomSettings } from '../engine/types';
 import { allGames, gameById } from '../games';
 import {
+  activePlayers,
   randomRoomCode,
   type RoomData,
   type Session,
@@ -290,14 +291,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [db, session, room, saveProfile],
   );
 
-  /** First-write-wins turn claim: "I'll Start" / "I'm Next". */
+  /**
+   * First-write-wins claim of an order slot during the opening ceremony:
+   * "I'll Start" claims slot 0, each "I'm Next" claims the next slot.
+   * Each player claims exactly once; the order then runs the whole game.
+   */
   const claimTurn = useCallback(
     async (forUid?: string) => {
       if (!db || !session || !room) return;
-      const round = room.meta.round;
+      const target = forUid ?? session.uid;
+      const slot = room.meta.turnOrder?.length ?? 0;
+      if (room.meta.turnOrder?.includes(target)) return; // already ordered
       await runTransaction(
-        ref(db, `rooms/${session.code}/turnClaim/${round}`),
-        (cur) => (cur ? undefined : { uid: forUid ?? session.uid, at: serverNow() }),
+        ref(db, `rooms/${session.code}/turnClaim/${slot}`),
+        (cur) => (cur ? undefined : { uid: target, at: serverNow() }),
       );
     },
     [db, session, room],
@@ -326,16 +333,17 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const startGame = useCallback(async () => {
     if (!db || !session || !room) return;
-    const enabled = room.meta.settings.enabledGames.filter((id) => gameById.has(id));
+    const enabled = (room.meta.settings.enabledGames ?? []).filter((id) => gameById.has(id));
     const pool = enabled.length > 0 ? enabled : allGames.map((g) => g.id);
     const rotation = shuffled(pool, Math.random);
     await update(ref(db, rpath('meta')), {
       phase: 'claim',
-      round: 1,
+      round: 0,
       rotation,
       gameIndex: 0,
       actorUid: null,
-      lastActorUid: null,
+      turnOrder: null,
+      forceStart: false,
       outcome: null,
     });
   }, [db, session, room]);
@@ -345,7 +353,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     if (!db || !session || !room) return;
     const m = room.meta;
     const now = serverNow();
-    if (m.phase === 'intro') {
+    if (m.phase === 'claim') {
+      // lock in the ceremony with whoever has claimed (seed the first player if nobody has)
+      const order = m.turnOrder ?? [];
+      const finalOrder =
+        order.length > 0 ? order : activePlayers(room).slice(0, 1).map((p) => p.uid);
+      if (finalOrder.length === 0) return;
+      await update(ref(db, rpath('meta')), { turnOrder: finalOrder, forceStart: true }).catch(() => {});
+    } else if (m.phase === 'intro') {
       await update(ref(db, rpath('meta')), { introEndsAt: now }).catch(() => {});
     } else if (m.phase === 'outcome') {
       await update(ref(db, rpath('meta')), { outcomeEndsAt: now }).catch(() => {});

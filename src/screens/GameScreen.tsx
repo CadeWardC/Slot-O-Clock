@@ -15,7 +15,7 @@ export function GameScreen() {
   return (
     <div className="screen game-screen">
       <header className="game-head">
-        <span className="round-chip">R{meta.round}</span>
+        <span className="round-chip">{meta.phase === 'claim' ? 'ORDER' : `R${meta.round}`}</span>
         <span className="game-title">
           {meta.phase === 'playing' || meta.phase === 'outcome'
             ? (gameById.get(room.game?.type ?? '')?.name ?? '…')
@@ -38,69 +38,66 @@ export function GameScreen() {
   );
 }
 
-/* ============ claim: I'll Start / I'm Next ============ */
+/* ============ claim: the one-time turn-order ceremony ============ */
 
 function ClaimView({ room }: { room: RoomData }) {
-  const { session, me, claimTurn, isAuthority } = useApp();
+  const { me, claimTurn, isAuthority, hostSkipRound } = useApp();
   const meta = room.meta;
   const players = activePlayers(room);
   const nextDef = gameById.get(meta.rotation[meta.gameIndex] ?? '');
-  const claim = room.turnClaim?.[meta.round];
-  const claimedBy = claim ? players.find((p) => p.uid === claim.uid) : null;
-  const isFirstRound = meta.round <= 1;
-  const excludedUid = players.length > 1 ? meta.lastActorUid : null;
+  const order = meta.turnOrder ?? [];
+  const ordered = order
+    .map((uid) => players.find((p) => p.uid === uid))
+    .filter((p): p is PlayerInfo => !!p);
+  const pending = players.filter((p) => !order.includes(p.uid));
+  const isFirstSlot = order.length === 0;
+  const iAmIn = !!me && order.includes(me.uid);
 
   return (
     <div className="claim">
       <p className="claim-upnext">
-        Up next: <span className="claim-game">{nextDef?.emoji} {nextDef?.name}</span>
+        First up: <span className="claim-game">{nextDef?.emoji} {nextDef?.name}</span>
       </p>
+      <h2>{isFirstSlot ? "Who's kicking things off?" : "Who's next in the order?"}</h2>
 
-      {claimedBy ? (
-        <div className="claim-taken">
-          <div className="claim-taken-emoji">{claimedBy.emoji}</div>
-          <h2>{claimedBy.name} is up!</h2>
-        </div>
-      ) : meta.mode === 'shared' ? (
-        <div className="claim-shared">
-          <h2>{isFirstRound ? 'Who starts?' : "Who's next?"}</h2>
-          <p className="muted">Tap a player to give them the turn</p>
+      <div className="claim-order">
+        {ordered.map((p, i) => (
+          <span key={p.uid} className="claim-order-item">
+            {i > 0 && <span className="claim-order-arrow">→</span>}
+            <span className="claim-order-pos">{i + 1}</span> {p.emoji} {p.name}
+          </span>
+        ))}
+        {ordered.length === 0 && <span className="muted">No order yet — tap below to start it.</span>}
+      </div>
+
+      {meta.mode === 'shared' ? (
+        <>
+          <p className="muted">Tap a player to give them spot {order.length + 1}</p>
           <div className="claim-grid">
-            {players
-              .filter((p) => p.uid !== excludedUid)
-              .map((p) => (
-                <PlayerChip key={p.uid} player={p} drinks={p.drinkCount} onClick={() => claimTurn(p.uid)} />
-              ))}
+            {pending.map((p) => (
+              <PlayerChip key={p.uid} player={p} onClick={() => claimTurn(p.uid)} />
+            ))}
           </div>
-        </div>
+        </>
+      ) : pending.length === 0 ? (
+        <p className="muted">Order locked — let's go! 🍻</p>
+      ) : iAmIn ? (
+        <p className="muted">You're in at spot {order.indexOf(me!.uid) + 1} — waiting for the others…</p>
       ) : (
-        <div className="claim-party">
-          {me && me.uid === excludedUid ? (
-            <>
-              <h2>You just went 🍻</h2>
-              <p className="muted">Waiting for someone to take the next turn…</p>
-            </>
-          ) : (
-            <>
-              <h2>{isFirstRound ? 'Ready to begin?' : 'Next player!'}</h2>
-              <p className="muted">First to tap takes the turn</p>
-              <Button
-                variant="claim"
-                size="lg"
-                full
-                className="claim-btn"
-                onClick={() => claimTurn()}
-              >
-                {isFirstRound ? "I'LL START 🍺" : "I'M NEXT 🍻"}
-              </Button>
-            </>
-          )}
-        </div>
+        <Button
+          variant="claim"
+          size="lg"
+          full
+          className="claim-btn"
+          onClick={() => claimTurn()}
+        >
+          {isFirstSlot ? "I'LL START 🍺" : "I'M NEXT 🍻"}
+        </Button>
       )}
 
-      {isAuthority && !claimedBy && (
-        <Button variant="ghost" size="sm" onClick={() => claimTurn(session!.uid)}>
-          host: start anyway
+      {isAuthority && pending.length > 0 && (
+        <Button variant="ghost" size="sm" onClick={() => hostSkipRound()}>
+          {ordered.length > 0 ? 'lock order & start' : 'start with first player'}
         </Button>
       )}
     </div>
@@ -250,16 +247,18 @@ function OutcomeView({ room }: { room: RoomData }) {
   const outcome = room.meta.outcome;
   const players = activePlayers(room);
   if (!outcome) return null;
+  // RTDB drops empty arrays — `assignments` can read back undefined
+  const assignments = outcome.assignments ?? [];
 
   return (
     <div className="outcome">
       <div className="outcome-emoji">{outcome.gameEmoji}</div>
       <h2>{outcome.gameName}</h2>
       <div className="outcome-list">
-        {outcome.assignments.length === 0 && (
+        {assignments.length === 0 && (
           <p className="outcome-none">{outcome.note || 'No drinks this round 🎉'}</p>
         )}
-        {outcome.assignments.map((a) => {
+        {assignments.map((a) => {
           const p = players.find((x) => x.uid === a.uid);
           if (!p) return null;
           return (
@@ -273,7 +272,7 @@ function OutcomeView({ room }: { room: RoomData }) {
           );
         })}
       </div>
-      {outcome.note && outcome.assignments.length > 0 && (
+      {outcome.note && assignments.length > 0 && (
         <p className="outcome-note">{outcome.note}</p>
       )}
       <TimerBar deadline={room.meta.outcomeEndsAt} totalMs={OUTCOME_MS} />

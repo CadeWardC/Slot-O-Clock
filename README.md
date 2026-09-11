@@ -2,7 +2,7 @@
 
 A multiplayer **drinking-minigame party game** for phones. One player creates a room, friends join with a 4-letter code, and everyone plays together in real time — every phone shows the identical game, synced over Firebase Realtime Database (a persistent WebSocket per client).
 
-- **Turn order is claimed, not assigned**: every round starts with an **"I'LL START"** button on all screens — first tap takes the turn. After that round, everyone else gets **"I'M NEXT"**, and the next person to tap it goes next.
+- **Turn order is claimed, not assigned — once**: when the game starts, every phone shows **"I'LL START"** — first tap takes spot 1. Then the remaining phones get **"I'M NEXT"** and each tap fills the next spot. Once everyone has a spot the order is locked for the **whole session**, and every round cycles through it automatically (the host can also lock the order early).
 - **Two ways to play** (pick a button when creating the room):
   - 📱 **Party mode** — everyone joins on their own phone.
   - 🤝 **Shared phone** — one phone, players added by name, passed around with "pass the phone to…" gates.
@@ -55,7 +55,7 @@ phones ⇄ WebSocket ⇄ Firebase RTDB (rooms/{CODE}) ⇄ WebSocket ⇄ phones
 
 - **Host = the server.** GitHub Pages can't run one, so the room owner's client owns all phase transitions and runs every game's `reduce()` — players only write their own inputs, enforced by database rules.
 - **Data model** — `rooms/{CODE}/meta` (phase machine), `players/{uid}`, `turnClaim/{round}` (first-write-wins claim), `game/{state, timerEndsAt, inputs}`, `events` (the drink feed).
-- **Turn claiming** — each round is claimed through an RTDB transaction: the first "I'LL START"/"I'M NEXT" write wins, everyone else's is aborted by the rules. The previous actor is excluded from the next claim.
+- **Turn claiming** — the opening ceremony is a sequence of first-write-wins RTDB transactions: the first "I'LL START"/"I'M NEXT" write per slot wins, everyone else's is aborted by the rules. The resulting `turnOrder` drives every round's actor (`turnOrder[(round - 1) % length]`) with no further claiming.
 - **Fair timers** — clients track `.info/serverTimeOffset`, so countdowns and reaction times line up across phones.
 - **Resilience** — presence via `onDisconnect`; a reloaded or backgrounded host self-heals (timers and phases are checked against server-time deadlines); another player can take over hosting if the owner leaves.
 

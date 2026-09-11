@@ -22,7 +22,7 @@ export function Lobby() {
   const owner = room.players[meta.ownerUid];
   const ownerGone = meta.mode === 'party' && owner && owner.connected === false;
 
-  const enabled = new Set(meta.settings.enabledGames);
+  const enabled = new Set(meta.settings.enabledGames ?? []);
   const eligible = allGames.filter((g) => enabled.has(g.id));
   const need = eligible.length > 0 ? Math.max(...eligible.map((g) => g.minPlayers)) : Infinity;
   const canStart = eligible.length > 0 && active.length >= need;
