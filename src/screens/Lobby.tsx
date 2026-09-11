@@ -20,7 +20,8 @@ export function Lobby() {
   const meta = room.meta;
   const players = playerList(room);
   const active = activePlayers(room);
-  const owner = room.players[meta.ownerUid];
+  // shared-mode rooms have no players node until the host adds one
+  const owner = room.players?.[meta.ownerUid];
   const ownerGone = meta.mode === 'party' && owner && owner.connected === false;
 
   const enabled = new Set(meta.settings.enabledGames ?? []);
