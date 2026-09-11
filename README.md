@@ -19,6 +19,9 @@ A multiplayer **drinking-minigame party game** for phones. One player creates a 
 | Categories | 🗂️ | Name 4 things in the category while the group stacks drinks: a +1 drink button jumps player to player. Done = drink what stacked, give up = stacked +2. |
 | Poisoning the Drinks | ☠️ | Half are poisoners, half are drinkers — each poisoner secretly spikes ONE of their victim's 4 cups, then the drinker picks one. Safe cup → the poisoner drinks 2, poisoned → the drinker drinks 2. Odd group: the leftover drinks against The House. |
 | Fake It Till You Make It | 🕵️ | Three rounds, one secret faker per round (everyone else gets the same secret prompt). Make the move on three — hold up fingers 🖐, point at someone 👉, or raise a hand ✋ — then argue and vote. Caught faker drinks 3; a faker who slips away makes everyone else drink 1. |
+| Horse Race | 🏇 | Everyone bets on a horse from the field, then a server-synced ~8 second race plays out identically on every phone. Back the winner and you hand out a drink to anyone you like; back the worst-placed horse anyone picked and you drink 3, the next-worst costs 1. If nobody backed the winner, everyone drinks 1. |
+| Wavelength | 🎚️ | The turn actor sees a hidden target on a 0-100 spectrum and gives a clue out loud; everyone else dials where they think it lands. Furthest guess drinks 2, closest scores — and if the group's average is miles off, the clue-giver drinks 2 instead. |
+| Anonymous Confessions | 🤫 | Everyone answers a juicy prompt anonymously, the confessions appear with no names on them, and one card goes on trial: who wrote it? A caught author drinks 2; fool the whole group and everyone else drinks 1. Two prompts per game. |
 
 ## Setup (one-time, ~5 minutes)
 
@@ -113,11 +116,11 @@ export default definition;
 
 `GameViewProps` (what your `View` receives): `state`, `me`, `players`, `actorUid`/`isActor`, `isAuthority`, `myInput` (already submitted?), `answeredUids`, `timerEndsAt`, `submitInput`, `variant` (`'party' | 'shared'`).
 
-Study [`src/games/_template/`](./src/games/_template/definition.ts) (a complete coin-flip game, ~60 lines) or the four real games for patterns: actor-driven ([Slots](./src/games/Slots/definition.ts)), timing-critical ([Reaction](./src/games/Reaction/definition.ts)), everyone-answers ([Trivia](./src/games/Trivia/definition.ts)), voting ([Prompts](./src/games/Prompts/definition.ts)).
+Study [`src/games/_template/`](./src/games/_template/definition.ts) (a complete coin-flip game, ~60 lines) or the real games for patterns: actor-driven ([Slots](./src/games/Slots/definition.ts)), timing-critical ([Reaction](./src/games/Reaction/definition.ts)), everyone-answers ([Trivia](./src/games/Trivia/definition.ts)), voting ([Prompts](./src/games/Prompts/definition.ts)), precomputed-plus-animation ([HorseRace](./src/games/HorseRace/definition.ts)), hidden-target ([Wavelength](./src/games/Wavelength/definition.ts)), and free-text anonymity ([Confessions](./src/games/Confessions/definition.ts)).
 
 ### Content packs
 
-Trivia questions and prompts are plain JSON in [`src/content/`](./src/content/) — extend or replace them freely.
+Trivia questions and prompts are plain JSON in [`src/content/`](./src/content/) — extend or replace them freely. [`spectrums.json`](./src/content/spectrums.json) feeds Wavelength and [`confessions.json`](./src/content/confessions.json) feeds Anonymous Confessions.
 
 ## House rules & notes
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, TimerBar, useCountdown } from '../../components/ui';
 import type { GameViewProps } from '../../engine/types';
 import {
@@ -62,6 +62,12 @@ export function View({
   const cards = state.cards ?? [];
   const written = state.written ?? {};
   const votes = state.votes ?? {};
+
+  // clear the box between rounds and between holders — a leftover confession
+  // must never be sitting on screen when the phone is passed on
+  useEffect(() => {
+    setText('');
+  }, [state.roundNo, me.uid]);
 
   /* ---------- write it ---------- */
   if (state.phase === 'write') {
@@ -145,17 +151,17 @@ export function View({
           </p>
         ) : (
           <>
-            <p className="cf-call">Card #{trial.n} — who wrote it?</p>
-            <div className="cf-people">
+            <p className="pick-call">Card #{trial.n} — who wrote it?</p>
+            <div className="pick-people">
               {players
                 .filter((p) => p.uid !== me.uid)
                 .map((p) => (
                   <button
                     key={p.uid}
-                    className="cf-person"
+                    className="pick-person"
                     onClick={() => submitInput({ action: 'vote', uid: p.uid })}
                   >
-                    <span className="cf-person-emoji">{p.emoji}</span> {p.name}
+                    <span className="pick-person-emoji">{p.emoji}</span> {p.name}
                   </button>
                 ))}
             </div>

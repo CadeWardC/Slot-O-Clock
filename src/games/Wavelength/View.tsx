@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, TimerBar, useCountdown } from '../../components/ui';
 import type { GameViewProps } from '../../engine/types';
 import {
@@ -66,8 +66,15 @@ export function View({
 
   const actor = players.find((p) => p.uid === actorUid);
   const guesses = state.guesses ?? {};
+  const myGuess = guesses[me.uid];
   const guessers = players.filter((p) => p.uid !== actorUid);
   const done = guessers.filter((p) => guesses[p.uid] != null).length;
+
+  // a fresh dial for every round and every holder — the phone gets passed on,
+  // so the next player must never start from the last player's position
+  useEffect(() => {
+    setDial(typeof myGuess === 'number' ? myGuess : 50);
+  }, [me.uid, myGuess]);
 
   /* ---------- the actor gives the clue ---------- */
   if (state.phase === 'clue') {
@@ -103,8 +110,6 @@ export function View({
 
   /* ---------- everyone else dials ---------- */
   if (state.phase === 'guessing') {
-    const myGuess = guesses[me.uid];
-
     if (isActor) {
       return (
         <div className="gv">
@@ -163,7 +168,6 @@ export function View({
   }
 
   /* ---------- the reveal ---------- */
-  const target = Math.round(state.target);
   const rows = Object.entries(guesses)
     .map(([uid, value]) => ({ uid, value, d: Math.abs(value - state.target) }))
     .sort((a, b) => a.d - b.d);
@@ -195,7 +199,6 @@ export function View({
           );
         })}
       </div>
-      <p className="muted small">the target was {target}</p>
     </div>
   );
 }
