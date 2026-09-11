@@ -1,0 +1,51 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$room": {
+        ".read": "auth != null",
+
+        ".write": "auth != null && data.child('meta/ownerUid').val() === auth.uid",
+
+        "meta": {
+          ".write": "auth != null && ((!data.exists() && newData.child('createdAt').val() > now - 120000 && newData.child('createdAt').val() < now + 120000) || (data.child('ownerUid').val() === auth.uid && data.child('createdAt').val() > now - 43200000))",
+          "ownerUid": {
+            ".write": "auth != null && ((!data.exists()) || data.val() === auth.uid || (root.child('rooms/' + $room + '/players/' + data.val() + '/connected').val() === false && root.child('rooms/' + $room + '/players/' + auth.uid).exists()))"
+          }
+        },
+
+        "players": {
+          "$uid": {
+            ".write": "auth != null && (auth.uid === $uid || root.child('rooms/' + $room + '/meta/ownerUid').val() === auth.uid)",
+            ".validate": "newData.hasChildren(['name', 'emoji']) && newData.child('name').isString() && newData.child('name').val().length >= 1 && newData.child('name').val().length <= 20 && newData.child('emoji').isString()"
+          }
+        },
+
+        "turnClaim": {
+          "$round": {
+            ".write": "auth != null && !data.exists() && (newData.child('uid').val() === auth.uid || root.child('rooms/' + $room + '/meta/ownerUid').val() === auth.uid)",
+            ".validate": "newData.hasChildren(['uid', 'at'])"
+          }
+        },
+
+        "game": {
+          ".write": "auth != null && root.child('rooms/' + $room + '/meta/ownerUid').val() === auth.uid",
+          "inputs": {
+            "$push": {
+              ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid",
+              ".validate": "newData.hasChildren(['uid', 'at', 'input'])"
+            }
+          }
+        },
+
+        "events": {
+          ".write": "auth != null && root.child('rooms/' + $room + '/meta/ownerUid').val() === auth.uid",
+          "$push": {
+            ".validate": "newData.hasChildren(['at', 'text'])"
+          }
+        }
+      }
+    }
+  }
+}
