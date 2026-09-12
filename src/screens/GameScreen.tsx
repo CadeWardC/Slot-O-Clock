@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useApp } from '../state/AppState';
-import { activePlayers, INTRO_MS, pacingOf, type GameInputEntry, type RoomData } from '../types';
+import { activePlayers, pacingOf, type GameInputEntry, type RoomData } from '../types';
 import { gameById } from '../games';
-import { Button, Modal, PlayerChip, TimerBar } from '../components/ui';
+import { Button, Modal, PlayerChip } from '../components/ui';
 import type { PlayerInfo } from '../engine/types';
 
 export function GameScreen() {
@@ -109,17 +109,26 @@ function ClaimView({ room }: { room: RoomData }) {
 function IntroView({ room }: { room: RoomData }) {
   const { isAuthority, hostSkipRound } = useApp();
   const def = gameById.get(room.meta.rotation[room.meta.gameIndex] ?? '');
+  const players = activePlayers(room);
   if (!def) return null;
+  // Same pacing rule as the outcome screen: the splash parks on the ready
+  // gate until the table says go (or the host runs the room themselves).
+  const pacing = pacingOf(room.meta.settings);
   return (
     <div className="intro">
       <div className="intro-emoji">{def.emoji}</div>
       <h1 className="intro-name">{def.name}</h1>
       <p className="intro-rules">{def.rules}</p>
-      <TimerBar deadline={room.meta.introEndsAt} totalMs={INTRO_MS} />
-      {isAuthority && (
-        <Button variant="ghost" size="sm" onClick={() => hostSkipRound()}>
-          skip ▶
-        </Button>
+      {pacing === 'manual' ? (
+        isAuthority ? (
+          <Button variant="gold" size="lg" onClick={() => hostSkipRound()}>
+            Start the round ▶
+          </Button>
+        ) : (
+          <p className="muted">⏸ read up — the host starts the round</p>
+        )
+      ) : (
+        <ReadyGate players={players} shared={room.meta.mode === 'shared'} intro />
       )}
     </div>
   );
@@ -282,14 +291,37 @@ function OutcomeView({ room }: { room: RoomData }) {
   const outcome = room.meta.outcome;
   const players = activePlayers(room);
   if (!outcome) return null;
-  // RTDB drops empty arrays — `assignments` can read back undefined
+  // RTDB drops empty arrays — `assignments`/`groups` can read back undefined
   const assignments = outcome.assignments ?? [];
+  const recapGroups = (outcome.recap?.groups ?? []).filter((g) => (g?.uids ?? []).length > 0);
   const pacing = pacingOf(room.meta.settings);
 
   return (
     <div className="outcome">
       <div className="outcome-emoji">{outcome.gameEmoji}</div>
       <h2>{outcome.gameName}</h2>
+
+      {recapGroups.length > 0 && (
+        <div className="outcome-recap">
+          {outcome.recap?.title && <p className="outcome-recap-title">{outcome.recap.title}</p>}
+          {recapGroups.map((g, i) => (
+            <div key={`${g.label}-${i}`} className={`recap-group recap-${g.tone ?? 'neutral'}`}>
+              <span className="recap-label">{g.label}</span>
+              <span className="recap-names">
+                {g.uids.map((uid) => {
+                  const p = players.find((x) => x.uid === uid);
+                  return p ? (
+                    <span key={uid} className="recap-chip">
+                      {p.emoji} {p.name}
+                    </span>
+                  ) : null;
+                })}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       <div className="outcome-list">
         {assignments.length === 0 && (
           <p className="outcome-none">{outcome.note || 'No drinks this round 🎉'}</p>
@@ -327,11 +359,20 @@ function OutcomeView({ room }: { room: RoomData }) {
 }
 
 /**
- * The between-round gate: nothing moves on until every player still in the
- * room has tapped Ready. On a shared phone there is only one device to tap,
- * so one press readies the whole table.
+ * The ready gate: nothing moves on until every player still in the room has
+ * tapped Ready. It guards two moments — the rules splash (`intro`) and the
+ * between-round outcome screen. On a shared phone there is only one device to
+ * tap, so one press readies the whole table.
  */
-function ReadyGate({ players, shared }: { players: PlayerInfo[]; shared: boolean }) {
+function ReadyGate({
+  players,
+  shared,
+  intro = false,
+}: {
+  players: PlayerInfo[];
+  shared: boolean;
+  intro?: boolean;
+}) {
   const { me, setReady, isAuthority, hostSkipRound } = useApp();
   const waiting = players.filter((p) => p.ready !== true);
   const readyCount = players.length - waiting.length;
@@ -339,6 +380,17 @@ function ReadyGate({ players, shared }: { players: PlayerInfo[]; shared: boolean
   const iAmReady = !!me && me.ready === true;
   // one phone, one tap — only the room owner is allowed to flag everyone
   const readyEveryone = shared && isAuthority;
+  const copy = intro
+    ? {
+        allReady: "everyone's ready — here we go 🍻",
+        readyAll: "EVERYONE'S READY — GO 🍻",
+        ready: 'READY TO PLAY 🍻',
+      }
+    : {
+        allReady: "everyone's ready — here comes the next game 🍻",
+        readyAll: "EVERYONE'S READY 🍻",
+        ready: 'READY FOR THE NEXT GAME 🍻',
+      };
 
   return (
     <div className="ready">
@@ -352,9 +404,7 @@ function ReadyGate({ players, shared }: { players: PlayerInfo[]; shared: boolean
         ))}
       </div>
       <p className="ready-count">
-        {allReady
-          ? "everyone's ready — here comes the next game 🍻"
-          : `${readyCount}/${players.length} ready`}
+        {allReady ? copy.allReady : `${readyCount}/${players.length} ready`}
       </p>
 
       {allReady ? null : readyEveryone ? (
@@ -364,7 +414,7 @@ function ReadyGate({ players, shared }: { players: PlayerInfo[]; shared: boolean
           full
           onClick={() => setReady(true, players.map((p) => p.uid))}
         >
-          EVERYONE'S READY 🍻
+          {copy.readyAll}
         </Button>
       ) : iAmReady ? (
         <>
@@ -375,7 +425,7 @@ function ReadyGate({ players, shared }: { players: PlayerInfo[]; shared: boolean
         </>
       ) : (
         <Button variant="gold" size="lg" full onClick={() => setReady(true)}>
-          READY FOR THE NEXT GAME 🍻
+          {copy.ready}
         </Button>
       )}
 

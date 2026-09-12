@@ -84,6 +84,24 @@ export interface DrinkAssignment {
   reason: string;
 }
 
+/** one labelled, colour-coded row of the round recap shown when drinks land */
+export interface OutcomeRecapGroup {
+  label: string;
+  /** colour cue: 'bad' = red (the guilty/doomed side), 'good' = green, default plain */
+  tone?: 'bad' | 'good' | 'neutral';
+  uids: string[];
+}
+
+/**
+ * Optional end-of-round breakdown a game can hand to the outcome screen —
+ * it's where drinks are handed out, so the table gets to see who voted for
+ * what (Never Have I Ever) before anyone taps ready.
+ */
+export interface OutcomeRecap {
+  title?: string;
+  groups: OutcomeRecapGroup[];
+}
+
 export type Effect =
   /** mid-game drinking (applied immediately, shown in the feed) */
   | { type: 'DRINKS'; assignments: DrinkAssignment[] }
@@ -96,8 +114,11 @@ export type Effect =
    * `answeredUids`/`myInput` reflect the new phase only.
    */
   | { type: 'CLEAR_INPUTS' }
-  /** end the round; `assignments` are applied AND shown on the outcome screen */
-  | { type: 'END'; assignments?: DrinkAssignment[]; note?: string | null };
+  /**
+   * End the round; `assignments` are applied AND shown on the outcome screen.
+   * `recap` rides along to that same screen as colour-coded groups.
+   */
+  | { type: 'END'; assignments?: DrinkAssignment[]; note?: string | null; recap?: OutcomeRecap };
 
 export interface ReduceResult<S> {
   state: S;

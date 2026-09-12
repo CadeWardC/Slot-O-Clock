@@ -177,7 +177,7 @@ export function Lobby() {
             </div>
           </div>
           <div className="setting-row">
-            <span>Between rounds</span>
+            <span>Ready checks (rules splash + between rounds)</span>
             <div className="seg">
               {(['ready', 'manual'] as const).map((p) => (
                 <button

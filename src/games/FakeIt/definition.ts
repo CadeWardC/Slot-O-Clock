@@ -1,29 +1,37 @@
 /**
  * ============================================================
- *  FAKE IT TILL YOU MAKE IT — one liar, three rounds, no mercy
+ *  FAKE IT TILL YOU MAKE IT — one liar, three blind moves
  * ============================================================
- * ONE player is the faker for the WHOLE game, and the table plays
- * ONE move type (fingers / point / raise) for all three rounds.
+ * ONE player is the faker for the WHOLE game, and they never get
+ * the prompt. Each round opens on a private card: everybody else
+ * reads the prompt, the faker is only told WHICH MOVE the table is
+ * playing (fingers 🖐 / point 👉 / raise ✋) and told to blend in.
  *
- * The prompt is public: everyone — the faker included — sees it.
- * The faker isn't improvising blind, they are lying with exactly
- * the information everybody else has, which is why every round has
- * a long ARGUE phase with the clock running before the ballot.
+ * The move itself is made with the body, never in the app. The
+ * phones show a 10-second countdown and nothing else, the whole
+ * table moves together at zero, and only THEN does the prompt go
+ * public — faker included — so the table can argue about the moves
+ * it just watched.
  *
- * An accusation only lands if the ballot is UNANIMOUS across every
- * honest player: one doubter, one abstention, one vote for the wrong
- * person and the faker walks. The faker still gets a ballot screen
- * (so nobody can spot them by who did or didn't vote), but that
- * ballot is a DECOY — it is left out of the tally and can never
- * break the group's unanimity. The faker wins by talking, not by
- * paperwork.
+ * Then the group votes. Ballots are public and live: everyone sees
+ * who named whom and can switch their own pick, and the ballot
+ * locks once every player has voted (a short last-chance window,
+ * then it settles). An accusation only lands when every CLEAN
+ * ballot names the same player — the faker's own ballot is a decoy
+ * that is never counted, so nobody is caught by paperwork and
+ * nobody is saved by it either.
  *
- * Nobody can vote for themselves, so unanimity can only ever land on
- * the faker — which means telling the table "you were unanimous"
- * would hand them the identity in round one and turn rounds 2 and 3
- * into a formality. So the verdict reveals NOTHING: the tally is
- * sealed, no drinks are poured mid-game, and only the unmask screen
- * settles all three rounds at once.
+ * What the app never says is whether the group was RIGHT. Nobody
+ * can vote for themselves, so a unanimous accusation can only ever
+ * land on the faker: print "unanimous" and the faker is public in
+ * round one, which turns rounds 2 and 3 into a formality. So the
+ * ballots are public and the verdict stays silent — no drinks
+ * mid-game, no "you got them", and all three rounds (and the whole
+ * tab) settle at the unmask.
+ *
+ * (The prompt rides along in the broadcast state like every other
+ * secret in this codebase: the View hides it during the brief and
+ * the countdown, devtools doesn't. Same contract as `fakerUid`.)
  */
 
 import pack from '../../content/fakeit.json';
@@ -39,15 +47,17 @@ import { pick } from '../../engine/rng';
 import { View } from './View';
 
 export const ROUNDS_COUNT = 3;
-/** read the public prompt + privately learn your role */
-const BRIEF_MS = 45_000;
-/** lock your move in */
-const TASK_MS = 60_000;
-/** the phase that decides everything — argue, bluster, interrogate */
-export const ARGUE_MS = 120_000;
-/** secret ballot; unanimity is required for an accusation to land */
+/** private card: read your prompt (or your cover story) and hide it */
+export const BRIEF_MS = 60_000;
+/** the blind move: countdown only, everybody moves with their body */
+export const GESTURE_MS = 10_000;
+/** prompt goes public — argue about the moves you just saw */
+export const REVEAL_MS = 120_000;
+/** public ballot; it locks as soon as every player has voted */
 export const VOTE_MS = 60_000;
-/** the sealed round result */
+/** last-chance window once every ballot is in — you can still switch */
+export const LOCK_MS = 30_000;
+/** the silent round result */
 const VERDICT_MS = 10_000;
 /** the unmasking */
 const UNMASK_MS = 25_000;
@@ -57,38 +67,44 @@ export const CAUGHT_SIPS = 3;
 export const FOOLED_SIPS = 1;
 
 export type FkMode = 'numbers' | 'point' | 'raise';
-export type FkPhase = 'brief' | 'task' | 'argue' | 'vote' | 'verdict' | 'unmask' | 'done';
+export type FkPhase = 'brief' | 'gesture' | 'reveal' | 'vote' | 'verdict' | 'unmask' | 'done';
 
 type Pack = { name: string; emoji: string; prompts: string[] };
 const PACK = pack as Record<FkMode, Pack>;
 
-/** Move metadata shared by the reducer's prompts and the View. */
-export const MODES: Record<FkMode, { name: string; emoji: string; how: string; fakerHint: string }> = {
+/** Move metadata shared by the reducer's prompts, the View and the faker's card. */
+export const MODES: Record<
+  FkMode,
+  { name: string; emoji: string; how: string; move: string; fakerHint: string }
+> = {
   numbers: {
-    name: 'Numbers',
+    name: 'Fingers',
     emoji: '🖐',
     how: 'everyone holds up fingers with their answer',
-    fakerHint: 'Pick a number you can defend out loud — you have to remember it all game.',
+    move: 'hold up your fingers',
+    fakerHint: 'Pick a number that looks like a real answer — you have to defend it out loud.',
   },
   point: {
     name: 'Point',
     emoji: '👉',
     how: 'everyone points at one player at the same time',
+    move: 'point at one player',
     fakerHint: 'Point at whoever you can justify — then justify it hard.',
   },
   raise: {
     name: 'Raise a Hand',
     emoji: '✋',
-    how: 'everyone raises a hand if it is true for them',
-    fakerHint: "You know the statement, so don't overthink it — just don't oversell it.",
+    how: 'everyone raises a hand if the statement is true for them',
+    move: 'raise a hand if it is true for you',
+    fakerHint: "You don't know the statement — read the room and match the hands around you.",
   },
 };
 
-/** One round, fully resolved. Only the unmask screen ever renders any of it. */
+/** One round, fully resolved. Only the unmask screen ever renders the truth of it. */
 export interface FkRoundRecord {
   roundNo: number;
   prompt: string;
-  /** the player every honest ballot named (null = the ballot wasn't unanimous) */
+  /** the player every clean ballot named (null = the ballot wasn't unanimous) */
   accusedUid: string | null;
   unanimous: boolean;
   /** true when that unanimous accusation actually landed on the faker */
@@ -103,30 +119,52 @@ export interface FkState {
   roundNo: number;
   /** the ONE move type played for all three rounds */
   mode: FkMode;
-  /** this round's prompt — public on every screen; the faker knows it too */
+  /** this round's prompt — hidden on screen until `reveal`, and never shown to the faker's card */
   prompt: string;
   usedPrompts: string[];
   /** the ONE faker for the entire game */
   fakerUid: string;
-  /** uid → acknowledged their private role card */
+  /** brief: uid → has read their private card */
   seen: Record<string, boolean>;
-  /** uid → their move: numbers 0-10 · point target uid · raise 0/1 */
-  answers: Record<string, number | string>;
-  /** uid → finished arguing, ready for the ballot */
+  /** reveal: uid → has said their piece and is ready for the ballot */
   argued: Record<string, boolean>;
-  /** voter uid → the player they named (the faker's ballot is a decoy) */
+  /** voter uid → the player they're naming (live and changeable until the ballot locks) */
   votes: Record<string, string>;
+  /** vote: every ballot is in — the last-chance window is running */
+  allIn: boolean;
   /** roundNo → the whole truth, rendered only on the unmask screen */
   history: Record<string, FkRoundRecord>;
 }
 
 export type FkInput =
-  /** brief: I've read the prompt and know my role · argue: we've said enough */
+  /** brief: I've read my card · reveal: we've said enough, open the ballot */
   | { action: 'ready' }
-  /** task: 0-10, a player uid, or 0/1 depending on the mode */
-  | { action: 'answer'; value: number | string }
-  /** vote: the uid being accused */
-  | { action: 'vote'; value: string };
+  /** vote: name a player — re-sending switches your pick while the ballot is open */
+  | { action: 'vote'; value: string }
+  /** vote (shared phone): hand the phone round the table again */
+  | { action: 'recast' };
+
+const PHASES: Record<FkPhase, true> = {
+  brief: true,
+  gesture: true,
+  reveal: true,
+  vote: true,
+  verdict: true,
+  unmask: true,
+  done: true,
+};
+
+/**
+ * A room that was mid-round on a build before this one (or a phase we no
+ * longer know): fold it into a fresh private card. The prompt, the mode
+ * and the faker all survive, so nothing is lost beyond the round in play.
+ */
+function recover(state: FkState): ReduceResult<FkState> {
+  return {
+    state: { ...state, phase: 'brief', seen: {}, argued: {}, votes: {}, allIn: false },
+    effects: [{ type: 'CLEAR_INPUTS' }, { type: 'TIMER', ms: BRIEF_MS }],
+  };
+}
 
 function nextPrompt(state: FkState, ctx: GameContext): string {
   const prompts = PACK[state.mode]?.prompts ?? PACK.numbers.prompts;
@@ -138,23 +176,43 @@ function roundsOf(state: FkState): FkRoundRecord[] {
   return Object.values(state.history ?? {}).sort((a, b) => a.roundNo - b.roundNo);
 }
 
-function toTask(state: FkState): ReduceResult<FkState> {
+function cleanPlayers(state: FkState, ctx: GameContext) {
+  return ctx.players.filter((p) => p.uid !== state.fakerUid);
+}
+
+/**
+ * The group's decision: the player every CLEAN ballot named, or null
+ * when the ballot was split. The faker's own ballot is deliberately not
+ * part of this — it can neither land an accusation nor break one.
+ */
+function unanimousTarget(state: FkState, ctx: GameContext): string | null {
+  const votes = state.votes ?? {};
+  const clean = cleanPlayers(state, ctx);
+  const targets = clean.map((p) => votes[p.uid]).filter((t): t is string => typeof t === 'string');
+  if (clean.length === 0 || targets.length !== clean.length) return null;
+  return targets.every((t) => t === targets[0]) ? targets[0] : null;
+}
+
+function toGesture(state: FkState): ReduceResult<FkState> {
+  // no CLEAR_INPUTS: nobody taps during the countdown, and on a shared
+  // phone wiping the inputs would park a "pass the phone to…" gate in
+  // front of a countdown that is already running
   return {
-    state: { ...state, phase: 'task' },
-    effects: [{ type: 'CLEAR_INPUTS' }, { type: 'TIMER', ms: TASK_MS }],
+    state: { ...state, phase: 'gesture' },
+    effects: [{ type: 'TIMER', ms: GESTURE_MS }],
   };
 }
 
-function toArgue(state: FkState): ReduceResult<FkState> {
+function toReveal(state: FkState): ReduceResult<FkState> {
   return {
-    state: { ...state, phase: 'argue' },
-    effects: [{ type: 'CLEAR_INPUTS' }, { type: 'TIMER', ms: ARGUE_MS }],
+    state: { ...state, phase: 'reveal' },
+    effects: [{ type: 'TIMER', ms: REVEAL_MS }],
   };
 }
 
 function toVote(state: FkState): ReduceResult<FkState> {
   return {
-    state: { ...state, phase: 'vote' },
+    state: { ...state, phase: 'vote', argued: {}, allIn: false },
     effects: [{ type: 'CLEAR_INPUTS' }, { type: 'TIMER', ms: VOTE_MS }],
   };
 }
@@ -177,55 +235,47 @@ function startRound(state: FkState, ctx: GameContext): ReduceResult<FkState> {
       prompt,
       usedPrompts: [...(state.usedPrompts ?? []), prompt],
       seen: {},
-      answers: {},
       argued: {},
       votes: {},
+      allIn: false,
     },
     effects: [{ type: 'CLEAR_INPUTS' }, { type: 'TIMER', ms: BRIEF_MS }],
   };
 }
 
 /**
- * The group's decision, sealed. Somebody is accused only when EVERY
- * honest ballot named them — and the faker's own ballot is not part of
- * that count, so it can't be used to break unanimity. The result is
- * written to `history` for the unmask and is deliberately rendered
- * NOWHERE: the table must not learn whether their accusation landed
- * until all three rounds are done.
+ * The round settles. Somebody is accused only when EVERY clean ballot
+ * named them. The result is written to `history` for the unmask and is
+ * deliberately rendered NOWHERE: the table must not learn whether their
+ * accusation landed until all three rounds are done — and the round
+ * always ends on the clock (or the moment every ballot is in), never on
+ * unanimity, so the timing of the verdict can't give it away either.
  */
 function resolveRound(state: FkState, ctx: GameContext): ReduceResult<FkState> {
-  const votes = state.votes ?? {};
-  const honest = ctx.players.filter((p) => p.uid !== state.fakerUid);
-  const targets = honest
-    .map((p) => votes[p.uid])
-    .filter((t): t is string => typeof t === 'string');
-  const unanimous =
-    honest.length > 0 && targets.length === honest.length && targets.every((t) => t === targets[0]);
-  const accusedUid = unanimous ? targets[0] : null;
-  // nobody can vote for themselves, so a unanimous ballot can only ever
-  // land on the faker — the check stays explicit anyway
-  const hit = unanimous && accusedUid === state.fakerUid;
-
+  const accusedUid = unanimousTarget(state, ctx);
   const record: FkRoundRecord = {
     roundNo: state.roundNo,
     prompt: state.prompt,
     accusedUid,
-    unanimous,
-    hit,
-    votes,
+    unanimous: accusedUid != null,
+    // nobody can name themselves, so a unanimous ballot can only ever
+    // land on the faker — the check stays explicit anyway
+    hit: accusedUid === state.fakerUid,
+    votes: state.votes ?? {},
   };
 
   return {
     state: {
       ...state,
       phase: 'verdict',
+      allIn: false,
       history: { ...(state.history ?? {}), [state.roundNo]: record },
     },
     effects: [{ type: 'TIMER', ms: VERDICT_MS }],
   };
 }
 
-/** The whole tab lands at once — first time the truth is public. */
+/** The whole tab lands at once — the first time the truth is public. */
 function finish(state: FkState, ctx: GameContext): ReduceResult<FkState> {
   const rounds = roundsOf(state);
   const hits = rounds.filter((r) => r.hit).length;
@@ -266,29 +316,12 @@ function finish(state: FkState, ctx: GameContext): ReduceResult<FkState> {
   return { state: { ...state, phase: 'done' }, effects };
 }
 
-function validAnswer(
-  state: FkState,
-  uid: string,
-  value: unknown,
-  players: GameContext['players'],
-): boolean {
-  const isPlayerUid = (v: unknown) => typeof v === 'string' && players.some((p) => p.uid === v);
-  switch (state.mode) {
-    case 'numbers':
-      return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 10;
-    case 'point':
-      return isPlayerUid(value) && value !== uid;
-    case 'raise':
-      return value === 0 || value === 1;
-  }
-}
-
 export const definition: GameDefinition<FkState, FkInput> = {
   id: 'fakeit',
   name: 'Fake It Till You Make It',
   emoji: '🕵️',
   rules:
-    'ONE faker, secret for the whole game — and the prompt is PUBLIC, so the faker reads exactly what you read and has to lie about it. Three rounds, one move type all game: make the move, argue it out, then vote. An accusation only lands if every honest vote agrees (the faker\'s own ballot never counts), and the tally stays sealed until the final unmask — where all three rounds settle at once.',
+    'One player NEVER gets the prompt — they only get told the move (fingers 🖐, a point 👉 or a raised hand ✋) and have to blend in. Everyone else reads the prompt privately, a 10-second countdown drops, and the whole table makes the move at once with their body — nothing is tapped in the app. The prompt then goes public and you argue it out. Finally the group votes: ballots are public and live, and an accusation needs every vote to land on the same player (the faker\'s own ballot never counts). One doubter and the faker walks — and whether you were right stays secret until the final unmask.',
   minPlayers: 3,
 
   createInitialState(ctx: GameContext): FkState {
@@ -301,9 +334,9 @@ export const definition: GameDefinition<FkState, FkInput> = {
       usedPrompts: [],
       fakerUid: pick(ctx.players, ctx.rng).uid,
       seen: {},
-      answers: {},
       argued: {},
       votes: {},
+      allIn: false,
       history: {},
     };
     const prompt = nextPrompt(base, ctx);
@@ -312,6 +345,7 @@ export const definition: GameDefinition<FkState, FkInput> = {
 
   reduce(state, event: GameEvent<FkInput>, ctx: GameContext): ReduceResult<FkState> {
     if (event.type === 'BEGIN') {
+      if (!PHASES[state.phase as FkPhase]) return recover(state);
       return { state, effects: [{ type: 'TIMER', ms: BRIEF_MS }] };
     }
 
@@ -324,11 +358,12 @@ export const definition: GameDefinition<FkState, FkInput> = {
           if ((state.seen ?? {})[event.uid]) return { state };
           const seen = { ...(state.seen ?? {}), [event.uid]: true };
           const next = { ...state, seen };
-          return Object.keys(seen).length >= ctx.players.length ? toTask(next) : { state: next };
+          return Object.keys(seen).length >= ctx.players.length ? toGesture(next) : { state: next };
         }
 
-        if (state.phase === 'argue') {
-          // shared phone: whoever is holding it calls the table to the ballot
+        // the prompt is public and the clock is running: whoever is holding
+        // the phone (shared) or the last player to tap (party) opens the ballot
+        if (state.phase === 'reveal') {
           if (ctx.settings.mode === 'shared') return toVote(state);
           if ((state.argued ?? {})[event.uid]) return { state };
           const argued = { ...(state.argued ?? {}), [event.uid]: true };
@@ -339,24 +374,28 @@ export const definition: GameDefinition<FkState, FkInput> = {
         return { state };
       }
 
-      if (input.action === 'answer') {
-        if (state.phase !== 'task') return { state };
-        if (!validAnswer(state, event.uid, input.value, ctx.players)) return { state };
-        if ((state.answers ?? {})[event.uid] != null) return { state }; // one move, locked
-        const answers = { ...(state.answers ?? {}), [event.uid]: input.value };
-        const next = { ...state, answers };
-        return Object.keys(answers).length >= ctx.players.length ? toArgue(next) : { state: next };
-      }
-
       if (input.action === 'vote') {
         if (state.phase !== 'vote') return { state };
         const target = input.value;
         if (typeof target !== 'string' || target === event.uid) return { state };
         if (!ctx.players.some((p) => p.uid === target)) return { state };
-        if ((state.votes ?? {})[event.uid]) return { state }; // first ballot is locked
         const votes = { ...(state.votes ?? {}), [event.uid]: target };
         const next = { ...state, votes };
-        return Object.keys(votes).length >= ctx.players.length ? resolveRound(next, ctx) : { state: next };
+        const everyoneVoted = ctx.players.every((p) => typeof votes[p.uid] === 'string');
+        if (!everyoneVoted) return { state: { ...next, allIn: false } };
+        // every ballot is in: the table gets one last-chance window to switch
+        // before the round settles (switching inside it doesn't extend it)
+        if (state.allIn) return { state: { ...next, allIn: true } };
+        return { state: { ...next, allIn: true }, effects: [{ type: 'TIMER', ms: LOCK_MS }] };
+      }
+
+      if (input.action === 'recast') {
+        if (state.phase !== 'vote' || ctx.settings.mode !== 'shared') return { state };
+        if (!state.allIn) return { state };
+        return {
+          state: { ...state, allIn: false },
+          effects: [{ type: 'CLEAR_INPUTS' }, { type: 'TIMER', ms: VOTE_MS }],
+        };
       }
 
       return { state };
@@ -364,10 +403,10 @@ export const definition: GameDefinition<FkState, FkInput> = {
 
     if (event.type === 'TIME_UP') {
       // force-advance whatever stragglers left hanging
-      // ('secret' = a room that was mid-game when this build landed — fold it into task)
-      if (state.phase === 'brief' || (state.phase as string) === 'secret') return toTask(state);
-      if (state.phase === 'task') return toArgue(state);
-      if (state.phase === 'argue') return toVote(state);
+      if (!PHASES[state.phase as FkPhase]) return recover(state);
+      if (state.phase === 'brief') return toGesture(state);
+      if (state.phase === 'gesture') return toReveal(state);
+      if (state.phase === 'reveal') return toVote(state);
       if (state.phase === 'vote') return resolveRound(state, ctx);
       if (state.phase === 'verdict') {
         return state.roundNo >= ROUNDS_COUNT ? toUnmask(state) : startRound(state, ctx);

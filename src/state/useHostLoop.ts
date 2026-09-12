@@ -13,7 +13,7 @@ import {
 import { db } from '../firebase';
 import { serverNow } from './serverTime';
 import { ROOM_TTL_MS } from './gc';
-import { activePlayers, INTRO_MS, notReady, pacingOf, readyResetPaths, type GameInputEntry, type RoomData } from '../types';
+import { activePlayers, notReady, pacingOf, readyResetPaths, type GameInputEntry, type RoomData } from '../types';
 import { allGames, gameById } from '../games';
 import { mulberry32, shuffled } from '../engine/rng';
 import type { Effect, GameContext, GameEvent } from '../engine/types';
@@ -51,6 +51,8 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
     let inputsSeeded = false;
     let timerSeen: number | null = null;
     let ended = false;
+    /** round number whose game we already launched out of the splash */
+    let launchedRound: number | null = null;
     let queue: Promise<void> = Promise.resolve();
 
     // A timer that is already past due on startup was almost certainly
@@ -149,6 +151,7 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
                 gameEmoji: dNow?.emoji ?? '',
                 assignments: fx.assignments ?? [],
                 note: fx.note ?? null,
+                recap: fx.recap ?? null,
               },
               // no deadline: the round ends when the players say so
               'meta/outcomeEndsAt': null,
@@ -208,33 +211,44 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
           order.length > 0 &&
           (order.length >= Math.max(1, players.length) || m.forceStart === true);
         if (complete) {
-          await update(ref(rdb, `rooms/${code}/meta`), {
-            phase: 'intro',
-            round: 1,
-            actorUid: order[0],
-            introEndsAt: now + INTRO_MS,
+          await update(ref(rdb, `rooms/${code}`), {
+            'meta/phase': 'intro',
+            'meta/round': 1,
+            'meta/actorUid': order[0],
+            // the splash opens the ready gate from a clean slate
+            'meta/forceNext': false,
+            ...readyResetPaths(roomRef.current),
           }).catch(() => {});
         }
         return;
       }
 
       if (m.phase === 'intro') {
-        const endsAt = m.introEndsAt ?? now + INTRO_MS;
-        if (now >= endsAt) {
-          const d = currentDef();
-          const ctx = buildCtx();
-          if (d && ctx) {
-            const s0 = d.createInitialState(ctx);
-            stateMirror = s0;
-            processedInputs.clear();
-            timerSeen = null;
-            ended = false;
-            await update(ref(rdb, `rooms/${code}`), {
-              game: { type: d.id, state: s0, timerEndsAt: null, inputs: null },
-              'meta/phase': 'playing',
-            }).catch(() => {});
-            dispatch({ type: 'BEGIN' }); // games arm their initial timers here
-          }
+        // The splash explains the game and then hands the table the floor:
+        // nothing starts until every phone taps ready ('manual' pacing hands
+        // that job to the host instead). A vanished phone can be skipped.
+        const ready =
+          m.forceNext === true ||
+          (pacingOf(m.settings) === 'ready' && notReady(roomRef.current).length === 0);
+        if (!ready || activePlayers(roomRef.current).length === 0) return;
+        // Unlike a countdown, a satisfied ready gate stays satisfied until the
+        // snapshot comes back — so launch each round exactly once per host
+        // session (a reload clears this and re-launches if it must).
+        if (launchedRound === m.round) return;
+        const d = currentDef();
+        const ctx = buildCtx();
+        if (d && ctx) {
+          const s0 = d.createInitialState(ctx);
+          stateMirror = s0;
+          processedInputs.clear();
+          timerSeen = null;
+          ended = false;
+          await update(ref(rdb, `rooms/${code}`), {
+            game: { type: d.id, state: s0, timerEndsAt: null, inputs: null },
+            'meta/phase': 'playing',
+          }).catch(() => {});
+          launchedRound = m.round;
+          dispatch({ type: 'BEGIN' }); // games arm their initial timers here
         }
         return;
       }
@@ -297,7 +311,6 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
             'meta/rotation': rotation,
             'meta/gameIndex': gameIndex,
             'meta/actorUid': nextActor,
-            'meta/introEndsAt': now + INTRO_MS,
             'meta/outcome': null,
             'meta/forceNext': false,
             'meta/outcomeEndsAt': null,

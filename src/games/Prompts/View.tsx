@@ -53,17 +53,32 @@ export function View({
           </p>
         </>
       ) : (
-        <div className="tr-verdicts">
-          {players.map((p) => {
-            const guilty = (state.votes ?? {})[p.uid];
-            const drinking = state.assignments.some((a) => a.uid === p.uid);
-            return (
-              <span key={p.uid} className={`tr-verdict ${drinking ? 'tr-bad' : 'tr-ok'}`}>
-                {p.emoji} {p.name} {guilty ? '🙋' : '🙅'}
-              </span>
-            );
-          })}
+        <div className="pr-reveal">
+          {state.recap?.title && <p className="pr-reveal-title">{state.recap.title}</p>}
+          {(state.recap?.groups ?? [])
+            .filter((g) => (g?.uids ?? []).length > 0)
+            .map((g, i) => (
+              <div key={`${g.label}-${i}`} className={`recap-group recap-${g.tone ?? 'neutral'}`}>
+                <span className="recap-label">{g.label}</span>
+                <span className="recap-names">
+                  {g.uids.map((uid) => {
+                    const p = players.find((x) => x.uid === uid);
+                    if (!p) return null;
+                    const a = (state.assignments ?? []).find((x) => x.uid === uid);
+                    return (
+                      <span key={uid} className={`recap-chip ${a ? 'recap-chip-drinks' : ''}`}>
+                        {p.emoji} {p.name}
+                        {a && <span className="recap-chip-sips">🍺×{a.sips}</span>}
+                      </span>
+                    );
+                  })}
+                </span>
+              </div>
+            ))}
           {state.note && <p className="tr-note">{state.note}</p>}
+          {(state.assignments ?? []).length > 0 && (
+            <p className="muted small">🍺 = they drink this round</p>
+          )}
         </div>
       )}
     </div>

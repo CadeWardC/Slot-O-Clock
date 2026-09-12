@@ -4,12 +4,16 @@ import type {
   GameContext,
   GameDefinition,
   GameEvent,
+  OutcomeRecap,
+  OutcomeRecapGroup,
+  PlayerInfo,
   ReduceResult,
 } from '../../engine/types';
 import { View } from './View';
 
 const VOTE_MS = 15000;
-const REVEAL_MS = 5000;
+/** long enough to read the colour-coded vote before the drinks screen takes over */
+const REVEAL_MS = 8000;
 
 type Rule = 'guilty' | 'innocent' | 'minority';
 
@@ -20,10 +24,49 @@ export interface PromptsState {
   votes: Record<string, boolean>;
   assignments: DrinkAssignment[];
   note: string | null;
+  /**
+   * Colour-coded who-voted-what breakdown. Built once when the votes are
+   * revealed, then shown on the reveal screen *and* carried to the outcome
+   * screen (where the drinks are actually handed out) so nobody has to move
+   * on before they've seen who owned up.
+   */
+  recap?: OutcomeRecap | null;
 }
 
 export interface PromptsInput {
   vote: boolean;
+}
+
+/** groups the table by vote and marks which side the round rule punishes */
+function recapOf(
+  votes: Record<string, boolean>,
+  rule: Rule,
+  players: PlayerInfo[],
+): OutcomeRecap {
+  const guilty = players.filter((p) => votes[p.uid] === true).map((p) => p.uid);
+  const innocent = players.filter((p) => votes[p.uid] !== true).map((p) => p.uid);
+  const split = guilty.length === innocent.length && guilty.length > 0;
+  const guiltyDrinks =
+    split || rule === 'guilty' || (rule === 'minority' && guilty.length < innocent.length);
+  const innocentDrinks =
+    split || rule === 'innocent' || (rule === 'minority' && innocent.length < guilty.length);
+
+  const groups: OutcomeRecapGroup[] = [];
+  if (guilty.length > 0) {
+    groups.push({
+      label: `🙋 Guilty${guiltyDrinks ? ' — drinks' : ''}`,
+      tone: 'bad',
+      uids: guilty,
+    });
+  }
+  if (innocent.length > 0) {
+    groups.push({
+      label: `🙅 Not me${innocentDrinks ? ' — drinks' : ''}`,
+      tone: 'good',
+      uids: innocent,
+    });
+  }
+  return { title: 'who picked what', groups };
 }
 
 function reveal(state: PromptsState, ctx: GameContext): ReduceResult<PromptsState> {
@@ -55,7 +98,7 @@ function reveal(state: PromptsState, ctx: GameContext): ReduceResult<PromptsStat
   }
 
   return {
-    state: { ...state, phase: 'reveal', votes, assignments, note },
+    state: { ...state, phase: 'reveal', votes, assignments, note, recap: recapOf(votes, state.rule, ctx.players) },
     effects: [{ type: 'TIMER', ms: REVEAL_MS }],
   };
 }
@@ -65,7 +108,7 @@ export const definition: GameDefinition<PromptsState, PromptsInput> = {
   name: 'Never Have I Ever',
   emoji: '🙈',
   rules:
-    'A "never have I ever" prompt appears. Everyone votes honestly — the round rule decides which side drinks, and it changes every round!',
+    'A "never have I ever" prompt appears. Everyone votes honestly — guilty or not me. The round rule decides which side drinks, and it changes every round! Votes are revealed colour-coded before anyone moves on.',
   minPlayers: 2,
 
   createInitialState(ctx: GameContext): PromptsState {
@@ -97,7 +140,19 @@ export const definition: GameDefinition<PromptsState, PromptsInput> = {
     if (event.type === 'TIME_UP') {
       if (state.phase === 'vote') return reveal(state, ctx);
       if (state.phase === 'reveal') {
-        return { state, effects: [{ type: 'END', assignments: state.assignments, note: state.note }] };
+        return {
+          state,
+          effects: [
+            {
+              type: 'END',
+              assignments: state.assignments,
+              note: state.note,
+              // the votes travel with the drinks so the outcome screen can
+              // show who was guilty before anyone taps ready
+              recap: state.recap ?? undefined,
+            },
+          ],
+        };
       }
     }
 

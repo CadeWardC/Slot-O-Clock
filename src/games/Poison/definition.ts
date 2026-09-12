@@ -10,7 +10,7 @@
  * The phone travels the poisoning order one player at a time, each
  * selecting a cup and locking it in before it moves on. The victim
  * picks last — hit a poisoned cup and they drink, find a clean one
- * and the round is simply over.
+ * and the whole poisoning crew drinks instead.
  *
  * Nothing here runs on a clock: every step waits for a lock-in, and
  * the host's skip button is the only way past a vanished phone.
@@ -30,6 +30,8 @@ import { View } from './View';
 
 /** what the victim drinks when they land on a poisoned cup */
 export const SIPS = 2;
+/** what every poisoner drinks when the victim dodges the whole table */
+export const MISS_SIPS = 1;
 /** cups on the table = players + this */
 export const CUP_BONUS = 1;
 const REVEAL_MS = 10_000;
@@ -68,10 +70,13 @@ function reveal(state: PoisonState, ctx: GameContext): ReduceResult<PoisonState>
   const poisons = state.poisons ?? {};
   // no lock-in (round skipped, phone died) — fate picks the cup
   const pick = state.pick ?? Math.floor(ctx.rng() * state.cups);
-  const hitters = Object.keys(poisons).filter((uid) => poisons[uid] === pick);
+  const pourers = Object.keys(poisons);
+  const hitters = pourers.filter((uid) => poisons[uid] === pick);
   const hit = hitters.length > 0;
+  const drinker = nameOf(ctx.players, state.drinkerUid);
   const assignments: DrinkAssignment[] = [];
   const effects: Effect[] = [{ type: 'TIMER', ms: REVEAL_MS }];
+  let note: string;
 
   if (hit) {
     // every poisoner who put something in that cup shares the kill
@@ -82,11 +87,24 @@ function reveal(state: PoisonState, ctx: GameContext): ReduceResult<PoisonState>
       reason: `Cup ${pick + 1} was poisoned — ☠️ ${who}`,
     });
     for (const uid of hitters) effects.push({ type: 'SCORE', uid, delta: 1 });
+    note = `☠️ ${drinker} drank cup ${pick + 1} — ${SIPS} sips`;
+  } else if (pourers.length > 0) {
+    // a clean cup means the whole table missed: everyone who poured drinks
+    for (const uid of pourers) {
+      assignments.push({
+        uid,
+        sips: MISS_SIPS,
+        reason: `Cup ${pick + 1} was clean — the poison missed 🍷`,
+      });
+    }
+    note =
+      pourers.length === 1
+        ? `🍷 ${drinker} picked cup ${pick + 1} — clean! The poisoner drinks ${MISS_SIPS}`
+        : `🍷 ${drinker} picked cup ${pick + 1} — clean! All ${pourers.length} poisoners drink ${MISS_SIPS}`;
+  } else {
+    // nobody ever poured (round force-skipped) — nothing to punish
+    note = `🍷 ${drinker} picked cup ${pick + 1} — clean! Nobody drinks`;
   }
-
-  const note = hit
-    ? `☠️ ${nameOf(ctx.players, state.drinkerUid)} drank cup ${pick + 1} — ${SIPS} sips`
-    : `🍷 ${nameOf(ctx.players, state.drinkerUid)} picked cup ${pick + 1} — clean! Nobody drinks`;
 
   return { state: { ...state, phase: 'reveal', pick, assignments, note }, effects };
 }
@@ -96,7 +114,7 @@ export const definition: GameDefinition<PoisonState, PoisonInput> = {
   name: 'Poisoning the Drinks',
   emoji: '☠️',
   rules:
-    "One of you is picked at random to drink. Everyone else secretly poisons ONE of the cups — there's one more cup than there are players, you're allowed to pick the same cup, and nobody sees anyone else's choice. The phone goes round and everyone locks in, then the drinker picks last. Poisoned cup → the drinker drinks 2. Clean cup → nothing happens at all.",
+    "One of you is picked at random to drink. Everyone else secretly poisons ONE of the cups — there's one more cup than there are players, you're allowed to pick the same cup, and nobody sees anyone else's choice. The phone goes round and everyone locks in, then the drinker picks last. Poisoned cup → the drinker drinks 2. Clean cup → every poisoner drinks 1 instead.",
   minPlayers: 2,
   sharedInput: 'all',
 

@@ -9,29 +9,49 @@ function fmt(ms: number | null): string {
 
 export function View({ state, me, players, variant, myInput, submitInput }: GameViewProps<RxState, RxInput>) {
   const submitted = myInput != null;
+  const done = state.phase === 'done';
 
-  /* shared-phone mode: each holder gets their own go, timed on-device */
-  const [localGo, setLocalGo] = useState<number | null>(null); // performance.now of green
+  /**
+   * This phone's own stopwatch. Everything is scored on green → tap as
+   * measured *here*: the host publishes the instant green lights up (server
+   * clock), we wait for that instant locally, and the count starts on the
+   * frame green actually renders on this device. A slow connection can delay
+   * when you learn about green — it can never pad or shrink your time.
+   */
+  const [partyGreen, setPartyGreen] = useState<number | null>(null);
   useEffect(() => {
-    if (variant !== 'shared' || state.phase === 'done') return;
+    setPartyGreen(null);
+    if (variant !== 'party' || done || state.goAt == null) return;
+    let raf = 0;
+    // timestamp on the frame green becomes visible, not on the timer's
+    // best-effort wake-up
+    const arm = () => {
+      raf = requestAnimationFrame(() => setPartyGreen(performance.now()));
+    };
+    const t = window.setTimeout(arm, Math.max(0, state.goAt - serverNow()));
+    return () => {
+      window.clearTimeout(t);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [variant, done, state.goAt]);
+
+  /* shared-phone mode: no shared clock, each holder gets a private green */
+  const [localGo, setLocalGo] = useState<number | null>(null);
+  useEffect(() => {
+    if (variant !== 'shared' || done) return;
     setLocalGo(null);
     const t = window.setTimeout(() => setLocalGo(performance.now()), 1500 + Math.random() * 3000);
     return () => window.clearTimeout(t);
-  }, [variant, me.uid, state.phase === 'done']);
+  }, [variant, me.uid, done]);
 
-  const isGreen =
-    state.phase === 'go' || (variant === 'shared' && localGo != null && state.phase !== 'done');
-  const done = state.phase === 'done';
+  const greenAt = variant === 'shared' ? localGo : partyGreen;
+  const isGreen = greenAt != null && !done;
 
   const tap = () => {
     if (submitted || done) return;
-    if (variant === 'shared') {
-      if (localGo == null) submitInput({ early: true });
-      else submitInput({ reactionMs: performance.now() - localGo });
-    } else {
-      if (state.phase === 'go') submitInput({ at: serverNow() });
-      else submitInput({ early: true });
-    }
+    // no green yet on this device = jumped the gun
+    if (greenAt == null) submitInput({ early: true });
+    else submitInput({ reactionMs: Math.round(performance.now() - greenAt) });
   };
 
   // haptic-ish feedback on state change (ignored where unsupported)
@@ -58,6 +78,7 @@ export function View({ state, me, players, variant, myInput, submitInput }: Game
             </span>
           </button>
           {submitted && <p className="muted">Locked in — waiting for the others…</p>}
+          <p className="muted small">⏱ timed on your own phone — lag can't slow you down</p>
           {variant === 'party' && (
             <p className="muted small">
               {Object.keys(state.taps ?? {}).length}/{players.length} tapped

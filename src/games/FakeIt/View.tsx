@@ -2,10 +2,13 @@ import { useState, type ReactNode } from 'react';
 import { TimerBar, useCountdown } from '../../components/ui';
 import type { GameViewProps, RoomMode } from '../../engine/types';
 import {
-  ARGUE_MS,
+  BRIEF_MS,
   CAUGHT_SIPS,
   FOOLED_SIPS,
+  GESTURE_MS,
+  LOCK_MS,
   MODES,
+  REVEAL_MS,
   ROUNDS_COUNT,
   VOTE_MS,
   type FkInput,
@@ -14,18 +17,7 @@ import {
   type FkState,
 } from './definition';
 
-/** Answer → grid label. */
-function answerLabel(
-  mode: FkMode,
-  value: number | string | undefined,
-  players: GameViewProps['players'],
-): string {
-  if (value == null) return '❓';
-  if (mode === 'numbers') return `🖐 ${value}`;
-  if (mode === 'raise') return value === 1 ? '✋ raised' : '🙅 nope';
-  const target = players.find((p) => p.uid === value);
-  return `👉 ${target?.name ?? '?'}`;
-}
+type ModeMeta = (typeof MODES)[FkMode];
 
 function nameOf(players: GameViewProps['players'], uid: string | null | undefined): string {
   if (!uid) return '?';
@@ -33,7 +25,7 @@ function nameOf(players: GameViewProps['players'], uid: string | null | undefine
   return p ? `${p.emoji} ${p.name}` : '?';
 }
 
-/** Compact ballot tally for the unmask — "Ana ×3 · Bo ×1". */
+/** Compact tally for the unmask — "Ana ×3 · Bo ×1". */
 function voteTally(votes: Record<string, string> | undefined, players: GameViewProps['players']): string {
   const tally: Record<string, number> = {};
   for (const target of Object.values(votes ?? {})) tally[target] = (tally[target] ?? 0) + 1;
@@ -59,7 +51,7 @@ function Peek({ variant, children }: { variant: RoomMode; children: ReactNode })
     </div>
   ) : (
     <button className="btn btn-ghost btn-lg btn-full" {...hold}>
-      👀 hold to peek at your role
+      👀 hold to peek at your card
     </button>
   );
 }
@@ -73,20 +65,6 @@ function RoundTag({ state }: { state: FkState }) {
   );
 }
 
-/** The prompt is public now — the faker reads it off the same card as everyone else. */
-function PromptCard({ state }: { state: FkState }) {
-  const mode = MODES[state.mode] ?? MODES.numbers;
-  return (
-    <div className="fk-card fk-card-public">
-      <p className="fk-card-label">the prompt — everyone sees this, faker included</p>
-      <h2 className="fk-prompt">{state.prompt}</h2>
-      <p className="fk-card-hint">
-        {mode.emoji} {mode.name}: {mode.how}.
-      </p>
-    </div>
-  );
-}
-
 /** Party mode = a private screen per player, so the role can be shown outright. */
 function RoleBadge({ isFaker }: { isFaker: boolean }) {
   return (
@@ -96,39 +74,113 @@ function RoleBadge({ isFaker }: { isFaker: boolean }) {
   );
 }
 
+/** The move the whole table is playing — the only thing the countdown screen gives away. */
+function MoveLine({ mode }: { mode: ModeMeta }) {
+  return (
+    <p className="fk-card-hint">
+      {mode.emoji} {mode.name}: {mode.how}.
+    </p>
+  );
+}
+
+/** The prompt, on the screens where it is allowed to be on screen. */
+function PromptCard({ prompt, mode, label }: { prompt: string; mode: ModeMeta; label: string }) {
+  return (
+    <div className="fk-card fk-card-public">
+      <p className="fk-card-label">{label}</p>
+      <h2 className="fk-prompt">{prompt}</h2>
+      <MoveLine mode={mode} />
+    </div>
+  );
+}
+
+/** Everyone but the faker gets this. It disappears the moment the countdown starts. */
+function CleanCard({ prompt, mode }: { prompt: string; mode: ModeMeta }) {
+  return (
+    <div className="fk-card fk-card-private">
+      <p className="fk-card-label">your prompt — keep it off your face</p>
+      <h2 className="fk-prompt">{prompt}</h2>
+      <MoveLine mode={mode} />
+      <p className="fk-card-hint">
+        One player never got this: they only know the move. At zero, make the honest one — and be ready to defend it,
+        because the prompt goes public right after.
+      </p>
+    </div>
+  );
+}
+
+/** The faker's whole round: no prompt, just the move and a cover story. */
+function FakerCard({ mode }: { mode: ModeMeta }) {
+  return (
+    <div className="fk-card fk-card-faker">
+      <p className="fk-card-label">your role — keep this to yourself</p>
+      <h2 className="fk-faker-line">🕵️ BLEND IN</h2>
+      <p className="fk-blend-move">
+        {mode.emoji} {mode.name} — {mode.move}.
+      </p>
+      <p className="fk-card-hint">
+        You are the faker for all {ROUNDS_COUNT} rounds, and you do <b>not</b> get the prompt — everyone else has just
+        read it. The countdown starts as soon as every card is read: make a move that looks like theirs, then defend
+        it out loud when the prompt goes public {GESTURE_MS / 1000} seconds later.
+      </p>
+      <p className="fk-tip">{mode.fakerHint}</p>
+    </div>
+  );
+}
+
+/** The public ballot: who named whom, live. Never marks the faker — it can't, that's the game. */
+function VoteBoard({
+  votes,
+  players,
+  meUid,
+}: {
+  votes: Record<string, string>;
+  players: GameViewProps['players'];
+  meUid: string;
+}) {
+  return (
+    <div className="fk-rows">
+      {players.map((p) => {
+        const target = votes[p.uid];
+        return (
+          <div key={p.uid} className={`fk-row ${p.uid === meUid ? 'fk-row-mine' : ''}`}>
+            <span className="fk-row-who">
+              {p.emoji} {p.name}
+            </span>
+            <span className={`fk-row-val ${target ? '' : 'fk-row-wait'}`}>
+              {target ? `🗳️ ${nameOf(players, target)}` : 'still thinking…'}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function PlayerPicker({
   players,
-  excludeUid,
+  meUid,
+  selected,
   onPick,
 }: {
   players: GameViewProps['players'];
-  excludeUid: string;
+  meUid: string;
+  selected?: string;
   onPick: (uid: string) => void;
 }) {
   return (
     <div className="fk-people">
       {players
-        .filter((p) => p.uid !== excludeUid)
+        .filter((p) => p.uid !== meUid)
         .map((p) => (
-          <button key={p.uid} className="fk-person" onClick={() => onPick(p.uid)}>
+          <button
+            key={p.uid}
+            className={`fk-person ${p.uid === selected ? 'fk-person-on' : ''}`}
+            onClick={() => onPick(p.uid)}
+          >
             <span className="fk-person-emoji">{p.emoji}</span> {p.name}
           </button>
         ))}
-    </div>
-  );
-}
-
-function AnswersGrid({ state, players }: { state: FkState; players: GameViewProps['players'] }) {
-  return (
-    <div className="fk-rows">
-      {players.map((p) => (
-        <div key={p.uid} className="fk-row">
-          <span className="fk-row-who">
-            {p.emoji} {p.name}
-          </span>
-          <span className="fk-row-val">{answerLabel(state.mode, (state.answers ?? {})[p.uid], players)}</span>
-        </div>
-      ))}
     </div>
   );
 }
@@ -146,9 +198,11 @@ export function View({
   const mode = MODES[state.mode] ?? MODES.numbers;
   const isFaker = me.uid === state.fakerUid;
   const total = players.length;
-  const privateScreen = variant !== 'shared';
-  // 'secret' = a room that was mid-game before this build landed; it settles within one timer
+  // 'secret'/'task'/'argue' = a room that was mid-game before this build landed;
+  // it settles into a fresh private card within one timer
   const phase = state.phase as string;
+  const privateScreen = variant !== 'shared';
+  const shared = variant === 'shared';
 
   /* ---------- unmask / done: the only place the truth is ever printed ---------- */
   if (phase === 'unmask' || phase === 'done') {
@@ -199,20 +253,23 @@ export function View({
     );
   }
 
-  /* ---------- verdict: sealed, because "unanimous" would give the faker away ---------- */
+  /* ---------- verdict: public ballots, silent verdict ---------- */
   if (phase === 'verdict') {
-    const ballots = Object.keys(state.votes ?? {}).length;
+    const votes = state.votes ?? {};
+    const ballots = players.filter((p) => typeof votes[p.uid] === 'string').length;
     return (
       <div className="gv">
         <RoundTag state={state} />
         <div className="gate-emoji pulse">🗳️</div>
         <h2>Ballots locked and sealed</h2>
         <p className="fk-sealed">
-          🔒 {ballots}/{total} ballots in — and nobody sees the tally. Not you, not the accused, not yet.
+          🔒 {ballots}/{total} in — and the app says nothing about what the group decided. Not to you, not to the
+          accused, not yet.
         </p>
+        <VoteBoard votes={votes} players={players} meUid={me.uid} />
         <p className="fk-argue-help">
-          One doubter is all it takes to save the faker, and you'll only find out at the unmask whether this round
-          was unanimous. Accuse again next round — and make them explain the same story twice.
+          Whether that ballot was unanimous, and whether it landed on the faker, is settled at the unmask with every
+          drink. Accuse again next round — and make them explain the same story twice.
         </p>
         <p className="muted small">
           no drinks yet: all {ROUNDS_COUNT} rounds settle on one final tab — {CAUGHT_SIPS} for the faker on every
@@ -223,197 +280,158 @@ export function View({
     );
   }
 
-  /* ---------- brief: public prompt + private role ---------- */
-  if (phase === 'brief' || phase === 'secret') {
+  /* ---------- brief: the private card. Faker gets the move, everyone else gets the prompt ---------- */
+  if (phase === 'brief' || !['gesture', 'reveal', 'vote'].includes(phase)) {
     const seenCount = Object.keys(state.seen ?? {}).length;
     const iAmIn = !!(state.seen ?? {})[me.uid];
     return (
       <div className="gv">
         <RoundTag state={state} />
-        <PromptCard state={state} />
         {iAmIn ? (
           <>
             <div className="gate-emoji">✅</div>
             <p className="muted">
               card read — waiting for the others ({seenCount}/{total}){secs}
             </p>
+            <p className="fk-argue-help">
+              Hide it now. The countdown starts the moment every card is in, and nothing about this prompt shows up
+              again until after the move.
+            </p>
           </>
         ) : (
           <>
             <Peek variant={variant}>
               {isFaker ? (
-                <div className="fk-card fk-card-faker">
-                  <p className="fk-card-label">your role — keep this to yourself</p>
-                  <h2 className="fk-faker-line">🕵️ YOU ARE THE FAKER</h2>
-                  <p className="fk-card-hint">
-                    All {ROUNDS_COUNT} rounds. You get the same prompt as everyone (you can read it above), so
-                    make a believable move, remember it, and lie your way out when they start asking questions.
-                  </p>
-                </div>
+                <FakerCard mode={mode} />
               ) : (
-                <div className="fk-card">
-                  <p className="fk-card-label">your role — keep this to yourself</p>
-                  <h2 className="fk-faker-line fk-clean-line">😇 YOU'RE CLEAN</h2>
-                  <p className="fk-card-hint">
-                    One of you is the faker — for all {ROUNDS_COUNT} rounds — and they can see the prompt too.
-                    Answer honestly, then make them explain their move.
-                  </p>
-                </div>
+                <CleanCard prompt={state.prompt} mode={mode} />
               )}
             </Peek>
             <button className="btn btn-gold btn-lg btn-full" onClick={() => submitInput({ action: 'ready' })}>
-              GOT IT — I KNOW MY ROLE
+              {isFaker ? 'GOT IT — I CAN FAKE THIS' : 'GOT IT — HIDE THE PROMPT'}
             </button>
           </>
         )}
+        <TimerBar deadline={timerEndsAt} totalMs={BRIEF_MS} />
       </div>
     );
   }
 
-  /* ---------- task: make your move ---------- */
-  if (phase === 'task') {
-    const doneCount = Object.keys(state.answers ?? {}).length;
-    const myAnswer = (state.answers ?? {})[me.uid];
-    const locked = myAnswer != null;
+  /* ---------- gesture: countdown only. No prompt, no role, no taps ---------- */
+  if (phase === 'gesture') {
+    const secsLeft = left != null ? Math.ceil(left / 1000) : GESTURE_MS / 1000;
+    const go = secsLeft <= 0;
     return (
       <div className="gv">
         <RoundTag state={state} />
-        {privateScreen && <RoleBadge isFaker={isFaker} />}
-        <PromptCard state={state} />
-        <p className="fk-call">ON THREE: {mode.how}!</p>
-
-        {locked ? (
-          <>
-            <div className="gate-emoji">{answerLabel(state.mode, myAnswer, players)}</div>
-            <p className="muted">
-              move locked in ({doneCount}/{total}){secs} — remember it, you have to defend it
-            </p>
-          </>
-        ) : (
-          <>
-            {state.mode === 'numbers' && (
-              <div className="fk-nums">
-                {Array.from({ length: 11 }, (_, n) => (
-                  <button
-                    key={n}
-                    className="fk-num"
-                    onClick={() => submitInput({ action: 'answer', value: n })}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-            )}
-            {state.mode === 'point' && (
-              <PlayerPicker
-                players={players}
-                excludeUid={me.uid}
-                onPick={(uid) => submitInput({ action: 'answer', value: uid })}
-              />
-            )}
-            {state.mode === 'raise' && (
-              <div className="fk-raise">
-                <button className="fk-raise-yes" onClick={() => submitInput({ action: 'answer', value: 1 })}>
-                  ✋ RAISE IT
-                </button>
-                <button className="fk-raise-no" onClick={() => submitInput({ action: 'answer', value: 0 })}>
-                  🙅 NOT ME
-                </button>
-              </div>
-            )}
-
-            <p className="muted small">
-              {doneCount}/{total} in{secs}
-            </p>
-            {isFaker && privateScreen && <p className="fk-tip">{mode.fakerHint}</p>}
-          </>
-        )}
+        <div className={`fk-clock ${go ? 'fk-clock-go' : ''}`}>{go ? 'GO!' : secsLeft}</div>
+        <p className="fk-call">
+          {mode.emoji} {mode.name.toUpperCase()} — {mode.move}
+        </p>
+        <TimerBar deadline={timerEndsAt} totalMs={GESTURE_MS} />
+        <p className="fk-argue-help">
+          🤫 No talking and nothing to tap: everyone moves at zero and holds it. The prompt goes public the second the
+          clock dies.
+        </p>
       </div>
     );
   }
 
-  /* ---------- argue: the phase that wins or loses it ---------- */
-  if (phase === 'argue') {
+  /* ---------- reveal: the prompt goes public and the table argues ---------- */
+  if (phase === 'reveal') {
     const readyCount = Object.keys(state.argued ?? {}).length;
     const iAmReady = !!(state.argued ?? {})[me.uid];
-    const shared = variant === 'shared';
     return (
       <div className="gv">
         <RoundTag state={state} />
         {privateScreen && <RoleBadge isFaker={isFaker} />}
-        <PromptCard state={state} />
-        <AnswersGrid state={state} players={players} />
+        <PromptCard
+          prompt={state.prompt}
+          mode={mode}
+          label={isFaker && privateScreen ? 'the prompt you never saw' : 'the prompt — public now'}
+        />
         <p className="fk-call">🗣️ ARGUE IT OUT</p>
         <p className="fk-argue-help">
-          Everyone knows this prompt — the faker included — so every move above has to be explained out loud.
-          Grill the answers that don't add up: {ROUNDS_COUNT} rounds means the liar has to stay consistent.
+          One of you moved without ever seeing that. So grill the moves: whose number doesn't fit, whose point makes
+          no sense, whose hand went up when it shouldn't have. {ROUNDS_COUNT} rounds means one person has to stay
+          consistent all game.
         </p>
-        {isFaker && privateScreen && (
-          <p className="fk-tip">
-            🕵️ you're the faker: sell your move, cast doubt on somebody else, and don't change your story next round.
-          </p>
-        )}
-        <TimerBar deadline={timerEndsAt} totalMs={ARGUE_MS} />
+        <TimerBar deadline={timerEndsAt} totalMs={REVEAL_MS} />
         {shared ? (
           <button className="btn btn-gold btn-lg btn-full" onClick={() => submitInput({ action: 'ready' })}>
             WE'VE SAID ENOUGH — OPEN THE BALLOT 🗳️
           </button>
         ) : iAmReady ? (
           <p className="muted">
-            🗳️ ready to accuse — waiting for the others ({readyCount}/{total}){secs}
+            🗳️ ready for the ballot — waiting for the others ({readyCount}/{total}){secs}
           </p>
         ) : (
           <button className="btn btn-gold btn-lg btn-full" onClick={() => submitInput({ action: 'ready' })}>
-            I'M DONE TALKING — READY TO ACCUSE
+            WE'VE SAID ENOUGH — OPEN THE BALLOT 🗳️
           </button>
+        )}
+        {isFaker && privateScreen && (
+          <p className="fk-tip">
+            🕵️ you're the faker: you never read that prompt, so don't defend your move — make somebody else defend
+            theirs.
+          </p>
         )}
       </div>
     );
   }
 
-  /* ---------- vote: secret ballot, unanimous or nothing ---------- */
-  const myVote = (state.votes ?? {})[me.uid];
-  const voteCount = Object.keys(state.votes ?? {}).length;
+  /* ---------- vote: public ballots, live and switchable, unanimous or nothing ---------- */
+  const votes = state.votes ?? {};
+  const myVote = votes[me.uid];
+  const voteCount = players.filter((p) => typeof votes[p.uid] === 'string').length;
+  const allIn = !!state.allIn && voteCount >= total;
   return (
     <div className="gv">
       <RoundTag state={state} />
       {privateScreen && <RoleBadge isFaker={isFaker} />}
-      <PromptCard state={state} />
-      <AnswersGrid state={state} players={players} />
+      <p className="fk-card-mini">
+        {mode.emoji} {state.prompt}
+      </p>
 
-      {myVote ? (
+      <p className="fk-call">🗳️ {allIn ? 'EVERY BALLOT IS IN' : 'NAME THE FAKER'}</p>
+      <p className="fk-argue-help">
+        Every ballot is public and yours stays switchable until the last one lands. An accusation needs every clean
+        vote on the same player — one doubter and the faker walks. The faker's own pick is a decoy: it never counts.
+      </p>
+
+      <VoteBoard votes={votes} players={players} meUid={me.uid} />
+
+      {allIn ? (
         <>
-          <div className="gate-emoji">🗳️</div>
-          <p className="muted">
-            {nameOf(players, myVote)} accused — waiting for every ballot ({voteCount}/{total}){secs}
-          </p>
-          <p className="fk-argue-help">
-            Every vote is secret until the unmask, so nobody can see who broke ranks. Keep arguing.
-          </p>
+          <p className="fk-sealed">🔒 last chance to switch — the ballot settles when the clock runs out{secs}</p>
+          <TimerBar deadline={timerEndsAt} totalMs={LOCK_MS} />
+          {shared && (
+            <button className="btn btn-ghost btn-lg btn-full" onClick={() => submitInput({ action: 'recast' })}>
+              🔁 NOT DONE — HAND THE PHONE ROUND AGAIN
+            </button>
+          )}
         </>
       ) : (
         <>
-          <p className="fk-call">Accuse one player — it only counts if you ALL agree</p>
-          <p className="fk-argue-help">
-            Unanimous and right → the faker drinks {CAUGHT_SIPS}. One doubter, one abstention, or one vote in the
-            wrong place → no accusation, and everyone but the faker drinks {FOOLED_SIPS}.
-          </p>
           <PlayerPicker
             players={players}
-            excludeUid={me.uid}
+            meUid={me.uid}
+            selected={myVote}
             onPick={(uid) => submitInput({ action: 'vote', value: uid })}
           />
-          {isFaker && privateScreen && (
-            <p className="fk-tip">
-              🕵️ your ballot is a decoy — it never counts toward their unanimity, so it can't save you. Talk your
-              way out instead.
-            </p>
-          )}
-          <TimerBar deadline={timerEndsAt} totalMs={VOTE_MS} />
           <p className="muted small">
+            {myVote ? `you named ${nameOf(players, myVote)} — tap another name to switch it · ` : ''}
             {voteCount}/{total} ballots in{secs}
           </p>
+          <TimerBar deadline={timerEndsAt} totalMs={VOTE_MS} />
         </>
+      )}
+
+      {isFaker && privateScreen && (
+        <p className="fk-tip">
+          🕵️ your own ballot is a decoy — it can't break their unanimity and it can't save you. Talk your way out of
+          it instead.
+        </p>
       )}
     </div>
   );

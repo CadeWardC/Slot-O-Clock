@@ -1,6 +1,11 @@
-import type { DrinkAssignment, PlayerInfo, RoomMode, RoomSettings } from './engine/types';
+import type {
+  DrinkAssignment,
+  OutcomeRecap,
+  PlayerInfo,
+  RoomMode,
+  RoomSettings,
+} from './engine/types';
 
-export const INTRO_MS = 5000;
 export const ROOM_TTL_MS = 12 * 60 * 60 * 1000; // 12h, mirrored in database.rules.json
 
 export type RoomPhase = 'lobby' | 'claim' | 'intro' | 'playing' | 'outcome' | 'ended';
@@ -11,6 +16,8 @@ export interface OutcomeInfo {
   gameEmoji: string;
   assignments: DrinkAssignment[];
   note?: string;
+  /** optional colour-coded breakdown of how the round was decided */
+  recap?: OutcomeRecap | null;
 }
 
 export interface RoomMeta {
@@ -33,7 +40,12 @@ export interface RoomMeta {
   forceStart?: boolean;
   /** actor for the current round, derived from turnOrder by the host loop */
   actorUid: string | null;
-  introEndsAt?: number;
+  /**
+   * Legacy field (rooms created before the intro ready gate stored a splash
+   * deadline here). The intro splash is not on a clock any more — see the
+   * 'intro' branch of the host loop.
+   */
+  introEndsAt?: number | null;
   outcomeEndsAt?: number | null;
   /** manual pacing: set by the host's continue button to leave the outcome screen */
   forceNext?: boolean;

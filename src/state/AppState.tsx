@@ -405,7 +405,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       if (finalOrder.length === 0) return;
       await update(ref(db, rpath('meta')), { turnOrder: finalOrder, forceStart: true }).catch(() => {});
     } else if (m.phase === 'intro') {
-      await update(ref(db, rpath('meta')), { introEndsAt: now }).catch(() => {});
+      // release the splash's ready gate without waiting for the table
+      await update(ref(db, rpath('meta')), { forceNext: true }).catch(() => {});
     } else if (m.phase === 'outcome') {
       // the host's continue: 'manual' needs the explicit forceNext flag,
       // and it also releases the ready gate when someone has gone quiet

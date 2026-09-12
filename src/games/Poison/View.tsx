@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '../../components/ui';
 import type { GameViewProps } from '../../engine/types';
-import { CUP_BONUS, SIPS, type PoisonInput, type PoisonState } from './definition';
+import { CUP_BONUS, MISS_SIPS, SIPS, type PoisonInput, type PoisonState } from './definition';
 
 /**
  * One victim, everyone else pouring. The pourer's own cup is the only cup
@@ -64,11 +64,19 @@ export function View({ state, me, players, submitInput }: GameViewProps<PoisonSt
         <div className="ps-pairs">
           {order.map((uid) => {
             const cup = poisons[uid];
+            // clean cup = the pour missed, and the pourer pays for it
+            const missed = !hit && cup != null;
             return (
-              <div key={uid} className={`ps-pair ${cup === pick ? 'ps-pair-hit' : ''}`}>
+              <div
+                key={uid}
+                className={`ps-pair ${cup === pick ? 'ps-pair-hit' : ''} ${missed ? 'ps-pair-miss' : ''}`}
+              >
                 <span>☠️ {nameOf(uid)}</span>
                 <span className="ps-vs">→</span>
-                <span>{cup == null ? 'never poured' : `cup ${cup + 1}`}{cup === pick ? ' 🎯' : ''}</span>
+                <span>
+                  {cup == null ? 'never poured' : `cup ${cup + 1}`}
+                  {cup === pick ? ' 🎯' : missed ? ` 🍺 +${MISS_SIPS}` : ''}
+                </span>
               </div>
             );
           })}
@@ -122,6 +130,9 @@ export function View({ state, me, players, submitInput }: GameViewProps<PoisonSt
         <h2>{order.length} cups got poisoned — pick one to drink</h2>
         <p className="muted small">
           any of them could be spiked — {SIPS} sips if you find one 🤫
+        </p>
+        <p className="muted small">
+          dodge them all and it's the poisoners who drink {MISS_SIPS} each 🍷
         </p>
         <div className="ps-cups">
           {cupsList.map((c) => (
