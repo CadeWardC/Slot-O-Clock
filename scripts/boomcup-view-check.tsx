@@ -97,21 +97,27 @@ const opening = definition.createInitialState(ctx());
 expect(opening.hold[0] === 'p0' && opening.hold[1] === 'p2', 'the two starting holders are the far pair');
 const p0Html = render(opening, 'p0');
 const p1Html = render(opening, 'p1');
-expect(p0Html.includes('bc-table'), 'a holder gets the table to swipe on');
-expect(p0Html.includes('swipe up'), 'the holder is told what to do');
+expect(p0Html.includes('bc-table'), 'a holder gets the table to flick on');
+expect(p0Html.includes('flick up'), 'the holder is told what to do');
 expect(!p1Html.includes('bc-table'), 'a player with no cup does not get a dead table');
 expect(p1Html.includes('watch the chase'), 'the player with no cup watches the chase');
-expect((p0Html.match(/class="bc-dot /g) ?? []).length === 2, 'both cups are marked on the seating ring');
-expect(p0Html.includes('4 left in the middle'), 'the middle reads out');
+const ringHtml = p0Html.slice(p0Html.indexOf('bc-ring'), p0Html.indexOf('bc-bar'));
+expect((ringHtml.match(/class="bc-dot /g) ?? []).length === 2, 'both cups are marked on the seating ring');
+expect(p0Html.includes('4 in the middle'), 'the middle reads out');
 expect(!p0Html.includes('bc-mercy'), 'no aim assist on a fresh cup');
 expect(p0Html.includes('Player2'), 'the other ball is named on your table');
 
-/* ---- a miss widens the mouth, and says so ---- */
+/* ---- and it tells you nothing about the shot before you take it ---- */
+for (const leak of ['power', 'on target', 'off line', 'on the rim', 'aim assist', 'accuracy']) {
+  expect(!p0Html.toLowerCase().includes(leak), `nothing on screen says "${leak}"`);
+}
+
+/* ---- a miss widens the mouth silently ---- */
 const missed = play('party', [() => ({ shot: { dx: 0, dy: IDEAL_SWIPE * 0.6, ms: 200 } })]);
 const missedHtml = render(missed, 'p0');
-expect(missedHtml.includes('bc-mercy'), 'a missed cup shows its aim assist');
-expect(missedHtml.includes('aim assist'), 'and the number is on screen');
-expect(missedHtml.includes('miss 1'), 'the miss streak is on the HUD');
+expect(missedHtml.includes('bc-mercy'), 'a missed cup quietly grows its mouth');
+expect(!missedHtml.includes('aim assist'), 'and the assist is never labelled');
+expect(!missedHtml.includes('miss 1'), 'and the streak is not read back to the shooter');
 
 /* ---- the pass moves the table to the next player ---- */
 const passed = play('party', [
@@ -135,32 +141,37 @@ expect(!otherHtml.includes('bc-give'), 'nobody else can spend the choice');
 expect(otherHtml.includes('hold tight'), 'everyone else waits it out');
 expect(otherHtml.includes('timerbar'), 'the choice is visibly on a clock');
 
-/* ---- the catch ---- */
+/* ---- the catch: they drink, the ball plays on past them ---- */
 const caught = play('party', [
   () => ({ shot: IN }),
   (s) => ({ give: s.hold[1] }), // straight onto the other ball
 ]);
 expect(caught.caught.p2 === 1, 'the catch landed on p2');
-const caughtHtml = render(caught, 'p2');
-expect(caughtHtml.includes('got caught'), 'the catch is announced on every phone');
-expect(caughtHtml.includes('both cups are yours'), 'the caught player is told they hold both');
-expect(caughtHtml.includes('cup 1 first'), 'and which cup to clear first');
+expect(caught.hold[0] === 'p3' && caught.hold[1] === 'p2', 'the ball carried on to the next player');
+// the flash is a live "it just happened" banner, so it only shows on a fresh
+// catch — the sim's clock is in the past, so restamp it as right now
+const justCaught: BcState = {
+  ...caught,
+  lastCatch: { ...caught.lastCatch!, at: Date.now() },
+};
+const caughtHtml = render(justCaught, 'p2');
+expect(caughtHtml.includes('caught'), 'the catch is announced on every phone');
+expect(caughtHtml.includes('bc-table'), 'the caught player still has their own cup to clear');
+expect(render(justCaught, 'p3').includes('bc-table'), 'and the ball is the next player\'s problem now');
+expect(!render(caught, 'p2').includes('caught'), 'a catch from minutes ago stops shouting');
 
-/* ---- the BOOM flash, off a round the chase already drained ---- */
-const chase = play('party', [
+/* ---- the BOOM: the chase keeps draining until the middle is dry ---- */
+const drains = Array.from({ length: 4 }, () => [
   () => ({ shot: IN }),
-  (s) => ({ give: s.hold[1] }),
-  () => ({ shot: IN }),
-  (s) => ({ give: nextOf(s, 'p2') }),
-  () => ({ shot: IN }),
-  (s) => ({ give: nextOf(s, 'p2') }),
-  () => ({ shot: IN }),
-  (s) => ({ give: nextOf(s, 'p3') }),
-  () => ({ shot: IN }),
-  (s) => ({ give: nextOf(s, 'p3') }),
-]);
-expect(chase.middle < 4, `the middle drains as the chase runs (${chase.middle} left)`);
-expect(render(chase, 'p0').includes('got caught'), 'the catch flash renders');
+  (s: BcState) => ({ give: s.hold[1] }), // every first-try sink snipes the other ball
+]).flat();
+const chase = play('party', drains);
+expect(chase.middle === 0, `four catches drained the middle (${chase.middle} left)`);
+expect(!!chase.boomUid, 'the last one caught took the BOOM');
+expect(
+  render({ ...chase, lastCatch: { ...chase.lastCatch!, at: Date.now() } }, 'p0').includes('caught'),
+  'the catch flash renders',
+);
 
 /* ---- shared phone ---- */
 const shared = play('shared', [() => ({ shot: { dx: 0, dy: IDEAL_SWIPE * 0.6, ms: 200 } })]);
@@ -172,12 +183,8 @@ const empty = render({ phase: 'shooting' } as BcState, 'p0');
 expect(empty.length > 0, 'a state with every object dropped still renders');
 const legacy = render({ phase: 'drinking' } as unknown as BcState, 'p0');
 expect(legacy.length > 0, 'a phase from an older build still renders');
-
-function nextOf(s: BcState, uid: string): string {
-  const ring = s.ring ?? [];
-  const i = ring.indexOf(uid);
-  return i < 0 ? (ring[0] ?? '') : (ring[(i + 1) % ring.length] ?? '');
-}
+const stacked = render({ ...opening, hold: ['p0', 'p0'] } as BcState, 'p0');
+expect(stacked.length > 0, 'and neither does the two-cup pile-up an older build could leave behind');
 
 console.log(fails === 0 ? '\nBoom Cup view checks passed.' : `\n${fails} view check(s) FAILED.`);
 if (fails > 0) process.exit(1);

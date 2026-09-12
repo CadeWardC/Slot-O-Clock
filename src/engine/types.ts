@@ -24,7 +24,12 @@ export interface PlayerInfo {
   name: string;
   emoji: string;
   isHost: boolean;
-  /** false once the device disconnects (party mode) */
+  /**
+   * Presence of the *page*: true while this player's phone holds a live
+   * Realtime Database socket. A phone whose screen went dark drops it for a
+   * moment and gets it straight back, so this is never a reason to drop
+   * someone from the room — see `left` and `activePlayers`.
+   */
   connected: boolean;
   /** true for shared-phone players added locally by the host (no device) */
   local: boolean;
@@ -36,6 +41,16 @@ export interface PlayerInfo {
    * outcome screen. The host loop clears it every time a round ends.
    */
   ready?: boolean;
+  /**
+   * Deliberate exit — the player closed the site or tapped "leave room".
+   * Unlike `connected: false` (their phone is asleep; they keep their seat,
+   * their score and their turn) this *is* a kick: the room drops them from
+   * the ready gate, the turn order and the next round's roster until their
+   * phone comes back and clears the flag. Set by the page-exit handler in
+   * state/AppState.tsx.
+   */
+  left?: boolean;
+  leftAt?: number;
 }
 
 export type RoomMode = 'party' | 'shared';
@@ -60,7 +75,12 @@ export interface RoomSettings {
 }
 
 export interface GameContext {
-  /** connected players (plus local shared-phone players), join order */
+  /**
+   * This round's players, join order — the roster the host snapshotted when it
+   * launched the round (`meta.roundUids`). Stable for the whole round, so a
+   * phone that dies mid-round stays in it and a mid-round joiner waits for the
+   * next one.
+   */
   players: PlayerInfo[];
   /** player who claimed this round via I'll Start / I'm Next */
   actorUid: string | null;

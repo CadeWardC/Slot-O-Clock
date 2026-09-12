@@ -1,16 +1,41 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useApp } from '../state/AppState';
-import { activePlayers, pacingOf, type GameInputEntry, type RoomData } from '../types';
+import {
+  activePlayers,
+  inCurrentRound,
+  livePlayers,
+  pacingOf,
+  playerList,
+  roundPlayers,
+  type GameInputEntry,
+  type RoomData,
+} from '../types';
 import { gameById } from '../games';
 import { Button, Modal, PlayerChip } from '../components/ui';
 import type { PlayerInfo } from '../engine/types';
 
 export function GameScreen() {
-  const { room } = useApp();
+  const { room, me, isAuthority, takeOverHost } = useApp();
   const [scoresOpen, setScoresOpen] = useState(false);
   if (!room) return null;
   const meta = room.meta;
   const players = activePlayers(room);
+  const owner = room.players?.[meta.ownerUid];
+  // The host phone *is* the game server, so when it's asleep or gone the room
+  // can pick hosting up from here instead of waiting for a lobby nobody sees.
+  const hostGone =
+    meta.mode === 'party' &&
+    !isAuthority &&
+    !!owner &&
+    !owner.local &&
+    (owner.connected === false || owner.left === true);
+  // Joined mid-match: this round is already running without them.
+  const waitingForNext =
+    meta.phase === 'playing' &&
+    meta.mode === 'party' &&
+    !!me &&
+    me.left !== true &&
+    !inCurrentRound(room, me.uid);
 
   return (
     <div className="screen game-screen">
@@ -21,19 +46,54 @@ export function GameScreen() {
             ? (gameById.get(room.game?.type ?? '')?.name ?? '…')
             : (gameById.get(meta.rotation[meta.gameIndex] ?? '')?.name ?? '…')}
         </span>
+        {hostGone && (
+          <button
+            className="head-btn"
+            onClick={() => takeOverHost()}
+            aria-label="take over as host"
+            title="the host phone is away — take over the room"
+          >
+            👑
+          </button>
+        )}
         <button className="head-btn" onClick={() => setScoresOpen(true)} aria-label="scores">
           📊
         </button>
       </header>
 
       <main className="game-body">
-        {meta.phase === 'claim' && <ClaimView room={room} />}
-        {meta.phase === 'intro' && <IntroView room={room} />}
-        {meta.phase === 'playing' && <PlayingView room={room} />}
-        {meta.phase === 'outcome' && <OutcomeView room={room} />}
+        {waitingForNext ? (
+          <JoiningNext />
+        ) : (
+          <>
+            {meta.phase === 'claim' && <ClaimView room={room} />}
+            {meta.phase === 'intro' && <IntroView room={room} />}
+            {meta.phase === 'playing' && <PlayingView room={room} />}
+            {meta.phase === 'outcome' && <OutcomeView room={room} />}
+          </>
+        )}
       </main>
 
       {scoresOpen && <ScoresModal onClose={() => setScoresOpen(false)} players={players} />}
+    </div>
+  );
+}
+
+/** You walked in halfway through a round — you're in the room, up next game. */
+function JoiningNext() {
+  const { room } = useApp();
+  const nextDef = gameById.get(room?.meta.rotation[room.meta.gameIndex] ?? '');
+  return (
+    <div className="gate">
+      <div className="gate-card">
+        <div className="gate-emoji">🍻</div>
+        <h2>You're in!</h2>
+        <h1>Up next game</h1>
+        <p className="muted small">
+          {nextDef ? `${nextDef.emoji} ${nextDef.name} is playing right now. ` : ''}
+          This round is already under way — you'll play the next one. Tap Ready when it shows up.
+        </p>
+      </div>
     </div>
   );
 }
@@ -49,7 +109,8 @@ function ClaimView({ room }: { room: RoomData }) {
   const ordered = order
     .map((uid) => players.find((p) => p.uid === uid))
     .filter((p): p is PlayerInfo => !!p);
-  const pending = players.filter((p) => !order.includes(p.uid));
+  // only an awake phone can claim — a dark screen doesn't hold the ceremony up
+  const pending = livePlayers(room).filter((p) => !order.includes(p.uid));
   const isFirstSlot = order.length === 0;
   const iAmIn = !!me && order.includes(me.uid);
 
@@ -81,6 +142,8 @@ function ClaimView({ room }: { room: RoomData }) {
         </>
       ) : pending.length === 0 ? (
         <p className="muted">Order locked — let's go! 🍻</p>
+      ) : !me ? (
+        <p className="muted">You're not in this room — reload the page to take a seat.</p>
       ) : iAmIn ? (
         <p className="muted">You're in at spot {order.indexOf(me!.uid) + 1} — waiting for the others…</p>
       ) : (
@@ -109,7 +172,6 @@ function ClaimView({ room }: { room: RoomData }) {
 function IntroView({ room }: { room: RoomData }) {
   const { isAuthority, hostSkipRound } = useApp();
   const def = gameById.get(room.meta.rotation[room.meta.gameIndex] ?? '');
-  const players = activePlayers(room);
   if (!def) return null;
   // Same pacing rule as the outcome screen: the splash parks on the ready
   // gate until the table says go (or the host runs the room themselves).
@@ -128,7 +190,7 @@ function IntroView({ room }: { room: RoomData }) {
           <p className="muted">⏸ read up — the host starts the round</p>
         )
       ) : (
-        <ReadyGate players={players} shared={room.meta.mode === 'shared'} intro />
+        <ReadyGate room={room} intro />
       )}
     </div>
   );
@@ -139,7 +201,9 @@ function IntroView({ room }: { room: RoomData }) {
 function PlayingView({ room }: { room: RoomData }) {
   const { me, submitInput, isAuthority, hostSkipRound } = useApp();
   const def = gameById.get(room.game?.type ?? '');
-  const players = activePlayers(room);
+  // this round's roster, not the room: a phone that died mid-round keeps its
+  // seat, and anyone who joined mid-round plays from the next game
+  const players = roundPlayers(room);
   const variant = room.meta.mode;
 
   const inputs = useMemo(() => {
@@ -152,7 +216,26 @@ function PlayingView({ room }: { room: RoomData }) {
     [inputs],
   );
 
-  if (!def || players.length === 0) return null;
+  if (!def) return null;
+  if (players.length === 0) {
+    // everyone this round was playing has been taken out of the room — the
+    // host is the only one who can move the table on
+    return (
+      <div className="gate">
+        <div className="gate-card">
+          <div className="gate-emoji">🫥</div>
+          <h2>Nobody left in this round</h2>
+          {isAuthority ? (
+            <Button variant="gold" size="lg" full onClick={() => hostSkipRound()}>
+              skip round ⏭
+            </Button>
+          ) : (
+            <p className="muted small">waiting for the host…</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // actor-only games in shared mode: the phone goes straight to the actor
   if (variant === 'shared' && def.sharedInput === 'actor') {
@@ -220,7 +303,23 @@ function PlayingView({ room }: { room: RoomData }) {
     );
   }
 
-  if (!me) return <p className="muted">Spectating…</p>;
+  if (!me) {
+    // the host cleared this seat while its phone was sitting here watching
+    return (
+      <div className="gate">
+        <div className="gate-card">
+          <div className="gate-emoji">🫥</div>
+          <h2>You're not in this room</h2>
+          <p className="muted small">
+            The host took your seat out. Reload to walk back in — you'll play from the next game.
+          </p>
+          <Button variant="gold" size="lg" full onClick={() => location.reload()}>
+            rejoin
+          </Button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="playing-wrap">
       <def.View
@@ -287,19 +386,29 @@ function SharedGate({
 /* ============ outcome ============ */
 
 function OutcomeView({ room }: { room: RoomData }) {
-  const { isAuthority, hostSkipRound } = useApp();
+  const { isAuthority, hostSkipRound, me } = useApp();
   const outcome = room.meta.outcome;
-  const players = activePlayers(room);
+  // names for the drink list and the recap: every seat in the room, so a player
+  // who walked off mid-round is still readable on the screen that names them
+  const players = playerList(room);
   if (!outcome) return null;
   // RTDB drops empty arrays — `assignments`/`groups` can read back undefined
   const assignments = outcome.assignments ?? [];
   const recapGroups = (outcome.recap?.groups ?? []).filter((g) => (g?.uids ?? []).length > 0);
   const pacing = pacingOf(room.meta.settings);
+  // walked in halfway through: this round wasn't theirs, the next one is
+  const joined = !!me && me.left !== true && !inCurrentRound(room, me.uid);
 
   return (
     <div className="outcome">
       <div className="outcome-emoji">{outcome.gameEmoji}</div>
       <h2>{outcome.gameName}</h2>
+
+      {joined && (
+        <p className="muted small">
+          🍻 you're in — that round ran without you, you play the next game
+        </p>
+      )}
 
       {recapGroups.length > 0 && (
         <div className="outcome-recap">
@@ -352,28 +461,26 @@ function OutcomeView({ room }: { room: RoomData }) {
           <p className="muted">⏸ paused — the host continues when everyone's ready</p>
         )
       ) : (
-        <ReadyGate players={players} shared={room.meta.mode === 'shared'} />
+        <ReadyGate room={room} />
       )}
     </div>
   );
 }
 
 /**
- * The ready gate: nothing moves on until every player still in the room has
+ * The ready gate: nothing moves on until every player who can actually tap has
  * tapped Ready. It guards two moments — the rules splash (`intro`) and the
- * between-round outcome screen. On a shared phone there is only one device to
- * tap, so one press readies the whole table.
+ * between-round outcome screen — and it only counts phones that are awake, so a
+ * phone that nodded off never freezes the table (it keeps its seat and its
+ * score and slides back in when it wakes). On a shared phone there is only one
+ * device to tap, so one press readies the whole table.
  */
-function ReadyGate({
-  players,
-  shared,
-  intro = false,
-}: {
-  players: PlayerInfo[];
-  shared: boolean;
-  intro?: boolean;
-}) {
+function ReadyGate({ room, intro = false }: { room: RoomData; intro?: boolean }) {
   const { me, setReady, isAuthority, hostSkipRound } = useApp();
+  const players = livePlayers(room);
+  // asleep phones are still in the game, they just can't hold the table up
+  const away = activePlayers(room).filter((p) => !p.local && !p.connected);
+  const shared = room.meta.mode === 'shared';
   const waiting = players.filter((p) => p.ready !== true);
   const readyCount = players.length - waiting.length;
   const allReady = waiting.length === 0;
@@ -406,6 +513,14 @@ function ReadyGate({
       <p className="ready-count">
         {allReady ? copy.allReady : `${readyCount}/${players.length} ready`}
       </p>
+
+      {away.length > 0 && (
+        <p className="muted small">
+          📴 {away.map((p) => p.name).join(', ')}{' '}
+          {away.length === 1 ? 'has' : 'have'} a dark screen — still in the game, just not
+          holding anyone up
+        </p>
+      )}
 
       {allReady ? null : readyEveryone ? (
         <Button

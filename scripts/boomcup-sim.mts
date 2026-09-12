@@ -130,7 +130,7 @@ class Room {
 
 /* ============================================================ */
 
-section('physics — the swipe itself');
+section('physics — the flick itself');
 {
   const perfect = resolveShot(IN, 0);
   check('a straight flick at the ideal distance is in', perfect.ok && perfect.made, perfect);
@@ -140,6 +140,17 @@ section('physics — the swipe itself');
   check('a diagonal flick drifts off the cup', !wayward.made, wayward);
   const tap = resolveShot(TINY, 0);
   check('a stray tap is not a shot at all', !tap.ok, tap);
+
+  // power is distance AND pace: same flick, snapped vs dragged
+  const snap = resolveShot({ dx: 0, dy: IDEAL_SWIPE * 1.05, ms: 70 }, 0);
+  const lazy = resolveShot({ dx: 0, dy: IDEAL_SWIPE * 1.05, ms: 900 }, 0);
+  check('a snap flick carries further than a lazy drag of the same length', snap.power > lazy.power, {
+    snap: snap.power,
+    lazy: lazy.power,
+  });
+  check('the pace bonus is capped, so a hard flick can still overshoot', !snap.made, snap);
+  check('and a lazy drag of a good length still drops in', lazy.made, lazy);
+
   const nearMiss = { dx: 0, dy: IDEAL_SWIPE * 0.75, ms: 200 };
   check('a flick a little short is judged out', !resolveShot(nearMiss, 0).made, resolveShot(nearMiss, 0));
   check(
@@ -220,25 +231,31 @@ section('the catch — the cup lands on the other ball');
   check('they drink one, on the spot', JSON.stringify(r.drinks()) === JSON.stringify([{ uid: 'p2', sips: CATCH_SIPS }]), r.drinks());
   check('the catcher is credited', r.effects.some((e) => e.type === 'SCORE' && e.uid === 'p0' && e.delta === 1));
   check('the middle loses a beer', r.s.middle === 3, r.s.middle);
-  check('the caught player is left holding both cups', r.s.hold.join(',') === 'p2,p2', r.s.hold);
-  check('their cup is a fresh beer, so the streak restarts', r.s.miss[1] === 0);
+  check('the ball that caught them plays on to the player after them', r.s.hold.join(',') === 'p3,p2', r.s.hold);
+  check('nobody is left holding two cups', r.s.hold[0] !== r.s.hold[1], r.s.hold);
+  check('the caught player keeps their own cup, fresh', r.s.miss[1] === 0);
+  check('the caught player is set to shoot their own cup', activeCupFor(r.s, 'p2', false) === 1);
   check('the catch is published for the flash', r.s.lastCatch?.uid === 'p2' && r.s.lastCatch.byUid === 'p0');
-  check('only cup 0 is shootable while both are held', activeCupFor(r.s, 'p2', false) === 0);
 }
 
-section('the chase — catching the next player on the way round');
+section('the chase — catching the same player again, and being caught back');
 {
   const r = new Room();
   r.shoot('p0', IN);
   r.give('p0', 'p2');
-  // p2 holds both: clear one, then drop the other on the next in line
-  r.shoot('p2', IN);
-  r.give('p2', 'p3');
-  check('the first cup is cleared onto p3', r.s.hold.join(',') === 'p3,p2', r.s.hold);
-  r.shoot('p2', IN);
-  r.give('p2', 'p3');
-  check('the second cup catches them straight away', r.s.caught.p3 === 1 && r.s.hold.join(',') === 'p3,p3', r.s);
+  // the ball is now p3's; a first-try sink from them can snipe p2 again
+  r.shoot('p3', IN);
+  r.give('p3', 'p2');
+  check('the new holder can catch them straight back', r.s.caught.p2 === 2, r.s.caught);
+  check('and the ball bounces back to the next seat', r.s.hold.join(',') === 'p3,p2', r.s.hold);
   check('the middle is down to two', r.s.middle === 2);
+
+  // …while a plain sink just moves the cup on, no catch
+  const r2 = new Room();
+  r2.shoot('p0', MISS);
+  r2.shoot('p0', IN); // second try, so it goes to the next seat: p1
+  check('a sink after a miss passes to the next in line', r2.s.hold[0] === 'p1', r2.s.hold);
+  check('and catches nobody', Object.keys(r2.s.caught).length === 0, r2.s.caught);
 }
 
 section('the BOOM — the last beer in the middle');
@@ -246,12 +263,9 @@ section('the BOOM — the last beer in the middle');
   const r = new Room();
   const script: [string, string][] = [
     ['p0', 'p2'],
-    ['p2', 'p3'],
-    ['p2', 'p3'],
-    ['p3', 'p0'],
-    ['p3', 'p0'],
-    ['p0', 'p1'],
-    ['p0', 'p1'],
+    ['p3', 'p2'],
+    ['p3', 'p2'],
+    ['p3', 'p2'],
   ];
   let ended = false;
   for (const [shooter, victim] of script) {
@@ -260,7 +274,7 @@ section('the BOOM — the last beer in the middle');
     const gave = r.give(shooter, victim);
     ended = gave.some((e) => e.type === 'END');
   }
-  check('seven cups drained a four-beer middle', r.s.middle === 0, r.s.middle);
+  check('four catches drained a four-beer middle', r.s.middle === 0, r.s.middle);
   check('somebody took the BOOM', !!r.s.boomUid, r.s.boomUid);
   const boom = r.drinks().find((d) => d.sips === BOOM_SIPS);
   check('the BOOM is two extra sips, applied live', !!boom && boom.uid === r.s.boomUid, r.drinks());
@@ -268,7 +282,6 @@ section('the BOOM — the last beer in the middle');
   check('the round closes itself', !!end);
   check('drinks were already applied, so END carries none', (end?.assignments ?? []).length === 0, end?.assignments);
   check('the recap names the BOOM taker', !!end?.recap?.groups.some((g) => g.uids.includes(r.s.boomUid!)), end?.recap);
-  check('the recap lists everyone caught', (end?.recap?.groups ?? []).some((g) => g.uids.length >= 2), end?.recap);
   check('the note explains the ending', !!end?.note && end.note.includes('BOOM'), end?.note);
 }
 
@@ -300,10 +313,11 @@ section('shared phone — one attempt each, back and forth');
     definition.sharedHolderUid?.(r.s, { players: r.players, actorUid: null }) === 'p0',
   );
   r.shoot('p0', IN);
-  check('p0 had already missed, so this sink goes to the next in line', r.s.hold[0] === 'p1', r.s.hold);
-  check('both cups are now p1\'s, and the attempt is the other cup', r.s.turn === 1 && r.s.hold[1] === 'p1', r.s);
+  check('the sink reaches p1 — who is holding the other ball', r.s.caught.p1 === 1, r.s.caught);
+  check('so the ball plays on past them to p2', r.s.hold[0] === 'p2' && r.s.hold[1] === 'p1', r.s.hold);
+  check('the attempt flips to the cup p1 kept', r.s.turn === 1, r.s.turn);
   check(
-    'the phone follows the cups to p1',
+    'so the phone goes to p1, who has a drink and a cup',
     definition.sharedHolderUid?.(r.s, { players: r.players, actorUid: null }) === 'p1',
   );
 }

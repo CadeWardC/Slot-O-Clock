@@ -1,5 +1,5 @@
 import { useApp } from '../state/AppState';
-import { activePlayers, pacingOf, playerList } from '../types';
+import { activePlayers, departedPlayers, livePlayers, pacingOf } from '../types';
 import { allGames } from '../games';
 import { triviaTopics } from '../games/Trivia/definition';
 import { Button, PlayerChip, PlayerForm } from '../components/ui';
@@ -7,6 +7,7 @@ import { Button, PlayerChip, PlayerForm } from '../components/ui';
 export function Lobby() {
   const {
     room,
+    me,
     isAuthority,
     startGame,
     updateSettings,
@@ -18,11 +19,15 @@ export function Lobby() {
   } = useApp();
   if (!room) return null;
   const meta = room.meta;
-  const players = playerList(room);
-  const active = activePlayers(room);
+  // seats in the room (a dark screen keeps its seat), the phones that are awake
+  // right now, and the seats given up on purpose by closing the site
+  const players = activePlayers(room);
+  const active = livePlayers(room);
+  const departed = departedPlayers(room);
   // shared-mode rooms have no players node until the host adds one
   const owner = room.players?.[meta.ownerUid];
-  const ownerGone = meta.mode === 'party' && owner && owner.connected === false;
+  const ownerGone =
+    meta.mode === 'party' && owner && (owner.connected === false || owner.left === true);
 
   const enabled = new Set(meta.settings.enabledGames ?? []);
   const eligible = allGames.filter((g) => enabled.has(g.id));
@@ -91,14 +96,18 @@ export function Lobby() {
       </div>
 
       <section className="lobby-players">
-        <h3>{meta.mode === 'shared' ? 'Players' : `Players (${active.length} connected)`}</h3>
+        <h3>
+          {meta.mode === 'shared'
+            ? 'Players'
+            : `Players (${active.length} connected${players.length > active.length ? `, ${players.length - active.length} phone off` : ''})`}
+        </h3>
         <div className="chip-grid">
           {players.map((p) => (
             <PlayerChip
               key={p.uid}
               player={p}
               crown={p.uid === meta.ownerUid}
-              muted={!p.local && !p.connected}
+              note={!p.local && !p.connected ? 'phone off' : undefined}
               drinks={p.drinkCount}
               badge={
                 isAuthority && p.uid !== meta.ownerUid ? (
@@ -108,6 +117,22 @@ export function Lobby() {
             />
           ))}
         </div>
+
+        {departed.length > 0 && (
+          <p className="muted small lobby-departed">
+            🚪 left the room (closed the site):{' '}
+            {departed.map((p) => `${p.emoji} ${p.name}`).join(', ')}
+            {isAuthority && (
+              <button
+                className="chip-x"
+                onClick={() => departed.forEach((p) => void removePlayer(p.uid))}
+                aria-label="clear departed players"
+              >
+                clear
+              </button>
+            )}
+          </p>
+        )}
 
         {meta.mode === 'shared' && isAuthority && (
           <details className="add-player" open={players.length === 0}>
@@ -120,6 +145,13 @@ export function Lobby() {
           <Button variant="ghost" size="sm" onClick={() => takeOverHost()}>
             👑 host is away — take over the room
           </Button>
+        )}
+
+        {meta.mode === 'party' && !me && (
+          <p className="muted small lobby-departed">
+            🫥 you're not in this room — <button className="chip-x" onClick={() => location.reload()}>reload</button>{' '}
+            to walk back in (you'll play from the next game)
+          </p>
         )}
       </section>
 
@@ -200,7 +232,7 @@ export function Lobby() {
               ? `Start the party 🍻`
               : eligible.length === 0
                 ? 'Enable at least one game'
-                : `Need ${need} players (${active.length} ready)`}
+                : `Need ${need} players — ${active.length} connected`}
           </Button>
         ) : (
           <p className="muted">Waiting for the host to start…</p>

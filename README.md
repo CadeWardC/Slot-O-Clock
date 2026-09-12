@@ -7,6 +7,8 @@ A multiplayer **drinking-minigame party game** for phones. One player creates a 
 - **Two ways to play** (pick a button when creating the room):
   - 📱 **Party mode** — everyone joins on their own phone.
   - 🤝 **Shared phone** — one phone, players added by name, passed around with "pass the phone to…" gates.
+- **A dark screen is not a departure.** Lock your phone, walk into a tunnel, let the screen time out — your seat, your drinks and your turn are all still there, and the round doesn't wait on you while you're gone. Closing the site (or tapping *leave room*) is a departure: the room drops your seat right away, and if you open the site again you walk back in and play from the next game.
+- **You can join mid-match.** New phones can walk in halfway through a round: they're in the room immediately, and instead of being dropped into a game already in progress they play the next minigame (and get a slot in the turn order).
 - **Games are plugins.** Adding a new minigame = creating one folder. See [Adding a new game](#adding-a-new-game).
 
 ## Games included
@@ -23,6 +25,7 @@ A multiplayer **drinking-minigame party game** for phones. One player creates a 
 | Horse Race | 🏇 | Everyone bets on a horse from the field, then a server-synced ~8 second race plays out identically on every phone. Back the winner and you hand out a drink to anyone you like; back the worst-placed horse anyone picked and you drink 3, the next-worst costs 1. If nobody backed the winner, everyone drinks 1. |
 | Wavelength | 🎚️ | The turn actor sees a hidden target on a 0-100 spectrum and gives a clue out loud; everyone else dials where they think it lands. Nothing is on a clock: the clue-giver takes as long as they like and taps ready, and the dials lock in whenever each player is set. Furthest guess drinks 2, closest scores — and if the group's average is miles off, the clue-giver drinks 2 instead. |
 | Anonymous Confessions | 🤫 | Everyone answers a juicy prompt anonymously, the confessions appear with no names on them, and one card goes on trial: who wrote it? A caught author drinks 2; fool the whole group and everyone else drinks 1. Two prompts per game. |
+| Boom Cup | 💥 | Two players start with a cup and a ball, as far apart around the table as the seating allows; everyone else is next in line. **Swipe up to shoot** — the ball flies where your thumb aimed (power comes from how far you flick, aim from how straight), and the mouth widens a little with every miss so a bad run never traps anyone. Sink it and the cup passes to the next player; sink it **first try** and you hand it to *anyone* at the table, order be damned. If your cup reaches whoever is still holding the other ball they are **caught** — they drink a beer from the middle and are left clearing both cups, on a fresh cup and a fresh first-try free choice. The middle holds a beer per player: when the last one goes, the player caught taking it drinks the BOOM (+2). Party mode is a real race with both balls live at once; on a shared phone the two shooters alternate one attempt each. |
 
 ## Setup (one-time, ~5 minutes)
 
@@ -62,11 +65,16 @@ phones ⇄ WebSocket ⇄ Firebase RTDB (rooms/{CODE}) ⇄ WebSocket ⇄ phones
 
 - **Host = the server.** GitHub Pages can't run one, so the room owner's client owns all phase transitions and runs every game's `reduce()` — players only write their own inputs, enforced by database rules.
 - **Data model** — `rooms/{CODE}/meta` (phase machine), `players/{uid}` (plus the between-round `ready` flag), `turnClaim/{round}` (first-write-wins claim), `game/{state, timerEndsAt, inputs}`, `events` (the drink feed).
+- **Seats: who's in, who's around, who plays this round** — three different questions, three answers:
+  - **In the room** (`activePlayers`) — everyone who hasn't *left*. A phone whose screen went dark keeps its seat; only closing the site (`pagehide` → `players/{uid}/left`, see `state/AppState.tsx`) or tapping *leave room* hands it back. A returning phone clears the flag on its first heartbeat.
+  - **Around right now** (`livePlayers`) — the phones actually holding a socket. Only these can tap Ready, which is why a phone that fell asleep never freezes the room, and only these are picked to be a round's actor (a dark screen is stepped over, and its own slot is waiting when it wakes).
+  - **Playing this round** (`roundPlayers`) — the roster the host snapshotted into `meta.roundUids` when it launched the round. It stays fixed for the whole round, so a phone that dies mid-round is still in the game its friends are playing, and somebody who joins mid-round plays from the *next* minigame instead of landing in one already under way. A returning player and a brand-new phone are the same thing to the room: a seat that joins the next roster, with a slot appended to the turn order.
+- **Presence** — `connected` tracks the page, not the party. It's re-armed from `.info/connected` and re-asserted whenever the phone comes back (`.info/connected`, `visibilitychange`, `pageshow`, `online`), so a phone that nods off re-appears as connected instead of sitting out the rest of the night.
 - **Turn claiming** — the opening ceremony is a sequence of first-write-wins RTDB transactions: the first "I'LL START"/"I'M NEXT" write per slot wins, everyone else's is aborted by the rules. The resulting `turnOrder` drives every round's actor (`turnOrder[(round - 1) % length]`) with no further claiming.
-- **Ready gate** — it guards two moments: the rules splash (the host loop won't even `createInitialState` until the table is ready) and the outcome screen. Entering either one clears every player's `ready` flag in the *same* write that flips the phase, so a stale flag can never skip the wait. Play starts on the last Ready tap (`settings.roundPacing: 'ready'`, the default) or on the host's Continue (`'manual'`). Disconnected players never block it.
+- **Ready gate** — it guards two moments: the rules splash (the host loop won't even `createInitialState` until the table is ready) and the outcome screen. Entering either one clears every player's `ready` flag in the *same* write that flips the phase, so a stale flag can never skip the wait. Play starts on the last Ready tap (`settings.roundPacing: 'ready'`, the default) or on the host's Continue (`'manual'`). Phones that are asleep never block it.
 - **Fair timers** — clients track `.info/serverTimeOffset`, so countdowns line up across phones. Reaction Duel goes one step further: the host publishes the server-time *instant* green lights up (`goAt`, a moment in the future), each device waits for that instant locally and starts its own `performance.now()` stopwatch on the frame green renders, then sends only the measured `reactionMs`. The score is a device-local measurement, so neither the delay in learning about green nor the delay in sending the tap touches anybody's time.
 - **Round recap** — a game's `END` effect can carry an optional `recap`: colour-coded groups of uids (e.g. Never Have I Ever's guilty vs not-me split) that the outcome screen renders above the drink list, which is where the table decides when to move on.
-- **Resilience** — presence via `onDisconnect`; a reloaded or backgrounded host self-heals (timers and phases are checked against server-time deadlines); another player can take over hosting if the owner leaves.
+- **Resilience** — presence via `onDisconnect` plus a self-healing heartbeat; a reloaded or backgrounded host self-heals (timers and phases are checked against server-time deadlines); any player can take over hosting from the lobby *or* from the 👑 button in the game header when the host phone goes away.
 
 ## Adding a new game
 
@@ -124,7 +132,7 @@ export default definition;
 
 `definition.ts` can also declare `sharedHolderUid(state)` when the game has a turn order of its own: it names the player the shared phone is handed to next, instead of the engine's default "next player in join order" ([Poison](./src/games/Poison/definition.ts) passes it pourer to pourer, then to the victim).
 
-Study [`src/games/_template/`](./src/games/_template/definition.ts) (a complete coin-flip game, ~60 lines) or the real games for patterns: actor-driven ([Slots](./src/games/Slots/definition.ts)), timing-critical ([Reaction](./src/games/Reaction/definition.ts)), everyone-answers ([Trivia](./src/games/Trivia/definition.ts)), voting ([Prompts](./src/games/Prompts/definition.ts)), precomputed-plus-animation ([HorseRace](./src/games/HorseRace/definition.ts)), hidden-target ([Wavelength](./src/games/Wavelength/definition.ts)), and free-text anonymity ([Confessions](./src/games/Confessions/definition.ts)).
+Study [`src/games/_template/`](./src/games/_template/definition.ts) (a complete coin-flip game, ~60 lines) or the real games for patterns: actor-driven ([Slots](./src/games/Slots/definition.ts)), timing-critical ([Reaction](./src/games/Reaction/definition.ts)), everyone-answers ([Trivia](./src/games/Trivia/definition.ts)), voting ([Prompts](./src/games/Prompts/definition.ts)), precomputed-plus-animation ([HorseRace](./src/games/HorseRace/definition.ts)), hidden-target ([Wavelength](./src/games/Wavelength/definition.ts)), free-text anonymity ([Confessions](./src/games/Confessions/definition.ts)), and gesture-skill with shared deterministic physics ([Boom Cup](./src/games/BoomCup/definition.ts) — the swipe is judged by maths both the host and the shooting phone run, see its [`physics.ts`](./src/games/BoomCup/physics.ts)).
 
 ### Content packs
 
@@ -136,6 +144,7 @@ Trivia questions and prompts are plain JSON in [`src/content/`](./src/content/) 
 - ⏸ **Ready checks**: the rules splash and every outcome screen park until *all* players tap Ready, or the host switches to *host* mode and taps Continue themselves.
 - ⚖️ **Drink intensity**: light (×0.5) / normal / wild (×2).
 - The room dies with its host ("end game"), and rooms auto-expire after ~12h via rules.
+- 📴 **Screen off ≠ leaving.** A phone that sleeps keeps its seat, score and turn and rejoins the next round it's awake for; a phone that *closes the site* hands its seat back (and walks back in on the next game if it reopens). The host can clear seats that are gone for good from the lobby.
 - 🍻 Know your limits — this is for fun with friends. Play responsibly.
 
 ## Troubleshooting
@@ -146,4 +155,5 @@ Trivia questions and prompts are plain JSON in [`src/content/`](./src/content/) 
 | Sign-in fails on the Pages URL | Add `<your-user>.github.io` to Authentication → Authorized domains. |
 | `permission_denied` in console | Publish the rules from `database.rules.json` (step 3). |
 | Blank page on Pages, fine locally | Repo name ≠ `Slot-O-Clock` → fix `base` in `vite.config.ts`. |
-| Host phone locked / game frozen | Hosts should keep the screen on; any player can also take over hosting from the lobby. |
+| Host phone locked / game frozen | Hosts should keep the screen on; any player can also take over hosting with the 👑 button in the game header (or from the lobby). |
+| A player shows as "left the room" when their phone only locked | Their browser unloaded the page (phones do that to reclaim memory). Reopening the site puts them straight back in, playing from the next game. |

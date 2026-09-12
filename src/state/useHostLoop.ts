@@ -13,10 +13,20 @@ import {
 import { db } from '../firebase';
 import { serverNow } from './serverTime';
 import { ROOM_TTL_MS } from './gc';
-import { activePlayers, notReady, pacingOf, readyResetPaths, type GameInputEntry, type RoomData } from '../types';
+import {
+  actorFromOrder,
+  livePlayers,
+  notReady,
+  pacingOf,
+  playerList,
+  readyResetPaths,
+  turnOrderForRoom,
+  type GameInputEntry,
+  type RoomData,
+} from '../types';
 import { allGames, gameById } from '../games';
 import { mulberry32, shuffled } from '../engine/rng';
-import type { Effect, GameContext, GameEvent } from '../engine/types';
+import type { Effect, GameContext, GameEvent, PlayerInfo } from '../engine/types';
 
 function hashSeed(s: string): number {
   let h = 5381;
@@ -71,10 +81,29 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
       return id ? gameById.get(id) : undefined;
     };
 
-    const buildCtx = (): GameContext | null => {
+    /**
+     * Who is playing the round on screen. The host snapshots the roster when it
+     * launches a round (`meta.roundUids`) and keeps it for the whole round, so:
+     *  - a phone that dies mid-round keeps its seat instead of vanishing from
+     *    the game (its teammates finish the round around it), and
+     *  - somebody who joins mid-round is out of this one and plays from the next.
+     * Mirroring the roster locally covers the moment between writing it and the
+     * snapshot coming back (e.g. the BEGIN event that immediately follows).
+     */
+    let roundUids: string[] | null = room.meta.roundUids ?? null;
+    const rosterPlayers = (): PlayerInfo[] => {
+      const all = playerList(roomRef.current);
+      if (!roundUids || roundUids.length === 0) return all.filter((p) => p.left !== true);
+      const byUid = new Map(all.map((p) => [p.uid, p] as const));
+      return roundUids
+        .map((uid) => byUid.get(uid))
+        .filter((p): p is PlayerInfo => p != null);
+    };
+
+    const buildCtx = (playersIn?: PlayerInfo[]): GameContext | null => {
       const m = meta();
       if (!m) return null;
-      const players = activePlayers(roomRef.current);
+      const players = playersIn ?? rosterPlayers();
       if (players.length === 0) return null;
       return {
         players,
@@ -197,7 +226,10 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
       if (m.phase === 'claim') {
         // One-time ordering ceremony: each claim appends the claimant to
         // turnOrder. When everyone has a slot (or the host forces it),
-        // round 1 begins and the order runs the whole game.
+        // round 1 begins and the order runs the whole game. Only phones that
+        // are awake have to claim: a dark screen can't tap, and it doesn't
+        // block the table — it gets a slot when it comes back (see the
+        // outcome branch, which grows the order with the room).
         let order = [...(m.turnOrder ?? [])];
         const claim = roomRef.current?.turnClaim?.[order.length];
         if (claim?.uid && !order.includes(claim.uid)) {
@@ -206,7 +238,7 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
           // never as update()'s path map — update(ref, array) throws.
           await set(ref(rdb, `rooms/${code}/meta/turnOrder`), order).catch(() => {});
         }
-        const players = activePlayers(roomRef.current);
+        const players = livePlayers(roomRef.current);
         const complete =
           order.length > 0 &&
           (order.length >= Math.max(1, players.length) || m.forceStart === true);
@@ -214,7 +246,9 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
           await update(ref(rdb, `rooms/${code}`), {
             'meta/phase': 'intro',
             'meta/round': 1,
-            'meta/actorUid': order[0],
+            // whoever claimed spot 1 opens — unless their phone is the one
+            // that's asleep, in which case the next awake claimer goes first
+            'meta/actorUid': actorFromOrder(order, players, 1),
             // the splash opens the ready gate from a clean slate
             'meta/forceNext': false,
             ...readyResetPaths(roomRef.current),
@@ -225,27 +259,35 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
 
       if (m.phase === 'intro') {
         // The splash explains the game and then hands the table the floor:
-        // nothing starts until every phone taps ready ('manual' pacing hands
-        // that job to the host instead). A vanished phone can be skipped.
+        // nothing starts until every *awake* phone taps ready ('manual' pacing
+        // hands that job to the host instead). A phone that's asleep sits the
+        // count out instead of freezing the room; it plays the next round it's
+        // awake for.
         const ready =
           m.forceNext === true ||
           (pacingOf(m.settings) === 'ready' && notReady(roomRef.current).length === 0);
-        if (!ready || activePlayers(roomRef.current).length === 0) return;
+        if (!ready) return;
         // Unlike a countdown, a satisfied ready gate stays satisfied until the
         // snapshot comes back — so launch each round exactly once per host
         // session (a reload clears this and re-launches if it must).
         if (launchedRound === m.round) return;
         const d = currentDef();
-        const ctx = buildCtx();
+        // Snapshot the roster for this round: exactly the phones that are here
+        // right now. That's what makes "phone died mid-round" survivable and
+        // "joined mid-match" land on the *next* game instead of this one.
+        const roster = livePlayers(roomRef.current);
+        const ctx = buildCtx(roster);
         if (d && ctx) {
           const s0 = d.createInitialState(ctx);
           stateMirror = s0;
           processedInputs.clear();
           timerSeen = null;
           ended = false;
+          roundUids = roster.map((p) => p.uid);
           await update(ref(rdb, `rooms/${code}`), {
             game: { type: d.id, state: s0, timerEndsAt: null, inputs: null },
             'meta/phase': 'playing',
+            'meta/roundUids': roundUids,
           }).catch(() => {});
           launchedRound = m.round;
           dispatch({ type: 'BEGIN' }); // games arm their initial timers here
@@ -281,8 +323,9 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
 
       if (m.phase === 'outcome') {
         // 'manual' pacing: parked until the host taps continue (forceNext).
-        // 'ready' pacing: parked until every player still in the room has
-        // tapped Ready — the host can always force it through instead.
+        // 'ready' pacing: parked until every awake phone has tapped Ready —
+        // a player whose screen went dark can't tap, so they neither hold the
+        // table up nor lose their seat. The host can always force it through.
         if (pacingOf(m.settings) === 'manual') {
           if (!m.forceNext) return;
         } else if (!m.forceNext && notReady(roomRef.current).length > 0) {
@@ -300,10 +343,20 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
           }
           // next round runs straight into the intro — the claimed order
           // cycles automatically, no claiming between rounds
-          const order = m.turnOrder ?? [];
           const nextRoundNum = m.round + 1;
-          const nextActor = order.length > 0 ? order[(nextRoundNum - 1) % order.length] : null;
+
+          // The order follows the room: everyone who still has a seat keeps
+          // their slot (a sleeping phone resumes its own when it wakes), anyone
+          // who joined mid-match is appended, and only departures drop out.
+          const order = turnOrderForRoom(roomRef.current);
+          if (JSON.stringify(order) !== JSON.stringify(m.turnOrder ?? [])) {
+            await set(ref(rdb, `rooms/${code}/meta/turnOrder`), order).catch(() => {});
+          }
+          // ...and the actor is whoever's turn it is *and* is around to take it
+          const nextActor = actorFromOrder(order, livePlayers(roomRef.current), nextRoundNum);
+
           stateMirror = null;
+          roundUids = null; // the next round snapshots its own roster at launch
           await update(ref(rdb, `rooms/${code}`), {
             game: null,
             'meta/phase': 'intro',
@@ -311,6 +364,7 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
             'meta/rotation': rotation,
             'meta/gameIndex': gameIndex,
             'meta/actorUid': nextActor,
+            'meta/roundUids': null,
             'meta/outcome': null,
             'meta/forceNext': false,
             'meta/outcomeEndsAt': null,

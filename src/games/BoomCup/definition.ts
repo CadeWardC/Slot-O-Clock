@@ -5,20 +5,21 @@
  * Two players start with a cup and a ball, as far apart around the table
  * as the seating allows. Everyone else is next in line.
  *
- *  - Swipe up to shoot. A miss doesn't pass anything: you keep shooting
- *    until it drops, and every miss makes the mouth a little bigger
- *    (see physics.ts) so nobody is ever stuck forever.
+ *  - Flick up to shoot. A miss doesn't pass anything: you keep flicking until
+ *    it drops, and every miss makes the mouth a little bigger (see physics.ts)
+ *    so nobody is ever stuck forever.
  *  - A sink passes the cup to the NEXT player in the seating order — unless
  *    it was the FIRST try, and then the shooter hands it to anyone at the
- *    table they like, order be damned. Handing it to whoever is still
- *    holding the other ball is legal, and it catches them on the spot.
- *  - If your cup reaches the player still holding the other ball, they are
- *    CAUGHT: they drink a beer from the middle and is left clearing two
- *    cups (a fresh beer from the middle counts as a fresh cup, so their
- *    streak — and their next first-try free choice — starts over).
- *  - The middle holds one beer per player (3–6). Every catch drains one,
- *    and drinks land the moment they happen. When the last one goes, the
- *    player caught taking it drinks the BOOM (+2) and the round is over.
+ *    table they like, order be damned. Handing it to whoever is still holding
+ *    the other ball is legal, and it catches them on the spot.
+ *  - If your cup comes down on the player still holding the other ball, they
+ *    are CAUGHT: they drink a beer from the middle and your ball plays
+ *    straight on to the player after them. They keep their own cup on a fresh
+ *    beer from the middle, so nobody is ever left juggling two cups and the
+ *    chase never stops moving.
+ *  - The middle holds one beer per player (3–6). Every catch drains one, and
+ *    drinks land the moment they happen. When the last one goes, the player
+ *    caught taking it drinks the BOOM (+2) and the round is over.
  *
  * Party mode: both holders shoot as fast as they can, for real — the
  * reducer simply takes their attempts in the order they arrive, so it's a
@@ -48,8 +49,8 @@ export const BOOM_SIPS = 2;
 /** beers in the middle: one per player, clamped to this range */
 export const MIDDLE_MIN = 3;
 export const MIDDLE_MAX = 6;
-/** how long the ball takes to come back before you can shoot again */
-export const SHOT_COOLDOWN_MS = 800;
+/** how long the ball takes to come back before you can flick again */
+export const SHOT_COOLDOWN_MS = 450;
 /** a first-try sink: how long the shooter gets to pick a victim */
 export const HANDOFF_MS = 20_000;
 /** nobody has shot for this long → the round closes itself (phones walking off) */
@@ -230,9 +231,11 @@ function endOfRound(s: BcState, note: string): Effect[] {
 }
 
 /**
- * The cup moves. If it arrives where the other ball still lives, that player
- * is caught: they drink, their streak restarts on a fresh beer from the
- * middle, and they're left holding both cups.
+ * The cup moves. If it arrives where the other ball still lives, that player is
+ * caught: they drink on the spot, and the ball that caught them carries
+ * straight on to the player after them — nobody is ever left juggling two
+ * cups. They keep their own cup, on a fresh beer from the middle, so their
+ * streak (and their next first-try free choice) starts over.
  */
 function passTo(
   s: BcState,
@@ -265,6 +268,9 @@ function passTo(
     // the beer they're drinking replaces their cup: fresh streak, and their
     // next first-try sink is a free choice again
     miss[other] = 0;
+    // …and the ball that caught them doesn't stop there — it plays on to the
+    // next player, so the catch costs them a drink and a turn's ground
+    hold[cup] = nextHolder(s, targetUid);
     boom = middle <= 0;
     lastCatch = { uid: targetUid, byUid, at: ctx.now, boom };
     effects.push({
@@ -380,7 +386,7 @@ export const definition: GameDefinition<BcState, BcInput> = {
   name: 'Boom Cup',
   emoji: '💥',
   rules:
-    'Two of you start with a cup and a ball, everyone else is next in line. Swipe up to shoot: a miss and you keep shooting, a sink passes the cup to the next player — and a FIRST-TRY sink lets you hand it to anyone at the table, order be damned. If your cup reaches whoever is still holding the other ball they are CAUGHT: they drink a beer from the middle and are left clearing both cups. The middle holds a beer per player; when the last one is drained, the player caught taking it drinks the BOOM.',
+    'Two of you start with a cup and a ball — everyone else is next in line. Flick up to shoot: miss and you keep flicking; sink it and the cup goes to the next player, unless it was your FIRST try, and then you hand it to anyone at the table, order be damned. If your cup comes down on whoever is still holding the other ball they are CAUGHT: they drink a beer from the middle, and your ball plays straight on to the player after them. They keep their own cup, fresh, and the chase carries on. The middle holds a beer per player — when the last one is drained, whoever is caught taking it drinks the BOOM.',
   minPlayers: 2,
   sharedInput: 'all',
 

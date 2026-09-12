@@ -69,6 +69,7 @@ export function PlayerChip({
   drinks,
   crown,
   muted,
+  note,
   badge,
   onClick,
 }: {
@@ -76,6 +77,8 @@ export function PlayerChip({
   drinks?: number;
   crown?: boolean;
   muted?: boolean;
+  /** short suffix, e.g. "phone off" — used instead of greying a player out */
+  note?: string;
   badge?: ReactNode;
   onClick?: () => void;
 }) {
@@ -88,6 +91,7 @@ export function PlayerChip({
       <span className="chip-emoji">{player.emoji}</span>
       <span className="chip-name">{player.name}</span>
       {crown && <span className="chip-crown" title="host">👑</span>}
+      {note && <span className="chip-note">({note})</span>}
       {badge}
       {drinks != null && drinks > 0 && <span className="chip-drinks">🍺{drinks}</span>}
     </div>

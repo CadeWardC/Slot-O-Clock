@@ -41,6 +41,13 @@ export interface RoomMeta {
   /** actor for the current round, derived from turnOrder by the host loop */
   actorUid: string | null;
   /**
+   * Who is playing the round currently on screen, snapshotted by the host when
+   * it launches the round. Stable for the whole round: a phone that dies
+   * mid-round keeps its seat, and a player who joins mid-round is out of it
+   * and plays from the next one. Cleared on the way into the next intro.
+   */
+  roundUids?: string[] | null;
+  /**
    * Legacy field (rooms created before the intro ready gate stored a splash
    * deadline here). The intro splash is not on a clock any more — see the
    * 'intro' branch of the host loop.
@@ -109,9 +116,48 @@ export function playerList(room: RoomData | null): PlayerInfo[] {
   return Object.values(room.players).sort((a, b) => a.joinedAt - b.joinedAt);
 }
 
-/** Players that participate: connected devices plus shared-phone locals. */
+/* ---------- who is in the room, who is around, who plays this round ---------- */
+
+/**
+ * Everyone who still has a seat: shared-phone locals, live phones **and**
+ * phones that merely went dark. A sleeping phone is *not* a departure — it
+ * keeps its seat, score and turn and slides straight back in when it wakes.
+ * Only `left` (closed the site / tapped leave) takes a seat away.
+ */
 export function activePlayers(room: RoomData | null): PlayerInfo[] {
-  return playerList(room).filter((p) => p.local || p.connected);
+  return playerList(room).filter((p) => p.left !== true);
+}
+
+/** Players whose phone is actually live right now (plus shared-phone locals). */
+export function livePlayers(room: RoomData | null): PlayerInfo[] {
+  return activePlayers(room).filter((p) => p.local || p.connected);
+}
+
+/** Seats given up on purpose — closed the site, or tapped "leave room". */
+export function departedPlayers(room: RoomData | null): PlayerInfo[] {
+  return playerList(room).filter((p) => p.left === true);
+}
+
+/**
+ * The round on screen: the roster the host snapshotted at launch. Rooms that
+ * predate the snapshot (or a round the host never got to label) fall back to
+ * every seat in the room.
+ */
+export function roundPlayers(room: RoomData | null): PlayerInfo[] {
+  const roster = room?.meta?.roundUids;
+  if (!roster || roster.length === 0) return activePlayers(room);
+  const byUid = new Map(playerList(room).map((p) => [p.uid, p]));
+  return roster
+    .map((uid) => byUid.get(uid))
+    .filter((p): p is PlayerInfo => p != null);
+}
+
+/** Is this phone playing the round that's on screen? */
+export function inCurrentRound(room: RoomData | null, uid: string | null | undefined): boolean {
+  const roster = room?.meta?.roundUids;
+  if (!uid) return false;
+  if (!roster || roster.length === 0) return true; // pre-snapshot round: everyone plays
+  return roster.includes(uid);
 }
 
 /* ---------- between-round pacing ---------- */
@@ -126,9 +172,48 @@ export function pacingOf(settings: RoomSettings | undefined | null): Pacing {
   return settings?.roundPacing === 'manual' ? 'manual' : 'ready';
 }
 
-/** Everyone still in the room who hasn't tapped Ready for the next round. */
+/**
+ * Who the round still has to wait for before it can start: only phones that
+ * can actually tap. An asleep phone sits the count out instead of freezing the
+ * table (it's still in the room, and it re-joins the next round it's awake for).
+ */
 export function notReady(room: RoomData | null): PlayerInfo[] {
-  return activePlayers(room).filter((p) => p.ready !== true);
+  return livePlayers(room).filter((p) => p.ready !== true);
+}
+
+/**
+ * Whose turn it is for `round`: walk the claimed order from its scheduled
+ * position until we hit somebody who is actually around to take it, so a phone
+ * that's asleep never parks a round on a player who can't act. Falls back to
+ * the round's first player (and to null for an empty room).
+ */
+export function actorFromOrder(
+  order: string[] | undefined,
+  players: PlayerInfo[],
+  round: number,
+): string | null {
+  const cycle = order ?? [];
+  if (cycle.length === 0) return players[0]?.uid ?? null;
+  const start = (((round - 1) % cycle.length) + cycle.length) % cycle.length;
+  for (let i = 0; i < cycle.length; i++) {
+    const uid = cycle[(start + i) % cycle.length];
+    if (players.some((p) => p.uid === uid)) return uid;
+  }
+  return players[0]?.uid ?? null;
+}
+
+/**
+ * The claimed turn order, kept in step with the room: everyone who still has a
+ * seat keeps their slot (a sleeping phone resumes its own when it wakes),
+ * anybody who joined mid-match is appended at the back, and only players who
+ * left the room drop out. Idempotent — write it back only when it changed.
+ */
+export function turnOrderForRoom(room: RoomData | null): string[] {
+  const seated = activePlayers(room);
+  const seatUids = new Set(seated.map((p) => p.uid));
+  const order = (room?.meta?.turnOrder ?? []).filter((uid) => seatUids.has(uid));
+  for (const p of seated) if (!order.includes(p.uid)) order.push(p.uid);
+  return order;
 }
 
 /**

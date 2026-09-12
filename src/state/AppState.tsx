@@ -26,6 +26,7 @@ import { allGames, gameById } from '../games';
 import { triviaTopics } from '../games/Trivia/definition';
 import {
   activePlayers,
+  livePlayers,
   randomRoomCode,
   readyResetPaths,
   type RoomData,
@@ -180,19 +181,92 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     return unsub;
   }, [session?.code, notify]);
 
-  // ---- presence heartbeat for my own player node ----
+  // ---- my seat: presence, and the difference between asleep and gone ----
+  // `connected` answers one question: is this phone's page alive right now? A
+  // sleeping phone, a lift, a Wi-Fi blip all drop the socket — and a dropped
+  // socket is *not* a departure, so the heartbeat re-arms itself and re-asserts
+  // the seat the moment the socket is back. (Without this a phone that nodded
+  // off stayed "away" for the rest of the night, which is what dropped players
+  // out of the game.) Closing the site *is* a departure: pagehide marks the
+  // seat `left`, which is what the room drops players on.
   const meExists = !!(session && room?.players?.[session.uid]);
+  const myPlayerRef = session ? `rooms/${session.code}/players/${session.uid}` : null;
+  const leavingRef = useRef(false);
   useEffect(() => {
-    if (!db || !session || !meExists) return;
-    const r = ref(db, `rooms/${session.code}/players/${session.uid}/connected`);
-    set(r, true).catch(() => {});
-    const od = onDisconnect(r);
-    od.set(false).catch(() => {});
-    return () => {
-      od.cancel().catch(() => {});
-      set(r, false).catch(() => {});
+    if (!db || !myPlayerRef || !meExists) return;
+    const playerRef = ref(db, myPlayerRef);
+    leavingRef.current = false;
+    /** I'm here, and I never left — clears a stale marker on the way back in */
+    const mine = () =>
+      update(playerRef, { connected: true, left: null, leftAt: null }).catch(() => {});
+
+    const unsubConn = onValue(ref(db, '.info/connected'), (snap) => {
+      if (snap.val() !== true) return;
+      // re-armed on every reconnect: a drop with no page exit only means "away"
+      onDisconnect(playerRef).update({ connected: false }).catch(() => {});
+      void mine();
+    });
+    // A seat marked `left` while this page is alive is stale — a second tab of
+    // mine could have closed, or a phone that unloaded the page while locked
+    // has just come back. My page being alive is the proof I haven't left.
+    const unsubMine = onValue(playerRef, (snap) => {
+      const val = snap.val() as PlayerInfo | null;
+      if (!leavingRef.current && val && val.left === true) void mine();
+    });
+
+    // back from a locked screen / another app / a lost connection
+    const awake = () => {
+      if (document.visibilityState !== 'visible') return;
+      leavingRef.current = false;
+      void mine();
     };
-  }, [db, session?.code, session?.uid, meExists]);
+    document.addEventListener('visibilitychange', awake);
+    window.addEventListener('pageshow', awake);
+    window.addEventListener('online', awake);
+
+    // Leaving the page. The seat is marked `left` (the room drops it) and the
+    // onDisconnect payload is re-armed with the same marker, so the room drops
+    // this player even if the direct write loses the race with the socket
+    // coming down. A refresh lands here too — the new page clears the flag.
+    const leave = () => {
+      leavingRef.current = true;
+      const marker = { connected: false, left: true, leftAt: serverNow() };
+      onDisconnect(playerRef).update(marker).catch(() => {});
+      update(playerRef, marker).catch(() => {});
+    };
+    window.addEventListener('pagehide', leave);
+    window.addEventListener('beforeunload', leave);
+
+    return () => {
+      unsubConn();
+      unsubMine();
+      document.removeEventListener('visibilitychange', awake);
+      window.removeEventListener('pageshow', awake);
+      window.removeEventListener('online', awake);
+      window.removeEventListener('pagehide', leave);
+      window.removeEventListener('beforeunload', leave);
+    };
+  }, [db, myPlayerRef, meExists]);
+
+  // ---- a stored session that lost its seat gets it back ----
+  // A phone that reopens the site walks back into the room it was in (the host
+  // may also have cleared a seat that was long gone): it takes a fresh seat and
+  // plays from the next minigame, exactly like anyone else joining mid-match.
+  // Checked once per page load, so a host removing a live player still sticks —
+  // and never in a shared-phone room, where the host phone is not a player.
+  const seatChecked = useRef(false);
+  useEffect(() => {
+    if (!db || !session || !room || seatChecked.current) return;
+    if (room.meta.mode !== 'party') return;
+    seatChecked.current = true;
+    if (room.players?.[session.uid]) return;
+    const name = profile.name.trim();
+    if (!name) return;
+    set(
+      ref(db, `rooms/${session.code}/players/${session.uid}`),
+      newPlayer(session.uid, name, profile.emoji),
+    ).catch(() => {});
+  }, [db, session, room, profile.name, profile.emoji]);
 
   const saveSession = useCallback((s: Session | null) => {
     setSession(s);
@@ -264,6 +338,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [db, saveProfile, saveSession],
   );
 
+  /**
+   * Join a room by code — any time, including mid-match. A player who arrives
+   * while a round is running is in the room straight away (their phone shows
+   * "you're up next game") and the host puts them in the next round's roster.
+   * Coming back to a room you were already in keeps your seat, score and
+   * drinks; only a seat the host cleared starts from scratch.
+   */
   const joinRoom = useCallback(
     async (opts: { code: string; name: string; emoji: string }) => {
       if (!db) throw new Error('Firebase not configured');
@@ -272,7 +353,19 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const code = opts.code.trim().toUpperCase();
       const existing = await get(ref(db, `rooms/${code}`));
       if (!existing.exists()) throw new Error(`No room "${code}" — double-check the code`);
-      await set(ref(db, `rooms/${code}/players/${myUid}`), newPlayer(myUid, opts.name, opts.emoji));
+      const seat = ref(db, `rooms/${code}/players/${myUid}`);
+      if (existing.child(`players/${myUid}`).exists()) {
+        // my own seat: keep joinedAt/drinks/score, just come back online
+        await update(seat, {
+          name: opts.name.trim().slice(0, 20),
+          emoji: opts.emoji,
+          connected: true,
+          left: null,
+          leftAt: null,
+        });
+      } else {
+        await set(seat, newPlayer(myUid, opts.name, opts.emoji));
+      }
       saveSession({ code, uid: myUid });
     },
     [db, saveProfile, saveSession],
@@ -295,14 +388,18 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [db, session],
   );
 
+  /** Leave for good: hand the seat back and forget the room. */
   const leaveRoom = useCallback(async () => {
-    if (db && session) {
-      await set(ref(db, `rooms/${session.code}/players/${session.uid}/connected`), false).catch(
-        () => {},
-      );
+    if (db && session && room?.players?.[session.uid]) {
+      // same marker the page-exit handler writes — the room drops the seat, the
+      // player node survives so the host can still see who walked off.
+      // `leavingRef` stops this page's own heartbeat from clearing it again.
+      leavingRef.current = true;
+      const marker = { connected: false, left: true, leftAt: serverNow() };
+      await update(ref(db, `rooms/${session.code}/players/${session.uid}`), marker).catch(() => {});
     }
     saveSession(null);
-  }, [db, session, saveSession]);
+  }, [db, session, room, saveSession]);
 
   const renameMe = useCallback(
     async (name: string, emoji: string) => {
@@ -398,10 +495,12 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     const m = room.meta;
     const now = serverNow();
     if (m.phase === 'claim') {
-      // lock in the ceremony with whoever has claimed (seed the first player if nobody has)
+      // lock in the ceremony with whoever has claimed (seed the first player if
+      // nobody has — someone whose phone is actually awake, so round 1 can run)
       const order = m.turnOrder ?? [];
-      const finalOrder =
-        order.length > 0 ? order : activePlayers(room).slice(0, 1).map((p) => p.uid);
+      const awake = livePlayers(room);
+      const seed = (awake.length > 0 ? awake : activePlayers(room)).slice(0, 1).map((p) => p.uid);
+      const finalOrder = order.length > 0 ? order : seed;
       if (finalOrder.length === 0) return;
       await update(ref(db, rpath('meta')), { turnOrder: finalOrder, forceStart: true }).catch(() => {});
     } else if (m.phase === 'intro') {
