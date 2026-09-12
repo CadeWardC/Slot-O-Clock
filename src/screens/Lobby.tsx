@@ -1,5 +1,5 @@
 import { useApp } from '../state/AppState';
-import { activePlayers, playerList } from '../types';
+import { activePlayers, pacingOf, playerList } from '../types';
 import { allGames } from '../games';
 import { triviaTopics } from '../games/Trivia/definition';
 import { Button, PlayerChip, PlayerForm } from '../components/ui';
@@ -179,13 +179,13 @@ export function Lobby() {
           <div className="setting-row">
             <span>Between rounds</span>
             <div className="seg">
-              {(['auto', 'manual'] as const).map((p) => (
+              {(['ready', 'manual'] as const).map((p) => (
                 <button
                   key={p}
-                  className={`seg-cell ${(meta.settings.roundPacing ?? 'auto') === p ? 'on' : ''}`}
+                  className={`seg-cell ${pacingOf(meta.settings) === p ? 'on' : ''}`}
                   onClick={() => updateSettings({ roundPacing: p })}
                 >
-                  {p === 'auto' ? 'auto ▶▶' : 'host ▶'}
+                  {p === 'ready' ? 'everyone ready ✓' : 'host ▶'}
                 </button>
               ))}
             </div>

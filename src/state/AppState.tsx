@@ -27,6 +27,7 @@ import { triviaTopics } from '../games/Trivia/definition';
 import {
   activePlayers,
   randomRoomCode,
+  readyResetPaths,
   type RoomData,
   type Session,
 } from '../types';
@@ -75,6 +76,7 @@ function newPlayer(
     drinkCount: 0,
     score: 0,
     joinedAt: serverNow(),
+    ready: false,
   };
 }
 
@@ -97,6 +99,8 @@ interface AppStateValue {
   renameMe: (name: string, emoji: string) => Promise<void>;
   claimTurn: (forUid?: string) => Promise<void>;
   submitInput: (input: unknown, forUid?: string) => Promise<void>;
+  /** ready gate between rounds: ready me, or (shared phone) every listed uid */
+  setReady: (ready: boolean, uids?: string[]) => Promise<void>;
   updateSettings: (partial: Partial<RoomSettings>) => Promise<void>;
   startGame: () => Promise<void>;
   hostSkipRound: () => Promise<void>;
@@ -236,7 +240,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
                 pointsMode: false,
                 sipMultiplier: 1,
                 enabledGames: allGames.map((g) => g.id),
-                roundPacing: 'auto',
+                roundPacing: 'ready',
                 triviaTopics: triviaTopics.map((t) => t.id),
               },
             },
@@ -344,6 +348,26 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     [db, session, room],
   );
 
+  /**
+   * Ready gate between rounds. Party mode: each phone flags its own player
+   * (rules allow self-writes). Shared phone: there is only one device, so
+   * the holder flags everyone at once (the room owner may write any player).
+   * Flags are cleared by the host loop as each round ends.
+   */
+  const setReady = useCallback(
+    async (ready: boolean, uids?: string[]) => {
+      if (!db || !session || !room) return;
+      const targets = (uids && uids.length > 0 ? uids : [session.uid]).filter(
+        (uid) => room.players?.[uid] != null,
+      );
+      if (targets.length === 0) return;
+      const updates: Record<string, unknown> = {};
+      for (const uid of targets) updates[`players/${uid}/ready`] = ready;
+      await update(ref(db, rpath('')), updates).catch(() => {});
+    },
+    [db, session, room],
+  );
+
   const updateSettings = useCallback(
     async (partial: Partial<RoomSettings>) => {
       if (!db || !session || !room) return;
@@ -351,7 +375,6 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     },
     [db, session, room],
   );
-
   const startGame = useCallback(async () => {
     if (!db || !session || !room) return;
     const enabled = (room.meta.settings.enabledGames ?? []).filter((id) => gameById.has(id));
@@ -384,22 +407,26 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     } else if (m.phase === 'intro') {
       await update(ref(db, rpath('meta')), { introEndsAt: now }).catch(() => {});
     } else if (m.phase === 'outcome') {
-      // works for both pacings: auto short-circuits the deadline,
-      // manual requires the explicit forceNext flag
+      // the host's continue: 'manual' needs the explicit forceNext flag,
+      // and it also releases the ready gate when someone has gone quiet
       await update(ref(db, rpath('meta')), { outcomeEndsAt: now, forceNext: true }).catch(() => {});
     } else if (m.phase === 'playing') {
       const gid = m.rotation[m.gameIndex] ?? '';
       const g = gameById.get(gid);
-      await update(ref(db, rpath('meta')), {
-        phase: 'outcome',
-        outcome: {
+      // entering the outcome clears everyone's ready flag in the same write,
+      // so the gate below can't be satisfied by a stale one
+      await update(ref(db, rpath('')), {
+        'meta/phase': 'outcome',
+        'meta/outcome': {
           gameId: gid,
           gameName: g?.name ?? '',
           gameEmoji: g?.emoji ?? '',
           assignments: [],
           note: 'Round skipped',
         },
-        outcomeEndsAt: now + 2500,
+        'meta/outcomeEndsAt': null,
+        'meta/forceNext': false,
+        ...readyResetPaths(room),
       }).catch(() => {});
     }
   }, [db, session, room]);
@@ -451,6 +478,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     renameMe,
     claimTurn,
     submitInput,
+    setReady,
     updateSettings,
     startGame,
     hostSkipRound,

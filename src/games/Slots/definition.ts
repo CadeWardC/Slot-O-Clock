@@ -7,12 +7,20 @@ import type {
 } from '../../engine/types';
 import { View } from './View';
 
+/** The 8-symbol reel, exported so the View can render the spinning strip. */
 export const SYMBOLS = ['🍺', '🍻', '🥃', '🍷', '🍹', '🍒', '🎰', '💀'] as const;
 const WILD = 6;
 const SKULL = 7;
 
 /** how long players have to spin before the round ends */
 const SPIN_WINDOW_MS = 30000;
+/**
+ * After the last lever is pulled the reels HOLD on screen for this long
+ * before the round closes — otherwise the final spin (and, on a shared
+ * phone, the only spin) ends the round the instant it lands and nobody
+ * ever gets to read what they actually got.
+ */
+export const HOLD_MS = 10000;
 
 export interface SpinResult {
   reels: number[];
@@ -21,6 +29,8 @@ export interface SpinResult {
 }
 
 export interface SlotsState {
+  /** 'spin' while levers are live, then 'hold' while everyone reads their result */
+  phase: 'spin' | 'hold';
   /** server-time the round began — scalar anchor so the state node
    *  survives RTDB dropping the empty `spins` map */
   startedAt: number;
@@ -65,6 +75,17 @@ function spinFor(rng: () => number): SpinResult {
   return { reels, line: 'No match — drink 1', sips: 1 };
 }
 
+/**
+ * Close the lever window and let the reels sit still. This is the phase
+ * that gives everyone a proper look at their own result.
+ */
+function toHold(state: SlotsState): ReduceResult<SlotsState> {
+  return {
+    state: { ...state, phase: 'hold' },
+    effects: [{ type: 'TIMER', ms: HOLD_MS }],
+  };
+}
+
 function endRound(state: SlotsState, ctx: GameContext): ReduceResult<SlotsState> {
   const assignments: DrinkAssignment[] = [];
   for (const p of ctx.players) {
@@ -96,7 +117,7 @@ export const definition: GameDefinition<SlotsState, SlotsInput> = {
   sharedInput: 'actor', // shared phone: only the actor spins
 
   createInitialState(ctx: GameContext): SlotsState {
-    return { startedAt: ctx.now, spins: {} };
+    return { phase: 'spin', startedAt: ctx.now, spins: {} };
   },
 
   reduce(state, event: GameEvent<SlotsInput>, ctx: GameContext): ReduceResult<SlotsState> {
@@ -106,20 +127,23 @@ export const definition: GameDefinition<SlotsState, SlotsInput> = {
 
     if (event.type === 'INPUT') {
       if (event.input?.action !== 'spin') return { state };
+      if (state.phase === 'hold') return { state }; // results are already on screen
       const spins = state.spins ?? {};
       if (spins[event.uid]) return { state }; // one spin per player
       // shared phone: only the actor plays
       if (ctx.settings.mode === 'shared' && event.uid !== ctx.actorUid) return { state };
       const next = { ...spins, [event.uid]: spinFor(ctx.rng) };
-      const nextState = { ...state, spins: next };
+      const nextState: SlotsState = { ...state, spins: next };
       if (Object.keys(next).length >= ctx.players.length) {
-        return endRound(nextState, ctx);
+        return toHold(nextState); // everyone's in — hold the reels before closing
       }
       return { state: nextState };
     }
 
     if (event.type === 'TIME_UP') {
-      return endRound(state, ctx); // window closed — stragglers just don't spin
+      // window closed — stragglers just don't spin, then the reels hold
+      if (state.phase === 'hold') return endRound(state, ctx);
+      return toHold(state);
     }
 
     return { state };

@@ -8,6 +8,12 @@
  * group average that lands nowhere means the clue failed — the
  * actor drinks instead.
  *
+ * No clocks anywhere the players are thinking: the clue-giver takes
+ * as long as they like and taps Ready when the clue is in their
+ * head, and the guessing phase ends when the last dial is locked
+ * in — not when a timer runs out. (Only the reveal still auto-ends,
+ * which hands the round over to the outcome screen.)
+ *
  * Shared-phone note: the pass-around gate only advances when a
  * player submits an input, and in the clue phase the non-actors
  * have nothing to submit (likewise the actor during guessing).
@@ -27,8 +33,6 @@ import type {
 } from '../../engine/types';
 import { View } from './View';
 
-export const CLUE_MS = 30_000;
-export const GUESS_MS = 40_000;
 const REVEAL_MS = 9_000;
 const FAR_SIPS = 2;
 const BAD_CLUE_SIPS = 2;
@@ -63,8 +67,9 @@ export type WlInput =
 function toGuessing(state: WlState): ReduceResult<WlState> {
   return {
     state: { ...state, phase: 'guessing' },
-    // inputs are wiped so the pass-around gate restarts for the guessers
-    effects: [{ type: 'CLEAR_INPUTS' }, { type: 'TIMER', ms: GUESS_MS }],
+    // inputs are wiped so the pass-around gate restarts for the guessers.
+    // No timer: the phase runs until everyone has locked a dial in.
+    effects: [{ type: 'CLEAR_INPUTS' }],
   };
 }
 
@@ -149,7 +154,7 @@ export const definition: GameDefinition<WlState, WlInput> = {
   name: 'Wavelength',
   emoji: '🎚️',
   rules:
-    'One player sees a hidden target on the spectrum and says a clue out loud. Everyone else dials where they think it sits — furthest guess drinks 2, and if the group averages miles off, the clue-giver drinks 2 instead.',
+    'One player sees a hidden target on the spectrum and says a clue out loud. Everyone else dials where they think it sits — furthest guess drinks 2, and if the group averages miles off, the clue-giver drinks 2 instead. Nothing is on a clock: the clue-giver taps ready when they have one, and the dials lock in whenever you like.',
   minPlayers: 3,
   sharedInput: 'all',
 
@@ -170,7 +175,8 @@ export const definition: GameDefinition<WlState, WlInput> = {
 
   reduce(state, event: GameEvent<WlInput>, ctx: GameContext): ReduceResult<WlState> {
     if (event.type === 'BEGIN') {
-      return { state, effects: [{ type: 'TIMER', ms: CLUE_MS }] };
+      // the clue-giver is never on a clock — they tap Ready when they're ready
+      return { state };
     }
 
     if (event.type === 'INPUT') {
@@ -200,6 +206,8 @@ export const definition: GameDefinition<WlState, WlInput> = {
     }
 
     if (event.type === 'TIME_UP') {
+      // safety net only: the think-phases arm no timers at all, so this can
+      // only arrive from a round left over on a clock from elsewhere
       if (state.phase === 'clue') return toGuessing(state);
       if (state.phase === 'guessing') return reveal(state, ctx);
       if (state.phase === 'reveal') {

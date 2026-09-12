@@ -430,6 +430,32 @@ a { color: var(--cyan); }
 .outcome-none { color: var(--muted); }
 .outcome-note { color: var(--muted); margin: 0; }
 
+/* between-round ready gate — nobody moves on until every phone taps Ready */
+.ready { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.ready-chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.ready-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--muted);
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.ready-chip-emoji { font-size: 1.05rem; }
+.ready-chip-mark { font-weight: 900; }
+.ready-chip.ready-on {
+  border-color: var(--green);
+  background: rgba(70, 224, 139, 0.1);
+  color: var(--text);
+}
+.ready-chip.ready-on .ready-chip-mark { color: var(--green); }
+.ready-count { margin: 0; font-weight: 800; }
+
 /* scores modal */
 .modal-overlay {
   position: fixed; inset: 0;
@@ -602,6 +628,21 @@ a { color: var(--cyan); }
 .slots-line { min-height: 2rem; font-size: 1.4rem; }
 .slots-line-pop { animation: bounceIn 0.45s ease; color: var(--gold); }
 .slots-lever { max-width: 300px; }
+/* the reels hold still after the last spin so the result can actually be read */
+.slots-owe {
+  margin: 0;
+  font-weight: 900;
+  color: var(--gold);
+  animation: bounceIn 0.45s ease;
+}
+.slots-safe {
+  margin: 0;
+  font-weight: 900;
+  color: var(--green);
+  animation: bounceIn 0.45s ease;
+}
+.slots-no-spin { margin: 0; color: var(--muted); }
+.slots-hold-note { margin: 0; color: var(--muted); font-size: 0.85rem; }
 
 /* --- reaction --- */
 .rx-circle {
@@ -732,7 +773,7 @@ a { color: var(--cyan); }
   border-color: rgba(70, 224, 139, 0.4);
   background: rgba(70, 224, 139, 0.12);
 }
-.ps-cups { display: flex; gap: 10px; justify-content: center; }
+.ps-cups { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
 .ps-cup {
   width: min(74px, 20vw);
   padding: 12px 0 8px;
@@ -752,12 +793,36 @@ a { color: var(--cyan); }
 .ps-cup:disabled { opacity: 0.45; cursor: default; }
 .ps-cup-emoji { font-size: 2rem; }
 .ps-cup-num { font-size: 0.75rem; color: var(--muted); font-weight: 700; }
+/* the two grids are different actions and must never be mistaken for each other */
+.ps-cup-spike { border-color: rgba(255, 95, 110, 0.6); background: rgba(255, 95, 110, 0.09); }
+.ps-cup-spike:not(:disabled):active { border-color: var(--red); background: rgba(255, 95, 110, 0.2); }
+.ps-cup-drink { border-color: rgba(255, 201, 77, 0.55); background: rgba(255, 201, 77, 0.07); }
+.ps-cup-drink:not(:disabled):active { border-color: var(--gold); background: rgba(255, 201, 77, 0.18); }
+/* the cup you've tapped but not locked in yet */
+.ps-cup-sel { border-color: var(--gold); box-shadow: 0 0 14px rgba(255, 201, 77, 0.35); transform: translateY(-2px); }
+.ps-cup-spike.ps-cup-sel { border-color: var(--red); box-shadow: 0 0 14px rgba(255, 95, 110, 0.45); }
+.ps-got {
+  width: 100%;
+  max-width: 340px;
+  background: var(--card2);
+  border: 1.5px solid var(--red);
+  border-radius: var(--radius);
+  padding: 16px;
+  animation: bounceIn 0.4s ease;
+}
+.ps-got-who { margin: 0; font-size: 0.95rem; font-weight: 900; color: var(--red); letter-spacing: 0.04em; }
+.ps-got-victim { margin: 8px 0 6px; font-size: 1.4rem; font-weight: 900; }
+.ps-got-victim b { color: var(--cyan); }
 .ps-pairs { width: 100%; display: flex; flex-direction: column; gap: 6px; }
 .ps-pair {
   display: flex; align-items: center; justify-content: center; gap: 8px;
-  background: var(--card); border-radius: 12px; padding: 8px 14px;
+  background: var(--card); border: 1.5px solid transparent; border-radius: 12px; padding: 8px 14px;
   font-size: 0.9rem;
 }
+/* whose turn it is on the table: one pourer at a time, the victim last */
+.ps-pair-now { border-color: var(--gold); }
+.ps-pair-hit { border-color: var(--red); background: rgba(255, 95, 110, 0.12); }
+.ps-now { color: var(--gold); font-weight: 800; font-size: 0.8rem; }
 .ps-done { color: var(--green); font-weight: 800; }
 .ps-vs { color: var(--muted); font-size: 0.8rem; }
 .ps-reveal {
@@ -774,7 +839,7 @@ a { color: var(--cyan); }
 .ps-reveal-names { margin: 0; font-weight: 800; }
 .ps-hit { border-color: var(--red); background: rgba(255, 95, 110, 0.1); }
 .ps-dodge { border-color: var(--green); background: rgba(70, 224, 139, 0.08); }
-.ps-reveal-cups { display: flex; gap: 8px; justify-content: center; }
+.ps-reveal-cups { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
 .ps-mini {
   width: 46px; height: 52px;
   display: flex; align-items: center; justify-content: center;
@@ -901,6 +966,64 @@ a { color: var(--cyan); }
 .fk-spy { margin-left: 6px; }
 .fk-secret-was { margin: 0; color: var(--muted); }
 .fk-secret-text { color: var(--text); font-weight: 800; }
+
+/* one faker all game — the prompt is public, only the role is private */
+.fk-card-public { border-color: var(--cyan); background: rgba(93, 216, 255, 0.07); }
+.fk-clean-line { color: var(--green); }
+.fk-role-badge {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  border: 1.5px solid var(--line);
+}
+.fk-role-spy { color: var(--magenta); border-color: var(--magenta); background: rgba(255, 79, 163, 0.12); }
+.fk-role-clean { color: var(--green); border-color: rgba(70, 224, 139, 0.5); background: rgba(70, 224, 139, 0.1); }
+.fk-argue-help { margin: 0; color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
+.fk-tip {
+  margin: 0;
+  width: 100%;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--magenta);
+  background: rgba(255, 79, 163, 0.1);
+  border: 1.5px solid rgba(255, 79, 163, 0.45);
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+.fk-sealed { margin: 0; color: var(--gold); font-weight: 700; font-size: 0.92rem; line-height: 1.5; }
+
+/* the unmask: the only screen that ever prints the truth */
+.fk-unmask-label {
+  margin: 0;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+}
+.fk-unmask-name { margin: 0; font-size: 2rem; color: var(--magenta); animation: bounceIn 0.5s ease; }
+.fk-unmask-sub { margin: 0; font-weight: 700; }
+.fk-rounds { width: 100%; display: flex; flex-direction: column; gap: 8px; }
+.fk-round {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 14px;
+  animation: slideIn 0.35s ease;
+}
+.fk-round-hit { border-color: rgba(70, 224, 139, 0.6); background: rgba(70, 224, 139, 0.08); }
+.fk-round-miss { border-color: rgba(255, 79, 163, 0.5); background: rgba(255, 79, 163, 0.07); }
+.fk-round-head { font-size: 0.75rem; font-weight: 900; letter-spacing: 0.1em; color: var(--muted); }
+.fk-round-prompt { font-size: 0.92rem; font-weight: 700; line-height: 1.35; }
+.fk-round-acc { font-size: 0.85rem; color: var(--gold); }
+.fk-round-votes { font-size: 0.78rem; color: var(--muted); }
+.fk-round-decoy { font-size: 0.72rem; color: var(--muted); font-style: italic; }
+.fk-tab { margin: 0; font-weight: 900; color: var(--gold); }
 
 /* --- Horse Race 🏇 --- */
 .hr-field { display: flex; flex-direction: column; gap: 6px; width: 100%; }

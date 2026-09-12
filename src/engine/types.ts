@@ -31,6 +31,11 @@ export interface PlayerInfo {
   drinkCount: number;
   score: number;
   joinedAt: number;
+  /**
+   * Between-round ready gate: true once this player tapped Ready on the
+   * outcome screen. The host loop clears it every time a round ends.
+   */
+  ready?: boolean;
 }
 
 export type RoomMode = 'party' | 'shared';
@@ -44,10 +49,12 @@ export interface RoomSettings {
   /** game ids enabled for this room's rotation */
   enabledGames: string[];
   /**
-   * Between-round pacing: 'auto' advances after a pause (default, and the
-   * fallback for legacy rooms); 'manual' waits for the host to continue.
+   * Between-round pacing: 'ready' (the default) parks every round on the
+   * outcome screen until all players tap Ready; 'manual' waits for the host.
+   * Rooms created before the ready gate stored 'auto' — that now behaves
+   * exactly like 'ready' (see `pacingOf` in src/types.ts).
    */
-  roundPacing?: 'auto' | 'manual';
+  roundPacing?: 'ready' | 'manual' | 'auto';
   /** trivia topic ids enabled for the Booze Trivia question pool (all if missing — legacy rooms) */
   triviaTopics?: string[];
 }
@@ -133,6 +140,17 @@ export interface GameDefinition<S = any, I = any> {
    *    them (Slots, Categories).
    */
   sharedInput?: 'all' | 'actor';
+  /**
+   * Shared-phone mode only: which player should be holding the phone right
+   * now. Defaults to the first player in join order who hasn't submitted an
+   * input yet. Games with a turn order of their own (Poison passes the phone
+   * from poisoner to poisoner) override it so the pass-around gate follows
+   * the game rather than join order.
+   */
+  sharedHolderUid?: (
+    state: S,
+    ctx: { players: PlayerInfo[]; actorUid: string | null },
+  ) => string | null;
   createInitialState(ctx: GameContext): S;
   reduce(state: S, event: GameEvent<I>, ctx: GameContext): ReduceResult<S>;
   View: ComponentType<GameViewProps<S, I>>;

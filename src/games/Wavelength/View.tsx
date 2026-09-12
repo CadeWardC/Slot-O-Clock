@@ -1,12 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Button, TimerBar, useCountdown } from '../../components/ui';
+import { Button } from '../../components/ui';
 import type { GameViewProps } from '../../engine/types';
-import {
-  CLUE_MS,
-  GUESS_MS,
-  type WlInput,
-  type WlState,
-} from './definition';
+import type { WlInput, WlState } from './definition';
 
 /** The 0-100 spectrum: labels, the hidden target (actor/reveal only) and every dial. */
 function Bar({
@@ -57,11 +52,8 @@ export function View({
   actorUid,
   isActor,
   variant,
-  timerEndsAt,
   submitInput,
 }: GameViewProps<WlState, WlInput>) {
-  const left = useCountdown(timerEndsAt);
-  const secs = left != null ? ` · ${Math.ceil(left / 1000)}s` : '';
   const [dial, setDial] = useState(50);
 
   const actor = players.find((p) => p.uid === actorUid);
@@ -84,11 +76,13 @@ export function View({
           <span className="pr-rule-badge">🗣️ YOU GIVE THE CLUE</span>
           <Bar state={state} players={players} target={state.target} guesses={{}} />
           <div className="wl-mine">{state.target}</div>
-          <h2>Say a clue out loud for {state.target}/100 🤫</h2>
+          <h2>Think up a clue for {state.target}/100 🤫</h2>
+          <p className="muted small">
+            no clock — take as long as you want, then hit ready and say it out loud
+          </p>
           <Button variant="gold" size="lg" full onClick={() => submitInput({ action: 'clue' })}>
-            CLUE DELIVERED 🗣️
+            READY — I'VE GOT A CLUE 🗣️
           </Button>
-          <TimerBar deadline={timerEndsAt} totalMs={CLUE_MS} />
         </div>
       );
     }
@@ -101,9 +95,8 @@ export function View({
         {variant === 'shared' ? (
           <PassOn onClick={() => submitInput({ action: 'wait' })} />
         ) : (
-          <p className="muted">get ready to dial 0-100</p>
+          <p className="muted">no clock — they'll say it out loud once they're ready</p>
         )}
-        <TimerBar deadline={timerEndsAt} totalMs={CLUE_MS} />
       </div>
     );
   }
@@ -118,11 +111,8 @@ export function View({
           <p className="muted">
             your target: <b className="wl-key">{state.target}</b> — keep a straight face 🙃
           </p>
-          <p className="muted small">
-            {done}/{guessers.length} locked in{secs}
-          </p>
+          <p className="muted small">{done}/{guessers.length} locked in — whenever they're ready</p>
           {variant === 'shared' && <PassOn onClick={() => submitInput({ action: 'wait' })} />}
-          <TimerBar deadline={timerEndsAt} totalMs={GUESS_MS} />
         </div>
       );
     }
@@ -135,9 +125,8 @@ export function View({
           <div className="gate-emoji">🔒</div>
           <h2>You dialed {myGuess}</h2>
           <p className="muted">
-            waiting for the rest ({done}/{guessers.length}){secs}
+            waiting for the rest ({done}/{guessers.length})
           </p>
-          <TimerBar deadline={timerEndsAt} totalMs={GUESS_MS} />
         </div>
       );
     }
@@ -159,10 +148,7 @@ export function View({
         <Button variant="gold" size="lg" full onClick={() => submitInput({ action: 'guess', value: dial })}>
           LOCK IT IN 🎯
         </Button>
-        <p className="muted small">
-          {done}/{guessers.length} locked in{secs}
-        </p>
-        <TimerBar deadline={timerEndsAt} totalMs={GUESS_MS} />
+        <p className="muted small">{done}/{guessers.length} locked in — no clock, take your time</p>
       </div>
     );
   }

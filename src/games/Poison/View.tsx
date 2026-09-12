@@ -1,160 +1,202 @@
-import { useCountdown } from '../../components/ui';
+import { useState } from 'react';
+import { Button } from '../../components/ui';
 import type { GameViewProps } from '../../engine/types';
-import { CUP_COUNT, HOUSE_NAME, SIPS, type PoisonInput, type PoisonPair, type PoisonState } from './definition';
+import { CUP_BONUS, SIPS, type PoisonInput, type PoisonState } from './definition';
 
-export function View({
-  state,
-  me,
-  players,
-  myInput,
-  answeredUids,
-  timerEndsAt,
-  submitInput,
-  variant,
-}: GameViewProps<PoisonState, PoisonInput>) {
-  const left = useCountdown(timerEndsAt);
-  const poisons = state.poisons ?? {};
-  const picks = state.picks ?? {};
-  const pairs = state.pairs ?? [];
+/**
+ * One victim, everyone else pouring. The pourer's own cup is the only cup
+ * this component ever renders knowably: `poisons[me.uid]` — never anybody
+ * else's entry. The reveal is the first moment the table sees them all.
+ */
+export function View({ state, me, players, submitInput }: GameViewProps<PoisonState, PoisonInput>) {
+  const cups = state?.cups ?? players.length + CUP_BONUS;
+  const poisons = state?.poisons ?? {};
+  const order = state?.order ?? [];
+  const turn = state?.turn ?? 0;
+  const drinkerUid = state?.drinkerUid ?? '';
+  const nameOf = (uid: string | null) => (uid ? (players.find((p) => p.uid === uid)?.name ?? '?') : '?');
+  const cupsList = Array.from({ length: cups }, (_, c) => c);
 
-  const nameOf = (uid: string) => players.find((p) => p.uid === uid);
-  const poisonerName = (pair: PoisonPair) =>
-    pair.poisonerUid == null ? HOUSE_NAME : (nameOf(pair.poisonerUid)?.name ?? '?');
+  // A phone that picked a cup and then handed itself over must never leak
+  // the selection: the choice is keyed to the turn it was made in.
+  const turnKey = `${me.uid}:${state?.phase}:${turn}`;
+  const [sel, setSel] = useState<{ key: string; cup: number | null }>({ key: turnKey, cup: null });
+  const selected = sel.key === turnKey ? sel.cup : null;
+  const select = (cup: number | null) => setSel({ key: turnKey, cup });
 
-  if (state.phase === 'reveal') {
+  // a round left running from the old pairing rules can't be rendered
+  if (!drinkerUid) {
     return (
       <div className="gv">
-        <h2>☠️ Bottoms up</h2>
-        {pairs.map((pair) => {
-          const poisoned =
-            pair.poisonerUid != null ? poisons[pair.poisonerUid] : pair.houseCup ?? 0;
-          const picked = picks[pair.drinkerUid] ?? 0;
-          const hit = poisoned === picked;
-          const drinker = nameOf(pair.drinkerUid);
-          return (
-            <div key={pair.drinkerUid} className={`ps-reveal ${hit ? 'ps-hit' : 'ps-dodge'}`}>
-              <p className="ps-reveal-names">
-                ☠️ {poisonerName(pair)} <span className="ps-vs">vs</span> 🍷 {drinker?.name ?? '?'}
-              </p>
-              <div className="ps-reveal-cups">
-                {Array.from({ length: CUP_COUNT }, (_, c) => (
-                  <span
-                    key={c}
-                    className={`ps-mini ${c === poisoned ? 'ps-mini-poison' : ''} ${c === picked ? 'ps-mini-pick' : ''}`}
-                  >
-                    {c === poisoned ? '☠️' : c === picked ? '🍷' : '🥃'}
-                  </span>
-                ))}
-              </div>
-              <p className="ps-verdict">
-                {hit
-                  ? `💀 ${drinker?.name ?? '?'} drank the poison — ${SIPS} sips`
-                  : pair.poisonerUid == null
-                    ? `🎲 dodged ${HOUSE_NAME} — nobody drinks`
-                    : `🍷 dodged it — ${poisonerName(pair)} drinks ${SIPS}`}
-              </p>
-            </div>
-          );
-        })}
-        {state.note && <p className="muted small">{state.note}</p>}
+        <div className="gate-emoji pulse">☠️</div>
+        <h2>This round is from an older version</h2>
+        <p className="muted">the host can skip it ⏭</p>
       </div>
     );
   }
 
-  /* ---------- pouring phase ---------- */
+  /* ---------- the reveal ---------- */
 
-  const myPair = pairs.find((p) => p.drinkerUid === me.uid || p.poisonerUid === me.uid) ?? null;
-  const iPoison = myPair?.poisonerUid === me.uid;
-  const iDrink = myPair?.drinkerUid === me.uid;
-  const mine = myInput != null && Number.isInteger(myInput.cup);
-  // party mode keeps the drama: a drinker chooses only once their
-  // poisoner has locked in; the shared phone can't control pass order,
-  // so there the pick is double-blind instead
-  const poisonReady =
-    myPair == null || myPair.poisonerUid == null || poisons[myPair.poisonerUid] != null;
-  const canPick = !mine && (iPoison || (iDrink && (variant === 'shared' || poisonReady)));
+  if (state.phase === 'reveal') {
+    const pick = state.pick ?? 0;
+    const poisoned = new Set(Object.values(poisons));
+    const hit = poisoned.has(pick);
+    return (
+      <div className="gv">
+        <h2>☠️ Bottoms up</h2>
+        <div className={`ps-reveal ${hit ? 'ps-hit' : 'ps-dodge'}`}>
+          <p className="ps-reveal-names">
+            🍷 {nameOf(drinkerUid)} drank cup {pick + 1}
+          </p>
+          <div className="ps-reveal-cups">
+            {cupsList.map((c) => (
+              <span
+                key={c}
+                className={`ps-mini ${poisoned.has(c) ? 'ps-mini-poison' : ''} ${c === pick ? 'ps-mini-pick' : ''}`}
+              >
+                {c === pick ? (poisoned.has(c) ? '💀' : '🍷') : poisoned.has(c) ? '☠️' : '🥃'}
+              </span>
+            ))}
+          </div>
+          <p className="ps-verdict">{state.note}</p>
+        </div>
+
+        <div className="ps-pairs">
+          {order.map((uid) => {
+            const cup = poisons[uid];
+            return (
+              <div key={uid} className={`ps-pair ${cup === pick ? 'ps-pair-hit' : ''}`}>
+                <span>☠️ {nameOf(uid)}</span>
+                <span className="ps-vs">→</span>
+                <span>{cup == null ? 'never poured' : `cup ${cup + 1}`}{cup === pick ? ' 🎯' : ''}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------- my pour ---------- */
+
+  if (state.phase === 'pouring' && order[turn] === me.uid) {
+    const leftToPour = Math.max(0, order.length - turn - 1);
+    return (
+      <div className="gv">
+        <span className="ps-badge ps-badge-poison">☠️ YOUR POUR</span>
+        <h2>Poison ONE of the {cups} cups</h2>
+        <p className="muted small">
+          only you see this pick — {leftToPour > 0 ? `${leftToPour} more to pour after you` : `${nameOf(drinkerUid)} drinks next`}
+        </p>
+        <div className="ps-cups">
+          {cupsList.map((c) => (
+            <button
+              key={c}
+              className={`ps-cup ps-cup-spike ${selected === c ? 'ps-cup-sel' : ''}`}
+              onClick={() => select(selected === c ? null : c)}
+            >
+              <span className="ps-cup-emoji">{selected === c ? '☠️' : '🥃'}</span>
+              <span className="ps-cup-num">{c + 1}</span>
+            </button>
+          ))}
+        </div>
+        <Button
+          variant="gold"
+          size="lg"
+          full
+          disabled={selected == null}
+          onClick={() => submitInput({ cup: selected as number })}
+        >
+          {selected == null ? 'PICK A CUP' : `LOCK IN CUP ${selected + 1} 🔒`}
+        </Button>
+      </div>
+    );
+  }
+
+  /* ---------- the victim's pick ---------- */
+
+  if (state.phase === 'drinking' && drinkerUid === me.uid) {
+    return (
+      <div className="gv">
+        <span className="ps-badge ps-badge-drink">🍷 YOU DRINK</span>
+        <h2>{order.length} cups got poisoned — pick one to drink</h2>
+        <p className="muted small">
+          any of them could be spiked — {SIPS} sips if you find one 🤫
+        </p>
+        <div className="ps-cups">
+          {cupsList.map((c) => (
+            <button
+              key={c}
+              className={`ps-cup ps-cup-drink ${selected === c ? 'ps-cup-sel' : ''}`}
+              onClick={() => select(selected === c ? null : c)}
+            >
+              <span className="ps-cup-emoji">🍷</span>
+              <span className="ps-cup-num">{c + 1}</span>
+            </button>
+          ))}
+        </div>
+        <Button
+          variant="gold"
+          size="lg"
+          full
+          disabled={selected == null}
+          onClick={() => submitInput({ cup: selected as number })}
+        >
+          {selected == null ? 'PICK A CUP' : `DRINK CUP ${selected + 1} 🍺`}
+        </Button>
+      </div>
+    );
+  }
+
+  /* ---------- waiting your turn ---------- */
+
+  const myPour = poisons[me.uid];
+  const iDrink = drinkerUid === me.uid;
+  const actorUid = state.phase === 'pouring' ? (order[turn] ?? null) : drinkerUid;
 
   return (
     <div className="gv">
-      {iPoison ? (
-        <span className="ps-badge ps-badge-poison">☠️ POISONER</span>
-      ) : iDrink ? (
-        <span className="ps-badge ps-badge-drink">🍷 DRINKER</span>
+      {iDrink ? (
+        <span className="ps-badge ps-badge-drink">🍷 YOU'RE DRINKING</span>
+      ) : myPour != null ? (
+        <span className="ps-badge ps-badge-poison">☠️ POURED — CUP {myPour + 1}</span>
       ) : (
-        <span className="ps-badge">👀 WATCHING</span>
+        <span className="ps-badge">☠️ POISONER</span>
       )}
-
-      {myPair && (
-        <>
-          {iPoison ? (
-            <h2>
-              Spike ONE of {nameOf(myPair.drinkerUid)?.name ?? '?'}'s {CUP_COUNT} cups
-            </h2>
-          ) : iDrink && !poisonReady && variant === 'party' ? (
-            <h2>
-              ☠️ {poisonerName(myPair)} is poisoning your cups…
-            </h2>
-          ) : iDrink ? (
-            <h2>
-              {poisonerName(myPair)} poisoned one of these — pick your drink
-            </h2>
-          ) : (
-            <h2>Watch the pour 👀</h2>
-          )}
-
-          <div className="ps-cups">
-            {Array.from({ length: CUP_COUNT }, (_, c) => (
-              <button
-                key={c}
-                className="ps-cup"
-                disabled={!canPick}
-                onClick={() => submitInput({ cup: c })}
-              >
-                <span className="ps-cup-emoji">🥃</span>
-                <span className="ps-cup-num">{c + 1}</span>
-              </button>
-            ))}
-          </div>
-
-          {mine && (
-            <p className="muted">
-              {iPoison
-                ? variant === 'party'
-                  ? `Poison poured into cup ${(myInput?.cup ?? 0) + 1} — waiting for ${nameOf(myPair.drinkerUid)?.name ?? '?'}…`
-                  : 'Poison poured — pass the phone 📱'
-                : 'Cup chosen — waiting…'}
-            </p>
-          )}
-        </>
+      <div className="gate-emoji pulse">🤫</div>
+      <h2>
+        {nameOf(actorUid)} is {state.phase === 'pouring' ? 'pouring' : 'choosing a cup'}…
+      </h2>
+      <p className="muted">
+        {iDrink
+          ? `you pick from all ${cups} cups once every pour is in`
+          : myPour == null
+            ? "waiting your turn — and no peeking at anyone else's pick"
+            : 'no peeking — every pick stays private'}
+      </p>
+      {myPour != null && state.phase === 'drinking' && (
+        <p className="muted small">will they find cup {myPour + 1}? ☠️</p>
       )}
 
       <div className="ps-pairs">
-        {pairs.map((pair) => {
-          const poisonDone = pair.poisonerUid == null || poisons[pair.poisonerUid] != null;
-          const pickDone = picks[pair.drinkerUid] != null;
+        {order.map((uid, i) => {
+          const done = poisons[uid] != null;
           return (
-            <div key={pair.drinkerUid} className="ps-pair">
+            <div key={uid} className={`ps-pair ${state.phase === 'pouring' && i === turn ? 'ps-pair-now' : ''}`}>
               <span>
-                ☠️ {poisonerName(pair)} {poisonDone && <span className="ps-done">✔</span>}
+                ☠️ {nameOf(uid)} {done && <span className="ps-done">✔</span>}
               </span>
-              <span className="ps-vs">→</span>
-              <span>
-                🍷 {nameOf(pair.drinkerUid)?.name ?? '?'} {pickDone && <span className="ps-done">✔</span>}
-              </span>
+              {state.phase === 'pouring' && i === turn && <span className="ps-now">pouring…</span>}
             </div>
           );
         })}
+        <div className={`ps-pair ${state.phase === 'drinking' ? 'ps-pair-now' : ''}`}>
+          <span>
+            🍷 {nameOf(drinkerUid)} {state.pick != null && <span className="ps-done">✔</span>}
+          </span>
+          {state.phase === 'drinking' && <span className="ps-now">choosing…</span>}
+        </div>
       </div>
-
-      {variant === 'party' && (
-        <p className="muted small">
-          {answeredUids.length}/{players.length} decided
-          {left != null ? ` · ${Math.ceil(left / 1000)}s` : ''}
-        </p>
-      )}
-      {left != null && variant !== 'party' && (
-        <p className="muted small">{Math.ceil(left / 1000)}s</p>
-      )}
     </div>
   );
 }

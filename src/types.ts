@@ -1,8 +1,6 @@
 import type { DrinkAssignment, PlayerInfo, RoomMode, RoomSettings } from './engine/types';
 
 export const INTRO_MS = 5000;
-/** auto-advance delay between rounds (auto pacing) */
-export const OUTCOME_MS = 15000;
 export const ROOM_TTL_MS = 12 * 60 * 60 * 1000; // 12h, mirrored in database.rules.json
 
 export type RoomPhase = 'lobby' | 'claim' | 'intro' | 'playing' | 'outcome' | 'ended';
@@ -102,4 +100,32 @@ export function playerList(room: RoomData | null): PlayerInfo[] {
 /** Players that participate: connected devices plus shared-phone locals. */
 export function activePlayers(room: RoomData | null): PlayerInfo[] {
   return playerList(room).filter((p) => p.local || p.connected);
+}
+
+/* ---------- between-round pacing ---------- */
+
+export type Pacing = 'ready' | 'manual';
+
+/**
+ * Between-round pacing. The ready gate is the default *and* the fallback for
+ * legacy rooms that stored 'auto' — auto-advance no longer exists.
+ */
+export function pacingOf(settings: RoomSettings | undefined | null): Pacing {
+  return settings?.roundPacing === 'manual' ? 'manual' : 'ready';
+}
+
+/** Everyone still in the room who hasn't tapped Ready for the next round. */
+export function notReady(room: RoomData | null): PlayerInfo[] {
+  return activePlayers(room).filter((p) => p.ready !== true);
+}
+
+/**
+ * Multi-path update payload that clears every player's ready flag. Written
+ * as part of the *same* update that enters the outcome screen, so the ready
+ * gate can never be satisfied by a stale flag from the round before.
+ */
+export function readyResetPaths(room: RoomData | null): Record<string, boolean> {
+  const paths: Record<string, boolean> = {};
+  for (const uid of Object.keys(room?.players ?? {})) paths[`players/${uid}/ready`] = false;
+  return paths;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useApp } from '../state/AppState';
-import { activePlayers, OUTCOME_MS, INTRO_MS, type GameInputEntry, type RoomData } from '../types';
+import { activePlayers, INTRO_MS, pacingOf, type GameInputEntry, type RoomData } from '../types';
 import { gameById } from '../games';
 import { Button, Modal, PlayerChip, TimerBar } from '../components/ui';
 import type { PlayerInfo } from '../engine/types';
@@ -173,11 +173,19 @@ function PlayingView({ room }: { room: RoomData }) {
   }
 
   if (variant === 'shared') {
-    const holder = players.find((p) => !answeredUids.includes(p.uid)) ?? players[0];
+    // A game with a turn order of its own names the holder (Poison passes the
+    // phone poisoner to poisoner); otherwise the phone simply moves on to the
+    // next player who hasn't acted yet. Nobody left to wait for → no gate.
+    const declaredUid = def.sharedHolderUid?.(room.game!.state, {
+      players,
+      actorUid: room.meta.actorUid,
+    });
+    const declared = declaredUid ? (players.find((p) => p.uid === declaredUid) ?? null) : null;
     const awaiting = players.filter((p) => !answeredUids.includes(p.uid));
+    const holder = declared ?? awaiting[0] ?? players[0];
     return (
       <div className="playing-wrap">
-        <SharedGate player={awaiting[0] ?? null} answeredCount={answeredUids.length} total={players.length}>
+        <SharedGate player={declared ?? awaiting[0] ?? null} answeredCount={answeredUids.length} total={players.length}>
           {() => (
             <def.View
               state={room.game!.state}
@@ -276,7 +284,7 @@ function OutcomeView({ room }: { room: RoomData }) {
   if (!outcome) return null;
   // RTDB drops empty arrays — `assignments` can read back undefined
   const assignments = outcome.assignments ?? [];
-  const manual = (room.meta.settings.roundPacing ?? 'auto') === 'manual';
+  const pacing = pacingOf(room.meta.settings);
 
   return (
     <div className="outcome">
@@ -303,7 +311,7 @@ function OutcomeView({ room }: { room: RoomData }) {
       {outcome.note && assignments.length > 0 && (
         <p className="outcome-note">{outcome.note}</p>
       )}
-      {manual ? (
+      {pacing === 'manual' ? (
         isAuthority ? (
           <Button variant="gold" size="lg" onClick={() => hostSkipRound()}>
             Continue ▶
@@ -312,14 +320,69 @@ function OutcomeView({ room }: { room: RoomData }) {
           <p className="muted">⏸ paused — the host continues when everyone's ready</p>
         )
       ) : (
+        <ReadyGate players={players} shared={room.meta.mode === 'shared'} />
+      )}
+    </div>
+  );
+}
+
+/**
+ * The between-round gate: nothing moves on until every player still in the
+ * room has tapped Ready. On a shared phone there is only one device to tap,
+ * so one press readies the whole table.
+ */
+function ReadyGate({ players, shared }: { players: PlayerInfo[]; shared: boolean }) {
+  const { me, setReady, isAuthority, hostSkipRound } = useApp();
+  const waiting = players.filter((p) => p.ready !== true);
+  const readyCount = players.length - waiting.length;
+  const allReady = waiting.length === 0;
+  const iAmReady = !!me && me.ready === true;
+  // one phone, one tap — only the room owner is allowed to flag everyone
+  const readyEveryone = shared && isAuthority;
+
+  return (
+    <div className="ready">
+      <div className="ready-chips">
+        {players.map((p) => (
+          <span key={p.uid} className={`ready-chip ${p.ready === true ? 'ready-on' : ''}`}>
+            <span className="ready-chip-emoji">{p.emoji}</span>
+            <span className="ready-chip-name">{p.name}</span>
+            <span className="ready-chip-mark">{p.ready === true ? '✔' : '…'}</span>
+          </span>
+        ))}
+      </div>
+      <p className="ready-count">
+        {allReady
+          ? "everyone's ready — here comes the next game 🍻"
+          : `${readyCount}/${players.length} ready`}
+      </p>
+
+      {allReady ? null : readyEveryone ? (
+        <Button
+          variant="gold"
+          size="lg"
+          full
+          onClick={() => setReady(true, players.map((p) => p.uid))}
+        >
+          EVERYONE'S READY 🍻
+        </Button>
+      ) : iAmReady ? (
         <>
-          <TimerBar deadline={room.meta.outcomeEndsAt} totalMs={OUTCOME_MS} />
-          {isAuthority && (
-            <Button variant="gold" onClick={() => hostSkipRound()}>
-              Next round ▶
-            </Button>
-          )}
+          <p className="muted small">waiting on {waiting.map((p) => p.name).join(', ')}…</p>
+          <Button variant="ghost" size="sm" onClick={() => setReady(false)}>
+            not ready yet
+          </Button>
         </>
+      ) : (
+        <Button variant="gold" size="lg" full onClick={() => setReady(true)}>
+          READY FOR THE NEXT GAME 🍻
+        </Button>
+      )}
+
+      {isAuthority && !allReady && (
+        <Button variant="ghost" size="sm" onClick={() => hostSkipRound()}>
+          start without them ▶
+        </Button>
       )}
     </div>
   );

@@ -13,7 +13,7 @@ import {
 import { db } from '../firebase';
 import { serverNow } from './serverTime';
 import { ROOM_TTL_MS } from './gc';
-import { activePlayers, INTRO_MS, OUTCOME_MS, type GameInputEntry, type RoomData } from '../types';
+import { activePlayers, INTRO_MS, notReady, pacingOf, readyResetPaths, type GameInputEntry, type RoomData } from '../types';
 import { allGames, gameById } from '../games';
 import { mulberry32, shuffled } from '../engine/rng';
 import type { Effect, GameContext, GameEvent } from '../engine/types';
@@ -138,21 +138,22 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
             ended = true;
             const dNow = currentDef();
             await applyDrinks(fx.assignments ?? []);
-            await update(ref(rdb, `rooms/${code}/meta`), {
-              phase: 'outcome',
-              outcome: {
+            // The outcome screen is where the ready gate lives: everybody's
+            // flag is cleared as we enter it, in the same write that flips
+            // the phase, so no stale flag can skip the wait.
+            await update(ref(rdb, `rooms/${code}`), {
+              'meta/phase': 'outcome',
+              'meta/outcome': {
                 gameId: dNow?.id ?? '',
                 gameName: dNow?.name ?? '',
                 gameEmoji: dNow?.emoji ?? '',
                 assignments: fx.assignments ?? [],
                 note: fx.note ?? null,
               },
-              // manual pacing has no deadline — the host's continue sets forceNext
-              outcomeEndsAt:
-                (meta()?.settings.roundPacing ?? 'auto') === 'manual'
-                  ? null
-                  : serverNow() + OUTCOME_MS,
-              forceNext: false,
+              // no deadline: the round ends when the players say so
+              'meta/outcomeEndsAt': null,
+              'meta/forceNext': false,
+              ...readyResetPaths(roomRef.current),
             }).catch(() => {});
           } else {
             await applyEffects([fx]);
@@ -265,8 +266,14 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
       }
 
       if (m.phase === 'outcome') {
-        // manual pacing: pause until the host taps continue (forceNext)
-        if (m.settings.roundPacing === 'manual' && !m.forceNext) return;
+        // 'manual' pacing: parked until the host taps continue (forceNext).
+        // 'ready' pacing: parked until every player still in the room has
+        // tapped Ready — the host can always force it through instead.
+        if (pacingOf(m.settings) === 'manual') {
+          if (!m.forceNext) return;
+        } else if (!m.forceNext && notReady(roomRef.current).length > 0) {
+          return;
+        }
         const endsAt = m.outcomeEndsAt ?? now;
         if (now >= endsAt) {
           const enabled = (m.settings.enabledGames ?? []).filter((id) => gameById.has(id));
@@ -294,6 +301,7 @@ export function useHostLoop(room: RoomData | null, uid: string | null, isAuthori
             'meta/outcome': null,
             'meta/forceNext': false,
             'meta/outcomeEndsAt': null,
+            ...readyResetPaths(roomRef.current),
           }).catch(() => {});
         }
       }
