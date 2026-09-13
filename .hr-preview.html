@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Horse Race preview</title>
+    <link rel="stylesheet" href="src/styles.css" />
+    <style>
+      /* preview scaffolding only — these classes are not part of the app */
+      .pv-sec { max-width: 480px; margin: 0 auto; padding: 4px 16px 10px; }
+      .pv-label {
+        margin: 0 0 8px;
+        font: 800 10px/1 system-ui;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: #9d92c4;
+      }
+      .pv-body { display: flex; flex-direction: column; min-height: 560px; }
+      /* hold the decorative loops at a readable frame for the still */
+      .hr-racer,
+      .hr-racer-crown { animation-play-state: paused; }
+      .hr-racer::before,
+      .hr-racer::after { animation-play-state: paused; }
+      .hr-racer::before { animation-delay: -0.26s; }
+      .hr-racer::after { animation-delay: -0.1s; }
+      .hr-racer-crown { animation-delay: -0.3s; }
+    </style>
+  </head>
+  <body>
+    <!-- ============ betting ============ -->
+    <div class="pv-sec">
+      <p class="pv-label">place your bet</p>
+      <div class="game-body pv-body">
+        <div class="playing-wrap">
+          <div class="gv">
+            <span class="pr-rule-badge">🏇 PLACE YOUR BET</span>
+            <div class="hr-field">
+              <button class="hr-card hr-card-mine" style="animation-delay: 0s">
+                <span class="hr-rail" style="background: #ffc94d; box-shadow: 0 0 12px #ffc94d"></span>
+                <span class="hr-silk" style="background-color: #ffc94d">1</span>
+                <span class="hr-name">🐎 Thunderhoof</span>
+                <span class="hr-backers">🧑🍺</span>
+                <span class="hr-pick">your pick</span>
+              </button>
+              <button class="hr-card hr-card-dim" disabled style="animation-delay: 0.04s">
+                <span class="hr-rail" style="background: #ff4fa3; box-shadow: 0 0 12px #ff4fa3"></span>
+                <span class="hr-silk" style="background-color: #ff4fa3">2</span>
+                <span class="hr-name">🐎 Pony Soprano</span>
+                <span class="hr-backers">🐙</span>
+              </button>
+              <button class="hr-card hr-card-dim" disabled style="animation-delay: 0.09s">
+                <span class="hr-rail" style="background: #4fd8ff; box-shadow: 0 0 12px #4fd8ff"></span>
+                <span class="hr-silk" style="background-color: #4fd8ff">3</span>
+                <span class="hr-name">🐎 Withering Heights</span>
+                <span class="hr-backers">🦊🐸</span>
+              </button>
+              <button class="hr-card hr-card-dim" disabled style="animation-delay: 0.135s">
+                <span class="hr-rail" style="background: #46e08b; box-shadow: 0 0 12px #46e08b"></span>
+                <span class="hr-silk" style="background-color: #46e08b">4</span>
+                <span class="hr-name">🐎 Filly Cheesesteak</span>
+                <span class="hr-backers"></span>
+              </button>
+              <button class="hr-card hr-card-dim" disabled style="animation-delay: 0.18s">
+                <span class="hr-rail" style="background: #ff5f6e; box-shadow: 0 0 12px #ff5f6e"></span>
+                <span class="hr-silk" style="background-color: #ff5f6e">5</span>
+                <span class="hr-name">🐎 Sir Trotsalot</span>
+                <span class="hr-backers">🐼</span>
+              </button>
+              <button class="hr-card hr-card-dim" disabled style="animation-delay: 0.225s">
+                <span class="hr-rail" style="background: #b07cff; box-shadow: 0 0 12px #b07cff"></span>
+                <span class="hr-silk" style="background-color: #b07cff">6</span>
+                <span class="hr-name">🐎 Bucephalus</span>
+                <span class="hr-backers">🐵</span>
+              </button>
+            </div>
+            <div class="hr-hint">
+              <p class="muted small">🔒 your money's on Thunderhoof — 6/6 bets in</p>
+              <span class="hr-progress"><span class="hr-progress-fill" style="width: 100%"></span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ the race ============ -->
+    <div class="pv-sec">
+      <p class="pv-label">the race</p>
+      <div class="game-body pv-body">
+        <div class="playing-wrap">
+          <div class="gv">
+            <span class="pr-rule-badge">🏁 AND THEY'RE OFF</span>
+            <div class="hr-trackwrap">
+              <span class="hr-track-head">
+                <span>🏇 the field</span>
+                <span class="hr-track-flag">🏁 finish</span>
+              </span>
+              <div class="hr-track hr-track-off">
+                <div class="hr-lane hr-lane-mine">
+                  <span class="hr-lane-tag">
+                    <b class="hr-lane-place">1</b>
+                    <span class="hr-silk hr-silk-sm" style="background-color: #ffc94d">1</span>
+                    <span class="hr-lane-name">Thunderhoof</span>
+                    <span class="hr-lane-backers">🧑🍺</span>
+                  </span>
+                  <span class="hr-road">
+                    <span class="hr-ground" style="background-position: -18px 0"></span>
+                    <span
+                      class="hr-racer hr-racer-lead"
+                      style="left: 68%; background-color: #ffc94d; color: #ffc94d; animation-duration: 0.38s; animation-delay: -0.11s"
+                    >
+                      <span class="hr-racer-n">1</span>
+                      <span class="hr-racer-crown">👑</span>
+                    </span>
+                  </span>
+                </div>
+                <div class="hr-lane">
+                  <span class="hr-lane-tag">
+                    <b class="hr-lane-place">2</b>
+                    <span class="hr-silk hr-silk-sm" style="background-color: #4fd8ff">3</span>
+                    <span class="hr-lane-name">Withering Heights</span>
+                    <span class="hr-lane-backers">🦊🐸</span>
+                  </span>
+                  <span class="hr-road">
+                    <span class="hr-ground" style="background-position: -11px 0"></span>
+                    <span
+                      class="hr-racer"
+                      style="left: 63%; background-color: #4fd8ff; color: #4fd8ff; animation-duration: 0.42s; animation-delay: -0.33s"
+                    >
+                      <span class="hr-racer-n">3</span>
+                    </span>
+                  </span>
+                </div>
+                <div class="hr-lane">
+                  <span class="hr-lane-tag">
+                    <b class="hr-lane-place">3</b>
+                    <span class="hr-silk hr-silk-sm" style="background-color: #ff4fa3">2</span>
+                    <span class="hr-lane-name">Pony Soprano</span>
+                    <span class="hr-lane-backers">🐙</span>
+                  </span>
+                  <span class="hr-road">
+                    <span class="hr-ground" style="background-position: -6px 0"></span>
+                    <span
+                      class="hr-racer"
+                      style="left: 52%; background-color: #ff4fa3; color: #ff4fa3; animation-duration: 0.46s; animation-delay: -0.22s"
+                    >
+                      <span class="hr-racer-n">2</span>
+                    </span>
+                  </span>
+                </div>
+                <div class="hr-lane">
+                  <span class="hr-lane-tag">
+                    <b class="hr-lane-place">4</b>
+                    <span class="hr-silk hr-silk-sm" style="background-color: #46e08b">4</span>
+                    <span class="hr-lane-name">Filly Cheesesteak</span>
+                    <span class="hr-lane-backers"></span>
+                  </span>
+                  <span class="hr-road">
+                    <span class="hr-ground" style="background-position: -2px 0"></span>
+                    <span
+                      class="hr-racer"
+                      style="left: 41%; background-color: #46e08b; color: #46e08b; animation-duration: 0.34s; animation-delay: -0.44s"
+                    >
+                      <span class="hr-racer-n">4</span>
+                    </span>
+                  </span>
+                </div>
+                <div class="hr-lane">
+                  <span class="hr-lane-tag">
+                    <b class="hr-lane-place">5</b>
+                    <span class="hr-silk hr-silk-sm" style="background-color: #ff5f6e">5</span>
+                    <span class="hr-lane-name">Sir Trotsalot</span>
+                    <span class="hr-lane-backers">🐼</span>
+                  </span>
+                  <span class="hr-road">
+                    <span class="hr-ground" style="background-position: 0 0"></span>
+                    <span
+                      class="hr-racer hr-racer-home"
+                      style="left: 90%; background-color: #ff5f6e; color: #ff5f6e; animation-duration: 0.4s; animation-delay: -0.55s"
+                    >
+                      <span class="hr-racer-n">5</span>
+                    </span>
+                  </span>
+                </div>
+                <div class="hr-lane">
+                  <span class="hr-lane-tag">
+                    <b class="hr-lane-place">6</b>
+                    <span class="hr-silk hr-silk-sm" style="background-color: #b07cff">6</span>
+                    <span class="hr-lane-name">Bucephalus</span>
+                    <span class="hr-lane-backers">🐵</span>
+                  </span>
+                  <span class="hr-road">
+                    <span class="hr-ground" style="background-position: 0 0"></span>
+                    <span
+                      class="hr-racer"
+                      style="left: 26%; background-color: #b07cff; color: #b07cff; animation-duration: 0.44s; animation-delay: -0.66s"
+                    >
+                      <span class="hr-racer-n">6</span>
+                    </span>
+                  </span>
+                </div>
+              </div>
+              <p class="muted small hr-note">worst-placed pick drinks 3 · next-worst drinks 1</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ gifting ============ -->
+    <div class="pv-sec">
+      <p class="pv-label">the winners pay out</p>
+      <div class="game-body pv-body">
+        <div class="playing-wrap">
+          <div class="gv">
+            <span class="pr-rule-badge">🎁 THE WINNERS PAY OUT</span>
+            <div class="hr-winner">
+              <span class="hr-silk" style="background-color: #ffc94d">1</span>
+              <span class="hr-winner-text">
+                <span class="hr-winner-name">🏆 Thunderhoof</span>
+                <span class="hr-winner-sub">backed by 🧑 🍺</span>
+              </span>
+            </div>
+            <p class="muted small hr-note">
+              🏇 Thunderhoof wins — photo finish 📸! · its backers hand out drinks 🎁 · Bucephalus lets
+              its backers down 🐌
+            </p>
+            <p class="pick-call">You backed the winner — who drinks?</p>
+            <div class="pick-people">
+              <button class="pick-person pick-person-got">
+                <span class="pick-person-emoji">🐙</span> Pony Soprano
+                <span class="pick-person-flag">🍺</span>
+              </button>
+              <button class="pick-person"><span class="pick-person-emoji">🦊</span> Vixen</button>
+              <button class="pick-person"><span class="pick-person-emoji">🐸</span> Kermit</button>
+              <button class="pick-person"><span class="pick-person-emoji">🐼</span> Bamboo</button>
+            </div>
+            <span class="hr-progress"><span class="hr-progress-fill" style="width: 50%"></span></span>
+            <p class="muted small">1/2 handed out</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ the finish ============ -->
+    <div class="pv-sec">
+      <p class="pv-label">the finish</p>
+      <div class="game-body pv-body">
+        <div class="playing-wrap">
+          <div class="gv">
+            <span class="pr-rule-badge">🏁 FINISH</span>
+            <h2>🏇 Thunderhoof wins — photo finish 📸! · its backers hand out drinks 🎁 · Bucephalus lets its backers down 🐌</h2>
+            <div class="hr-results">
+              <div class="hr-row hr-row-win" style="animation-delay: 0s">
+                <span class="hr-rail" style="background: #ffc94d; box-shadow: 0 0 12px #ffc94d"></span>
+                <span class="hr-row-place">🥇</span>
+                <span class="hr-silk hr-silk-sm" style="background-color: #ffc94d">1</span>
+                <span class="hr-row-who">
+                  <span class="hr-row-name">Thunderhoof</span>
+                  <span class="hr-row-backers">🧑</span>
+                  <span class="hr-row-chip">your pick</span>
+                </span>
+                <span class="hr-row-time">5.42s</span>
+              </div>
+              <div class="hr-row hr-row-second" style="animation-delay: 0.05s">
+                <span class="hr-rail" style="background: #4fd8ff; box-shadow: 0 0 12px #4fd8ff"></span>
+                <span class="hr-row-place">🥈</span>
+                <span class="hr-silk hr-silk-sm" style="background-color: #4fd8ff">3</span>
+                <span class="hr-row-who">
+                  <span class="hr-row-name">Withering Heights</span>
+                  <span class="hr-row-backers">🦊🐸</span>
+                </span>
+                <span class="hr-row-time">5.51s</span>
+              </div>
+              <div class="hr-row hr-row-third" style="animation-delay: 0.1s">
+                <span class="hr-rail" style="background: #ff4fa3; box-shadow: 0 0 12px #ff4fa3"></span>
+                <span class="hr-row-place">🥉</span>
+                <span class="hr-silk hr-silk-sm" style="background-color: #ff4fa3">2</span>
+                <span class="hr-row-who">
+                  <span class="hr-row-name">Pony Soprano</span>
+                  <span class="hr-row-backers">🐙</span>
+                </span>
+                <span class="hr-row-time">6.04s</span>
+              </div>
+              <div class="hr-row" style="animation-delay: 0.15s">
+                <span class="hr-rail" style="background: #46e08b; box-shadow: 0 0 12px #46e08b"></span>
+                <span class="hr-row-place">#4</span>
+                <span class="hr-silk hr-silk-sm" style="background-color: #46e08b">4</span>
+                <span class="hr-row-who">
+                  <span class="hr-row-name">Filly Cheesesteak</span>
+                  <span class="hr-row-backers">—</span>
+                </span>
+                <span class="hr-row-time">7.12s</span>
+              </div>
+              <div class="hr-row hr-row-lose" style="animation-delay: 0.2s">
+                <span class="hr-rail" style="background: #ff5f6e; box-shadow: 0 0 12px #ff5f6e"></span>
+                <span class="hr-row-place">#5</span>
+                <span class="hr-silk hr-silk-sm" style="background-color: #ff5f6e">5</span>
+                <span class="hr-row-who">
+                  <span class="hr-row-name">Sir Trotsalot</span>
+                  <span class="hr-row-backers">🐼</span>
+                </span>
+                <span class="hr-row-sips">🍺1</span>
+                <span class="hr-row-time">7.31s</span>
+              </div>
+              <div class="hr-row hr-row-lose" style="animation-delay: 0.25s">
+                <span class="hr-rail" style="background: #b07cff; box-shadow: 0 0 12px #b07cff"></span>
+                <span class="hr-row-place">#6</span>
+                <span class="hr-silk hr-silk-sm" style="background-color: #b07cff">6</span>
+                <span class="hr-row-who">
+                  <span class="hr-row-name">Bucephalus</span>
+                  <span class="hr-row-backers">🐵</span>
+                </span>
+                <span class="hr-row-sips">🍺3</span>
+                <span class="hr-row-time">7.58s</span>
+              </div>
+            </div>
+            <div class="hr-drinks">
+              <p class="hr-drink">
+                🍺 <b>Kermit</b> ×3 <span class="muted">— Bucephalus flopped (6th) 🐌</span>
+              </p>
+              <p class="hr-drink hr-drink-me">
+                🍺 <b>You</b> ×1 <span class="muted">— Sir Trotsalot was nearly last (5th)</span>
+              </p>
+              <p class="hr-drink">
+                🍺 <b>Pony Soprano</b> ×1 <span class="muted">— 🎁 a drink from Vixen</span>
+              </p>
+            </div>
+            <p class="muted small">🤖 the house bet for Bamboo</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- ============ starter's call (short field) ============ -->
+    <div class="pv-sec">
+      <p class="pv-label">starter's call</p>
+      <div class="game-body pv-body">
+        <div class="playing-wrap">
+          <div class="gv">
+            <span class="pr-rule-badge">🏁 AND THEY'RE OFF</span>
+            <div class="hr-trackwrap">
+              <span class="hr-track-head">
+                <span>🏇 the field</span>
+                <span class="hr-track-flag">🏁 finish</span>
+              </span>
+              <div class="hr-track">
+                <div class="hr-lane">
+                  <span class="hr-lane-tag">
+                    <b class="hr-lane-place">1</b>
+                    <span class="hr-silk hr-silk-sm" style="background-color: #ffc94d">1</span>
+                    <span class="hr-lane-name">Thunderhoof</span>
+                    <span class="hr-lane-backers">🧑</span>
+                  </span>
+                  <span class="hr-road">
+                    <span class="hr-ground" style="background-position: 0 0"></span>
+                    <span class="hr-racer" style="left: 7%; background-color: #ffc94d; color: #ffc94d">
+                      <span class="hr-racer-n">1</span>
+                    </span>
+                  </span>
+                </div>
+                <div class="hr-lane">
+                  <span class="hr-lane-tag">
+                    <b class="hr-lane-place">2</b>
+                    <span class="hr-silk hr-silk-sm" style="background-color: #ff4fa3">2</span>
+                    <span class="hr-lane-name">Pony Soprano</span>
+                    <span class="hr-lane-backers">🐙</span>
+                  </span>
+                  <span class="hr-road">
+                    <span class="hr-ground" style="background-position: 0 0"></span>
+                    <span class="hr-racer" style="left: 7%; background-color: #ff4fa3; color: #ff4fa3">
+                      <span class="hr-racer-n">2</span>
+                    </span>
+                  </span>
+                </div>
+                <span class="hr-call">ON YOUR MARKS</span>
+              </div>
+              <p class="muted small hr-note">worst-placed pick drinks 3 · next-worst drinks 1</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ finish flash (short field) ============ -->
+    <div class="pv-sec">
+      <p class="pv-label">finish flash</p>
+      <div class="game-body pv-body">
+        <div class="playing-wrap">
+          <div class="gv">
+            <span class="pr-rule-badge">🏁 AND THEY'RE OFF</span>
+            <div class="hr-trackwrap">
+              <span class="hr-track-head">
+                <span>🏇 the field</span>
+                <span class="hr-track-flag">🏁 finish</span>
+              </span>
+              <div class="hr-track hr-track-off hr-track-done">
+                <div class="hr-lane">
+                  <span class="hr-lane-tag">
+                    <b class="hr-lane-place">1</b>
+                    <span class="hr-silk hr-silk-sm" style="background-color: #ffc94d">1</span>
+                    <span class="hr-lane-name">Thunderhoof</span>
+                    <span class="hr-lane-backers">🧑</span>
+                  </span>
+                  <span class="hr-road">
+                    <span class="hr-ground" style="background-position: -12px 0"></span>
+                    <span
+                      class="hr-racer hr-racer-lead hr-racer-home"
+                      style="left: 90%; background-color: #ffc94d; color: #ffc94d"
+                    >
+                      <span class="hr-racer-n">1</span>
+                      <span class="hr-racer-crown">👑</span>
+                    </span>
+                  </span>
+                </div>
+                <div class="hr-lane">
+                  <span class="hr-lane-tag">
+                    <b class="hr-lane-place">2</b>
+                    <span class="hr-silk hr-silk-sm" style="background-color: #ff4fa3">2</span>
+                    <span class="hr-lane-name">Pony Soprano</span>
+                    <span class="hr-lane-backers">🐙</span>
+                  </span>
+                  <span class="hr-road">
+                    <span class="hr-ground" style="background-position: -8px 0"></span>
+                    <span
+                      class="hr-racer hr-racer-home"
+                      style="left: 90%; background-color: #ff4fa3; color: #ff4fa3"
+                    >
+                      <span class="hr-racer-n">2</span>
+                    </span>
+                  </span>
+                </div>
+                <span class="hr-call hr-call-done">🏁 FINISH!</span>
+              </div>
+              <p class="muted small hr-note">worst-placed pick drinks 3 · next-worst drinks 1</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const out = [];
+      const R = (el) => el.getBoundingClientRect();
+      const f = (n) => Math.round(n * 10) / 10;
+      const log = (s) => out.push('PV| ' + s);
+
+      log('viewport=' + innerWidth + 'x' + innerHeight + ' docScrollW=' + document.documentElement.scrollWidth);
+
+      for (const sec of document.querySelectorAll('.pv-sec')) {
+        const label = sec.querySelector('.pv-label').textContent.trim();
+        const gv = sec.querySelector('.gv');
+        const secRect = R(sec);
+        const spill = [...sec.querySelectorAll('*')].filter((el) => {
+          const r = R(el);
+          return r.width > 0 && (r.right > secRect.right + 0.5 || r.left < secRect.left - 0.5);
+        });
+        log(
+          '[' + label + '] gv h=' + f(R(gv).height) +
+            ' content h=' + f(gv.scrollHeight) +
+            ' spill=' + (spill.length ? spill.slice(0, 4).map((el) => el.className + '@' + f(R(el).right)).join(',') : 'none'),
+        );
+      }
+
+      const lanes = [...document.querySelectorAll('.hr-track:not(.hr-track-done) .hr-lane')];
+      log('lane w=' + f(R(lanes[0]).width) + ' h=' + f(R(lanes[0]).height) + ' tag w=' + f(R(lanes[0].querySelector('.hr-lane-tag')).width));
+      const roads = [...document.querySelectorAll('.hr-track:not(.hr-track-done) .hr-road')].map(R);
+      log('road x=' + roads.map((r) => f(r.x)).join(',') + ' | w=' + roads.map((r) => f(r.width)).join(','));
+
+      for (const el of document.querySelectorAll('.hr-racer')) {
+        const rr = R(el);
+        const road = R(el.closest('.hr-road'));
+        log('racer left=' + f(rr.x) + ' right=' + f(rr.right) + ' roadRight=' + f(road.right) + ' fits=' + (rr.right <= road.right + 0.5));
+      }
+
+      const road0 = document.querySelector('.hr-road');
+      const fin = getComputedStyle(road0, '::after');
+      log('finish left=' + fin.left + ' w=' + fin.width + ' opacity=' + fin.opacity);
+      log('finish bg=' + fin.backgroundImage.slice(0, 110));
+      log('gate ' + getComputedStyle(road0, '::before').backgroundImage.slice(0, 70));
+      const offGate = document.querySelector('.hr-track-off .hr-road');
+      log('gate uses opacity when off=' + getComputedStyle(offGate, '::before').opacity);
+      const gr = getComputedStyle(document.querySelector('.hr-ground'));
+      log('ground bg=' + gr.backgroundImage.slice(0, 70) + ' pos=' + gr.backgroundPosition);
+
+      const racer0 = document.querySelector('.hr-racer');
+      const dust = getComputedStyle(racer0, '::before');
+      log('dust color=' + dust.backgroundColor + ' filter=' + dust.filter + ' size=' + dust.width + 'x' + dust.height);
+      const tail = getComputedStyle(racer0, '::after');
+      log('tail w=' + tail.width + ' bg=' + tail.backgroundImage.slice(0, 60));
+      const crown = getComputedStyle(document.querySelector('.hr-racer-crown'));
+      log('crown anim=' + crown.animationName + ' font=' + crown.fontSize);
+      const home = getComputedStyle(document.querySelector('.hr-racer-home'), '::after');
+      log('home tail opacity=' + home.opacity + ' anim=' + home.animationName);
+
+      const silk = getComputedStyle(document.querySelector('.hr-silk'));
+      log('silk ' + silk.width + 'x' + silk.height + ' bg=' + silk.backgroundColor + ' img=' + silk.backgroundImage.slice(0, 90));
+
+      const call = document.querySelector('.hr-call');
+      const callText = call.scrollWidth > call.clientWidth;
+      log('call ' + f(R(call).width) + 'x' + f(R(call).height) + ' textClipped=' + callText + ' size=' + getComputedStyle(call).fontSize);
+
+      const card = document.querySelector('.hr-card');
+      const name = card.querySelector('.hr-name');
+      log('card w=' + f(R(card).width) + ' h=' + f(R(card).height) + ' name w=' + f(R(name).width) + ' clipped=' + (name.scrollWidth > name.clientWidth + 1));
+      const pick = getComputedStyle(document.querySelector('.hr-pick'));
+      log('pick chip w=' + pick.width + ' h=' + pick.height + ' bg=' + pick.backgroundColor);
+      const rail = getComputedStyle(document.querySelector('.hr-rail'));
+      log('rail w=' + rail.width + ' shadow=' + rail.boxShadow.slice(0, 40));
+      const bar = getComputedStyle(document.querySelector('.hr-progress'));
+      log('progress h=' + bar.height + ' radius=' + bar.borderRadius);
+
+      const winner = document.querySelector('.hr-winner');
+      log('winner ' + f(R(winner).width) + 'x' + f(R(winner).height) + ' silk=' + getComputedStyle(winner.querySelector('.hr-silk')).width);
+      const row = document.querySelector('.hr-row');
+      const kids = [...row.children].map((c) => f(R(c).right));
+      log('row ' + f(R(row).width) + 'x' + f(R(row).height) + ' childRights=' + kids.join(',') + ' rowRight=' + f(R(row).right));
+      const clipped = [...document.querySelectorAll('.hr-name, .hr-lane-name, .hr-row-name, .hr-winner-name, .hr-pick, .hr-row-chip, .hr-drink')]
+        .filter((el) => el.scrollWidth > el.clientWidth + 1)
+        .map((el) => el.className + ':"' + el.textContent.trim() + '"');
+      log('clipped=' + (clipped.join(' | ') || 'none'));
+
+      document.body.insertAdjacentHTML('beforeend', '<pre>' + out.join('\n') + '</pre>');
+    </script>
+  </body>
+</html>

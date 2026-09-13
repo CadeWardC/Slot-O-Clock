@@ -1075,31 +1075,8 @@ a { color: var(--cyan); }
 .fk-tab { margin: 0; font-weight: 900; color: var(--gold); }
 
 /* --- Horse Race 🏇 --- */
-.hr-field { display: flex; flex-direction: column; gap: 6px; width: 100%; }
-.hr-card {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  background: var(--card);
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
-  padding: 9px 12px;
-  color: var(--text);
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 700;
-  text-align: left;
-  cursor: pointer;
-  transition: transform 0.1s ease, border-color 0.1s ease;
-}
-.hr-card:not(:disabled):active { transform: scale(0.98); border-color: var(--gold); }
-.hr-card:disabled { cursor: default; }
-.hr-card-mine { border-color: var(--gold); box-shadow: 0 0 16px rgba(255, 201, 77, 0.2); }
-.hr-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.hr-backers { margin-left: auto; font-size: 0.95rem; letter-spacing: 1px; }
 
-/* racing silks — the lane badge and the moving marker share one colour */
+/* racing silks: one colour per runner, worn everywhere the runner appears */
 .hr-silk {
   display: inline-flex;
   align-items: center;
@@ -1108,90 +1085,397 @@ a { color: var(--cyan); }
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.82);
   color: #1a1030;
   font-size: 0.78rem;
   font-weight: 900;
+  /* jersey stripes and a gloss, layered over the runner's own colour */
+  background-image:
+    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.6), transparent 58%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.32) 0 2px, transparent 2px 7px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
 }
-.hr-silk-sm { width: 21px; height: 21px; font-size: 0.7rem; border-width: 1.5px; }
+.hr-silk-sm { width: 21px; height: 21px; font-size: 0.68rem; border-width: 1.5px; }
 
-.hr-track { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+/* the silk-coloured rail each card and row wears down its left edge */
+.hr-rail { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
+
+/* ---------- the card: back a runner ---------- */
+.hr-field { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.hr-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  overflow: hidden;
+  background: linear-gradient(100deg, var(--card2), var(--card));
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 8px 12px 8px 16px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  animation: hrIn 0.34s ease backwards;
+  transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease,
+    opacity 0.2s ease, filter 0.2s ease;
+}
+.hr-card:not(:disabled):active { transform: scale(0.985); border-color: var(--gold); }
+.hr-card:disabled { cursor: default; }
+.hr-card-mine { border-color: var(--gold); box-shadow: 0 0 22px rgba(255, 201, 77, 0.22); }
+/* once your money is down, the runners you didn't back step out of the way */
+.hr-card-dim { opacity: 0.42; filter: saturate(0.5); }
+.hr-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hr-backers { margin-left: auto; font-size: 0.95rem; letter-spacing: 1px; }
+.hr-pick {
+  flex: 0 0 auto;
+  background: var(--gold);
+  color: #3a2400;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hr-hint { display: flex; flex-direction: column; gap: 7px; width: 100%; }
+.hr-hint p { margin: 0; }
+.hr-progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.hr-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--magenta), var(--gold));
+  transition: width 0.25s ease;
+}
+
+@keyframes hrIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- the race ---------- */
+.hr-trackwrap { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.hr-track-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 3px;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.hr-track-flag { color: var(--gold); }
+.hr-track {
+  position: relative;
+  width: 100%;
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  overflow: hidden;
+  background: linear-gradient(180deg, #2a1f58, #191238);
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.55), 0 10px 26px rgba(0, 0, 0, 0.35);
+}
 .hr-lane {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
-  height: 40px;
+  height: 44px;
   padding: 0 10px;
-  border-radius: 12px;
-  border: 1.5px solid var(--line);
-  background: linear-gradient(90deg, rgba(79, 216, 255, 0.07), rgba(255, 201, 77, 0.07));
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.07);
 }
-.hr-lane-mine {
-  border-color: var(--gold);
-  background: linear-gradient(90deg, rgba(255, 201, 77, 0.16), rgba(255, 201, 77, 0.05));
-}
+.hr-lane:last-child { border-bottom: none; }
+.hr-lane-mine { background: linear-gradient(90deg, rgba(255, 201, 77, 0.16), rgba(255, 201, 77, 0.02)); }
+.hr-lane-mine::after { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--gold); }
 .hr-lane-tag {
-  flex: 0 0 168px;
-  width: 168px;
+  flex: 0 0 138px;
+  width: 138px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   font-size: 0.72rem;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
 }
-.hr-lane-place { color: var(--gold); }
-.hr-lane-name { overflow: hidden; text-overflow: ellipsis; }
-.hr-lane-backers { letter-spacing: 1px; }
+.hr-lane-place { flex: 0 0 12px; text-align: center; color: var(--gold); font-variant-numeric: tabular-nums; }
+.hr-lane-name { flex: 1; font-weight: 700; color: var(--text); overflow: hidden; text-overflow: ellipsis; }
+.hr-lane-backers { letter-spacing: 0.5px; }
+.hr-lane-mine .hr-lane-name { color: var(--gold); }
+
 .hr-road { position: relative; flex: 1; height: 100%; }
+/* ground texture, rolled off the render clock so every phone agrees on where
+   the dirt is — the stripe period must match GROUND_TILE in View.tsx */
+.hr-ground {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.055) 0 10px,
+    rgba(255, 255, 255, 0) 10px 26px
+  );
+}
+/* the starting gate, which gets out of the way once they're off */
+.hr-road::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  z-index: 1;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5) 0 4px,
+    rgba(255, 255, 255, 0.08) 4px 9px
+  );
+  transition: opacity 0.45s ease;
+}
+.hr-track-off .hr-road::before { opacity: 0; }
+/* the finish line: one checkered post through every lane */
 .hr-road::after {
   content: '';
   position: absolute;
-  right: 2px;
-  top: 5px;
-  bottom: 5px;
-  width: 3px;
-  border-radius: 2px;
-  background: repeating-linear-gradient(180deg, var(--text) 0 5px, transparent 5px 10px);
-  opacity: 0.55;
+  left: 90%;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  margin-left: -5px;
+  z-index: 1;
+  background-color: #efe9ff;
+  background-image:
+    linear-gradient(45deg, #1a1030 25%, transparent 25%, transparent 75%, #1a1030 75%),
+    linear-gradient(45deg, #1a1030 25%, transparent 25%, transparent 75%, #1a1030 75%);
+  background-size: 10px 10px;
+  background-position: 0 0, 5px 5px;
+  opacity: 0.8;
+  transition: opacity 0.3s ease, box-shadow 0.3s ease;
 }
+.hr-track-done .hr-road::after { opacity: 1; box-shadow: 0 0 20px rgba(255, 255, 255, 0.6); }
+
+/* the runner: a saddle-cloth disc in the horse's silk, and the wind it makes */
 .hr-racer {
   position: absolute;
   top: 50%;
-  transform: translate(-50%, -50%);
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
   border-radius: 50%;
   border: 2px solid #fff;
-  color: #1a1030;
-  font-size: 0.8rem;
-  font-weight: 900;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+  background-image:
+    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.55), transparent 58%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.28) 0 2px, transparent 2px 7px);
+  animation: hrGallop 0.42s ease-in-out infinite;
+  will-change: transform;
+}
+.hr-racer-n { color: #1a1030; font-size: 0.82rem; font-weight: 900; }
+.hr-racer::before {            /* kicked-up dust, in the runner's colours */
+  content: '';
+  position: absolute;
+  left: -7px;
+  bottom: -3px;
+  width: 16px;
+  height: 11px;
+  border-radius: 50%;
+  background: currentColor;
+  filter: blur(5px);
+  animation: hrDust 0.5s ease-out infinite;
+}
+.hr-racer::after {             /* a streak of wind trailing behind */
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  width: 24px;
+  height: 5px;
+  margin-top: -2.5px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, currentColor);
+  filter: blur(0.6px);
+  animation: hrStreak 0.42s linear infinite;
+}
+.hr-racer-lead {
+  box-shadow: 0 0 0 2px rgba(255, 201, 77, 0.55), 0 0 20px rgba(255, 201, 77, 0.5),
+    0 3px 10px rgba(0, 0, 0, 0.55);
+}
+.hr-racer-home::before,
+.hr-racer-home::after { animation: none; opacity: 0; }
+.hr-racer-crown {
+  position: absolute;
+  top: -5px;
+  right: -4px;
+  font-size: 0.62rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7));
+  animation: hrCrown 1s ease-in-out infinite;
 }
 
-.hr-results { display: flex; flex-direction: column; gap: 6px; width: 100%; }
-.hr-row {
+/* the starter's call, over the top of the track */
+.hr-call {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  padding: 0 12px;
+  background: rgba(13, 10, 26, 0.62);
+  color: var(--gold);
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-align: center;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.85);
+  animation: hrCall 0.28s ease;
+}
+.hr-call-go { background: rgba(13, 10, 26, 0.3); color: var(--text); }
+.hr-call-done { background: rgba(13, 10, 26, 0.4); }
+.hr-note { margin: 0; }
+
+@keyframes hrGallop {
+  0%, 100% { transform: translateY(-1.5px); }
+  50% { transform: translateY(1.5px); }
+}
+@keyframes hrDust {
+  0% { opacity: 0.55; transform: translateX(0) scale(0.7); }
+  100% { opacity: 0; transform: translateX(-10px) scale(1.5); }
+}
+@keyframes hrStreak {
+  0% { opacity: 0.45; transform: translateX(4px); }
+  100% { opacity: 0.06; transform: translateX(-7px); }
+}
+@keyframes hrCrown {
+  0%, 100% { transform: translateY(0) rotate(-10deg); }
+  50% { transform: translateY(-2px) rotate(8deg); }
+}
+@keyframes hrCall {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ---------- the payout: the winning horse ---------- */
+.hr-winner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 2px solid var(--gold);
+  border-radius: 18px;
+  padding: 10px 14px;
+  box-shadow: 0 0 30px rgba(255, 201, 77, 0.18);
+  background-image:
+    radial-gradient(circle at 12% 28%, rgba(255, 201, 77, 0.5) 0 2px, transparent 3px),
+    radial-gradient(circle at 74% 72%, rgba(255, 79, 163, 0.45) 0 2px, transparent 3px),
+    radial-gradient(circle at 42% 86%, rgba(79, 216, 255, 0.4) 0 2px, transparent 3px),
+    linear-gradient(100deg, rgba(255, 201, 77, 0.2), var(--card));
+  animation: hrIn 0.4s ease;
+}
+.hr-winner .hr-silk { width: 44px; height: 44px; font-size: 1.15rem; border-width: 2.5px; }
+.hr-winner-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.hr-winner-name { font-weight: 900; font-size: 1.05rem; }
+.hr-winner-sub { font-size: 0.78rem; color: var(--muted); }
+
+/* ---------- the result ---------- */
+.hr-results { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.hr-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  overflow: hidden;
+  background: linear-gradient(100deg, var(--card2), var(--card));
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 8px 12px 8px 16px;
+  animation: hrIn 0.34s ease backwards;
+}
+.hr-row-win {
+  border-color: var(--gold);
+  background-image: linear-gradient(100deg, rgba(255, 201, 77, 0.22), var(--card));
+  box-shadow: 0 0 26px rgba(255, 201, 77, 0.2);
+}
+.hr-row-second { border-color: rgba(226, 226, 240, 0.5); }
+.hr-row-third { border-color: rgba(255, 160, 90, 0.5); }
+.hr-row-lose {
+  border-color: rgba(255, 95, 110, 0.55);
+  background-image: linear-gradient(100deg, rgba(255, 95, 110, 0.15), var(--card));
+}
+.hr-row-place { flex: 0 0 auto; width: 30px; font-weight: 900; font-size: 0.95rem; }
+.hr-row-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  text-align: left;
+  font-weight: 700;
+}
+.hr-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hr-row-backers { font-size: 0.88rem; letter-spacing: 1px; }
+.hr-row-chip {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 201, 77, 0.5);
+  border-radius: 999px;
+  padding: 1px 6px;
+  color: var(--gold);
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.hr-row-sips {
+  flex: 0 0 auto;
+  background: rgba(255, 95, 110, 0.16);
+  border: 1px solid rgba(255, 95, 110, 0.4);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--red);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+.hr-row-time { flex: 0 0 auto; color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
+.hr-drinks { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.hr-drink {
+  margin: 0;
+  padding: 8px 12px;
+  text-align: left;
   background: var(--card);
   border: 1.5px solid var(--line);
   border-radius: 12px;
-  padding: 8px 12px;
+  font-size: 0.85rem;
+  animation: hrIn 0.3s ease backwards;
 }
-.hr-row-win { border-color: var(--gold); }
-.hr-row-lose { border-color: var(--red); }
-.hr-row-place { font-weight: 900; width: 32px; }
-.hr-row-who { flex: 1; text-align: left; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-.hr-row-backers { font-size: 0.9rem; letter-spacing: 1px; }
-.hr-row-sips { color: var(--red); font-weight: 900; }
-.hr-row-time { color: var(--muted); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
-.hr-drinks { display: flex; flex-direction: column; gap: 2px; width: 100%; }
-.hr-drink { margin: 0; font-size: 0.85rem; }
+/* the drink that lands on you */
+.hr-drink-me {
+  border-color: rgba(255, 79, 163, 0.55);
+  background-image: linear-gradient(100deg, rgba(255, 79, 163, 0.14), var(--card));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hr-card, .hr-row, .hr-drink, .hr-winner, .hr-call { animation: none; }
+  .hr-racer, .hr-racer-crown { animation: none; }
+  .hr-racer::before, .hr-racer::after { animation: none; opacity: 0.25; }
+}
 
 /* --- shared player picker (Confessions, Horse Race) --- */
 .pick-call { margin: 0; font-weight: 800; font-size: 1.05rem; }
@@ -1213,6 +1497,9 @@ a { color: var(--cyan); }
 }
 .pick-person:active { transform: scale(0.96); border-color: var(--magenta); }
 .pick-person-emoji { font-size: 1.15rem; }
+/* someone a winning backer has already bought a drink for */
+.pick-person-got { border-color: rgba(70, 224, 139, 0.5); }
+.pick-person-flag { font-size: 0.75rem; }
 
 /* --- Wavelength 🎚️ --- */
 .wl-wrap { width: 100%; display: flex; flex-direction: column; gap: 6px; }
