@@ -21,10 +21,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # the test suite runs the source directly on Node's TypeScript
+          # support, so the runner has to be a version that ships it
+          node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm run typecheck
+      # the engine's failure scenarios run before anything is published: a
+      # desync must never reach a real table
+      - run: npm test
       - run: npm run build
+        env:
+          VITE_RECAPTCHA_ENTERPRISE_SITE_KEY: ${{ vars.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

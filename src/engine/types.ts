@@ -31,6 +31,13 @@ export interface PlayerInfo {
    * someone from the room — see `left` and `activePlayers`.
    */
   connected: boolean;
+  /**
+   * One entry per open tab/device — `connections/{instanceId}`, each with its
+   * own onDisconnect. Presence is *derived* from this (`isPresent` in
+   * src/types.ts) rather than from the single `connected` flag, because a
+   * second tab closing must not mark a player who is still there as gone.
+   */
+  connections?: Record<string, { at: number; tab?: string }>;
   /** true for shared-phone players added locally by the host (no device) */
   local: boolean;
   drinkCount: number;
@@ -76,10 +83,10 @@ export interface RoomSettings {
 
 export interface GameContext {
   /**
-   * This round's players, join order — the roster the host snapshotted when it
-   * launched the round (`meta.roundUids`). Stable for the whole round, so a
-   * phone that dies mid-round stays in it and a mid-round joiner waits for the
-   * next one.
+   * This round's players, join order — the roster the engine snapshotted when
+   * it launched the round (`engine.roundUids`). Stable for the whole round, so
+   * a phone that dies mid-round stays in it and a mid-round joiner waits for
+   * the next one.
    */
   players: PlayerInfo[];
   /** player who claimed this round via I'll Start / I'm Next */
@@ -91,12 +98,23 @@ export interface GameContext {
   rng: () => number;
   /** server-corrected timestamp (ms) */
   now: number;
+  /** unique to this minigame instance — identifies the round an action belongs to */
+  roundId: string;
+  /** the input epoch this event belongs to (changes when the phase changes) */
+  phaseId: string;
+  /** the authoritative revision the reducer is running against */
+  revision: number;
 }
 
 export type GameEvent<I = unknown> =
   | { type: 'BEGIN' }
-  | { type: 'INPUT'; uid: string; input: I }
-  | { type: 'TIME_UP'; now: number };
+  | { type: 'INPUT'; uid: string; input: I; /** the durable id of the submission */ inputId?: string }
+  /**
+   * A countdown expired. `timerId`/`phaseId`/`roundId` say exactly *which*
+   * countdown: the engine only ever dispatches a timeout whose timer is still
+   * the active one, so a timeout can never land on the phase that replaced it.
+   */
+  | { type: 'TIME_UP'; now: number; timerId?: string; phaseId?: string; roundId?: string };
 
 export interface DrinkAssignment {
   uid: string;

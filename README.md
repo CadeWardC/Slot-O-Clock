@@ -40,6 +40,10 @@ The app is static (GitHub Pages) but syncs through Firebase RTDB:
 
 > The web config is **public by design** — it identifies the project, it doesn't grant access. Access is enforced by the rules + anonymous auth above.
 
+For App Check setup, permission tests, and remaining abuse risks, follow
+[`FIREBASE_SECURITY.md`](./FIREBASE_SECURITY.md). Anonymous sign-in and short
+room codes do not make rooms private against someone who guesses a code.
+
 ## Run locally
 
 ```bash
@@ -49,32 +53,93 @@ npm run dev
 
 Open the shown URL in two browser tabs (or two devices on your LAN with `npm run dev -- --host`) to test multiplayer. To develop without a live Firebase project: `npx firebase emulators:start --only database,auth` then `VITE_USE_EMULATOR=1 npm run dev`.
 
+```bash
+npm test        # deterministic engine + protocol tests (no network, no emulator)
+npm run typecheck
+npm run build
+```
+
+> The test suite runs the source directly on Node's own TypeScript support, so
+> it needs **Node 22.18+ / 24** — no build step, no test framework, no
+> devDependency. CI runs it before every deploy.
+
 ## Deploy to GitHub Pages
 
 1. Push this repo to GitHub as **`Slot-O-Clock`** (the Vite `base` in `vite.config.ts` matches the repo name — change both if you rename).
 2. Repo → Settings → Pages → Source: **GitHub Actions**.
 3. Push to `main` — the [workflow](./.github/workflows/deploy.yml) builds and deploys. Your game is live at `https://<your-user>.github.io/Slot-O-Clock/`.
 
+> **Publish the rules first.** `database.rules.json` is part of the protocol, not
+> just a perimeter: it enforces the stage stamp on submissions, the gate stamp
+> on Ready, the host lease, and the fact that v1's paths (`meta/phase`,
+> `game/*`, `events/*`, `turnClaim/*`) are read-only. Deploy the rules, then
+> play a fresh test room before switching a real session over.
+
 ## How it works
 
 ```
 phones ⇄ WebSocket ⇄ Firebase RTDB (rooms/{CODE}) ⇄ WebSocket ⇄ phones
                     ▲
-        the host phone runs the authoritative game loop
+        the host's tab runs the authoritative engine (one serialized worker)
 ```
 
-- **Host = the server.** GitHub Pages can't run one, so the room owner's client owns all phase transitions and runs every game's `reduce()` — players only write their own inputs, enforced by database rules.
-- **Data model** — `rooms/{CODE}/meta` (phase machine), `players/{uid}` (plus the between-round `ready` flag), `turnClaim/{round}` (first-write-wins claim), `game/{state, timerEndsAt, inputs}`, `events` (the drink feed).
+- **Host = the server.** GitHub Pages can't run one, so one browser tab owns the
+  room. That ownership is a lease (`engine/lease`), not a flag: it names the uid
+  **and** the tab (`instanceId`), carries an ownership `generation`, and is only
+  granted to another player by an explicit takeover (👑). A second tab signed in
+  as the host is a viewer.
+- **One worker, one queue.** Everything authoritative happens in
+  [`state/engine.ts`](./src/state/engine.ts): snapshots, ticks, visibility
+  changes, player inputs and host commands all just *ping* one serialized queue.
+  Nothing else writes progress, so two transitions can never run at once, and a
+  reload can't leave one running (stopping the worker invalidates its
+  generation, so in-flight work dies at its next `await`).
+- **Everything a decision needs has an identity.**
+  - `roundId` — unique per minigame instance,
+  - `phaseId` — the input epoch: a new internal phase, or a `CLEAR_INPUTS`, opens a new one,
+  - `stageKey` = `roundId:phaseId` — stamped on every submission and every timer,
+  - `rev` — one more with each committed engine update,
+  - `timer = { id, roundId, phaseId, startsAt, endsAt, durationMs }`.
+  A timeout only fires for the exact timer that is still active; a tap only
+  counts in the stage it was made for; a Ready flag names the gate it answers.
+- **A transition is one commit.** The engine computes the reducer result and all
+  of its effects first, then commits them together in a single transaction on
+  `rooms/{code}/engine` — state, timer, phase, gate, awards and the input's
+  acknowledgment. The transaction checks the revision, the lease, the timer id
+  and the input id it was computed from, so a plan that no longer applies is
+  refused and re-derived instead of being forced onto a newer room. Clients
+  therefore never see a new phase paired with the previous phase's timer.
+  That subtree is deliberately small and bounded (stage-scoped inputs, a 40-entry
+  log) because a room-level transaction re-sends it on every commit: if a big
+  table ever shows commit latency, that number — not a hunch — is what says
+  whether the authoritative data should move into a still smaller subtree.
+- **Data model** — `meta` (code, mode, settings, TTL, protocol stamp),
+  `players/{uid}` (seat + one `connections/{instanceId}` per open tab),
+  `engine/*` (everything the host owns: `phase`, `roundId`, `phaseId`, `rev`,
+  `gate`, `ready`, `claims`, `game/{state,timer,inputs}`, `awards`, `recovery`,
+  `fault`, `log`).
 - **Seats: who's in, who's around, who plays this round** — three different questions, three answers:
   - **In the room** (`activePlayers`) — everyone who hasn't *left*. A phone whose screen went dark keeps its seat; only closing the site (`pagehide` → `players/{uid}/left`, see `state/AppState.tsx`) or tapping *leave room* hands it back. A returning phone clears the flag on its first heartbeat.
-  - **Around right now** (`livePlayers`) — the phones actually holding a socket. Only these can tap Ready, which is why a phone that fell asleep never freezes the room, and only these are picked to be a round's actor (a dark screen is stepped over, and its own slot is waiting when it wakes).
-  - **Playing this round** (`roundPlayers`) — the roster the host snapshotted into `meta.roundUids` when it launched the round. It stays fixed for the whole round, so a phone that dies mid-round is still in the game its friends are playing, and somebody who joins mid-round plays from the *next* minigame instead of landing in one already under way. A returning player and a brand-new phone are the same thing to the room: a seat that joins the next roster, with a slot appended to the turn order.
-- **Presence** — `connected` tracks the page, not the party. It's re-armed from `.info/connected` and re-asserted whenever the phone comes back (`.info/connected`, `visibilitychange`, `pageshow`, `online`), so a phone that nods off re-appears as connected instead of sitting out the rest of the night.
-- **Turn claiming** — the opening ceremony is a sequence of first-write-wins RTDB transactions: the first "I'LL START"/"I'M NEXT" write per slot wins, everyone else's is aborted by the rules. The resulting `turnOrder` drives every round's actor (`turnOrder[(round - 1) % length]`) with no further claiming.
-- **Ready gate** — it guards two moments: the rules splash (the host loop won't even `createInitialState` until the table is ready) and the outcome screen. Entering either one clears every player's `ready` flag in the *same* write that flips the phase, so a stale flag can never skip the wait. Play starts on the last Ready tap (`settings.roundPacing: 'ready'`, the default) or on the host's Continue (`'manual'`). Phones that are asleep never block it.
-- **Fair timers** — clients track `.info/serverTimeOffset`, so countdowns line up across phones. Reaction Duel goes one step further: the host publishes the server-time *instant* green lights up (`goAt`, a moment in the future), each device waits for that instant locally and starts its own `performance.now()` stopwatch on the frame green renders, then sends only the measured `reactionMs`. The score is a device-local measurement, so neither the delay in learning about green nor the delay in sending the tap touches anybody's time.
-- **Round recap** — a game's `END` effect can carry an optional `recap`: colour-coded groups of uids (e.g. Never Have I Ever's guilty vs not-me split) that the outcome screen renders above the drink list, which is where the table decides when to move on.
-- **Resilience** — presence via `onDisconnect` plus a self-healing heartbeat; a reloaded or backgrounded host self-heals (timers and phases are checked against server-time deadlines); any player can take over hosting from the lobby *or* from the 👑 button in the game header when the host phone goes away.
+  - **Around right now** (`livePlayers`) — presence is derived from the per-tab `connections` children, so a second tab closing (or a browser unloading one page to reclaim memory) can never mark a player who is still there as gone.
+  - **Playing this round** (`roundPlayers`) — the roster the engine snapshotted into `engine.roundUids` when it launched the round. It stays fixed for the whole round, so a phone that dies mid-round is still in the game its friends are playing, and somebody who joins mid-round plays from the *next* minigame instead of landing in one already under way.
+- **Turn claiming** — the opening ceremony is a sequence of first-write-wins transactions on `engine/claims/{slot}`; the engine folds them into the turn order and opens round 1. No claiming between rounds.
+- **Ready gate** — it guards two moments: the rules splash and the outcome screen. The gate is an engine object that **snapshots the players it needs when it opens**, so a disconnect can never quietly shrink the list. A required phone that drops shows as *reconnecting* and keeps holding the gate for a grace period (25 s); past that it stops counting, and the host always has the explicit *continue without them*. **A gate nobody is holding is never a green light** — an empty table cannot release itself. Acknowledging writes `engine/ready/{uid} = gateId`, so a `true` from a previous gate can never release the next one.
+- **Inputs** — a submission is a node at `engine/game/inputs/{inputId}` (the id is
+  the key, so a retry can only ever apply once) carrying `roundId`, `phaseId` and
+  `stageKey`. The engine validates round, phase, roster membership and
+  shared-phone impersonation before dispatching, refuses stale ones *visibly*
+  (`rejected: 'stale-phase'`), and writes the acknowledgment in the same commit
+  as the reducer result — which is also what makes recovery exact: after a reload
+  or a takeover, "pending" simply means "in the room without an ack". Storage is
+  stage-scoped instead of being wiped, so the phone can tell *sending* from
+  *accepted*, and the database rules reject a submission whose `stageKey` is not
+  the room's current one.
+- **Fair timers** — clients track `.info/serverTimeOffset`, so countdowns line up across phones. A deadline that came due while the host was away for more than 10 s does **not** roll quietly into the next phase: the room pauses with a visible recovery record and the host's Resume re-times that activity from scratch. A viewer never draws a deadline that belongs to another stage (`activeTimer`). Reaction Duel still measures the tap on the device itself.
+- **Round recap** — a game's `END` effect can carry an optional `recap`: colour-coded groups of uids that the outcome screen renders above the drink list. Its drink assignments land in the ledger in the same commit as the outcome.
+- **Scores and drinks** — `engine/awards` is the authoritative ledger, written only inside revision-checked transactions as *absolute* totals, so a retried commit can never double-award anything. `players/{uid}/drinkCount|score` are legacy mirrors; the UI reads the ledger.
+- **Failures are visible** — a failed commit stops authoritative processing (in the room as `engine/fault`, and on the host's own screen if the room couldn't even be told) until the host reconciles. Engine `log` keeps the last 40 entries: transition kinds, revisions, timer ids, ownership changes, refused stale events — never anybody's private answer.
+- **Protocol version** — rooms carry `meta.protocol`. A client that doesn't understand it refuses to drive the room and shows *Different version*; the rules make v1's progress paths unwritable, so an old client cannot corrupt or advance a new room. Rooms are not upgraded in place: start a fresh one (fresh test rooms first).
+
 
 ## Adding a new game
 
@@ -126,13 +191,68 @@ export const definition: GameDefinition<MyState, MyInput> = {
 export default definition;
 ```
 
-**You write only the game.** The engine gives every game: turn claiming (I'll Start / I'm Next), the rules splash with its ready gate, input routing (`submitInput` → your reducer), server-fair timers, drink assignment + outcome screens (including the optional colour-coded `recap`), scoreboard, event feed, and shared-phone pass-around gating.
+**You write only the game.** The engine gives every game: turn claiming (I'll Start / I'm Next), the rules splash with its ready gate, input routing (`submitInput` → your reducer), server-fair timers, drink assignment + outcome screens (including the optional colour-coded `recap`), scoreboard, the engine log, and shared-phone pass-around gating.
 
 `GameViewProps` (what your `View` receives): `state`, `me`, `players`, `actorUid`/`isActor`, `isAuthority`, `myInput` (already submitted?), `answeredUids`, `timerEndsAt`, `submitInput`, `variant` (`'party' | 'shared'`).
+
+Three rules of the road that the engine relies on, worth knowing before you
+write a reducer:
+
+1. **Your phase lives in `state.phase`.** When it changes (or when you emit
+   `CLEAR_INPUTS`), the engine opens a new *stage*: the old stage's submissions,
+   timeouts and acknowledgments stop applying. That is what makes it safe to
+   keep `state.phase` as your only notion of "where we are".
+2. **`TIMER` arms the new stage's clock; no `TIMER` means no clock** for a stage
+   change, and leaves the running countdown alone for a change that stays inside
+   the same phase (a bet, a vote, a read card).
+3. **Randomness and the clock are `ctx.rng` and `ctx.now`,** and they are read
+   before your result is committed — never inside the commit. `ctx.roundId`,
+   `ctx.phaseId` and `ctx.revision` identify exactly what your reducer is
+   deciding about, and `TIME_UP` hands you `timerId`/`phaseId`/`roundId` if you
+   want to check them yourself.
 
 `definition.ts` can also declare `sharedHolderUid(state)` when the game has a turn order of its own: it names the player the shared phone is handed to next, instead of the engine's default "next player in join order" ([Poison](./src/games/Poison/definition.ts) passes it pourer to pourer, then to the victim).
 
 Study [`src/games/_template/`](./src/games/_template/definition.ts) (a complete coin-flip game, ~60 lines) or the real games for patterns: actor-driven ([Slots](./src/games/Slots/definition.ts)), timing-critical ([Reaction](./src/games/Reaction/definition.ts)), everyone-answers ([Trivia](./src/games/Trivia/definition.ts)), voting ([Prompts](./src/games/Prompts/definition.ts)), precomputed-plus-animation ([HorseRace](./src/games/HorseRace/definition.ts)), hidden-target ([Wavelength](./src/games/Wavelength/definition.ts)), free-text anonymity ([Confessions](./src/games/Confessions/definition.ts)), and gesture-skill with shared deterministic physics ([Boom Cup](./src/games/BoomCup/definition.ts) — the swipe is judged by maths both the host and the shooting phone run, see its [`physics.ts`](./src/games/BoomCup/physics.ts)).
+
+## Tests
+
+```bash
+npm test
+```
+
+The suite is deterministic and offline: no emulator, no network, no timers. It
+runs the **real** engine and the **real** game definitions under Node's own
+TypeScript support ([`tests-loader.mjs`](./tests-loader.mjs) supplies the
+extensionless imports and stubs the React `View`s, which this layer never
+renders), against an in-memory Realtime Database that keeps the two semantics
+the engine depends on: a commit callback re-runs against current data instead of
+clobbering it, and a multi-path write is atomic
+([`tests/fakeStore.ts`](./tests/fakeStore.ts)).
+
+| Scenario | What the suite pins down |
+|---|---|
+| Final answer at the deadline | exactly one transition; the next phase keeps its full timer |
+| State commit delayed | no stored snapshot pairs a stage with another stage's timer |
+| Host reload, before/after a deadline | the timer is processed exactly once either way |
+| Host stops after an input | the outstanding submission is recovered exactly once |
+| Host stops during scoring | a complete result, no duplicated awards |
+| Two host tabs / a takeover | one authority; the old one cannot commit |
+| Old Ready / input after a reconnect | refused for the new gate and the new phase |
+| Skip while input work is queued | no writes survive from the skipped round |
+| A brief disconnect at a gate | the gate holds, visibly, through the grace period |
+| 30-second interruption | a visible recovery pause, never an invisible cascade |
+
+Every one of those runs across Fake It, Horse Race, Slots and Boom Cup
+([`tests/games.test.ts`](./tests/games.test.ts)), alongside the pure seat and
+gate rules ([`tests/seats.test.ts`](./tests/seats.test.ts)) and the full
+scenario table ([`tests/scenarios.test.ts`](./tests/scenarios.test.ts)).
+
+What a suite like this deliberately does **not** cover: real WebSocket latency,
+iOS background throttling, and the deployed database rules. Those need a
+throwaway room on real phones — with screen locking, app switching and a
+throttled connection — before a real session moves onto a new build.
+
 
 ### Content packs
 
@@ -141,9 +261,9 @@ Trivia questions and prompts are plain JSON in [`src/content/`](./src/content/) 
 ## House rules & notes
 
 - 🧊 **Sober mode** in lobby settings counts *points* instead of sips.
-- ⏸ **Ready checks**: the rules splash and every outcome screen park until *all* players tap Ready, or the host switches to *host* mode and taps Continue themselves.
+- ⏸ **Ready checks**: the rules splash and every outcome screen park until every phone the gate asked for taps Ready, or the host continues without them.
 - ⚖️ **Drink intensity**: light (×0.5) / normal / wild (×2).
-- The room dies with its host ("end game"), and rooms auto-expire after ~12h via rules.
+- The owner or current host can end a room. Rooms expire 24 hours after their last host refresh. Cleanup checks known room codes; complete abandoned-room cleanup needs a scheduled backend (see `FIREBASE_SECURITY.md`).
 - 📴 **Screen off ≠ leaving.** A phone that sleeps keeps its seat, score and turn and rejoins the next round it's awake for; a phone that *closes the site* hands its seat back (and walks back in on the next game if it reopens). The host can clear seats that are gone for good from the lobby.
 - 🍻 Know your limits — this is for fun with friends. Play responsibly.
 
@@ -153,7 +273,11 @@ Trivia questions and prompts are plain JSON in [`src/content/`](./src/content/) 
 |---|---|
 | "Firebase not configured" screen | Paste your config into `src/firebase-config.ts` ([Setup](#setup-one-time-5-minutes)). |
 | Sign-in fails on the Pages URL | Add `<your-user>.github.io` to Authentication → Authorized domains. |
-| `permission_denied` in console | Publish the rules from `database.rules.json` (step 3). |
+| `permission_denied` in console | Publish the rules from `database.rules.json` (step 3). If it happens **when a tap lands**, that tap raced a phase change — the rules refused a submission stamped with a stage the room had already left, which is the intended behaviour. |
 | Blank page on Pages, fine locally | Repo name ≠ `Slot-O-Clock` → fix `base` in `vite.config.ts`. |
-| Host phone locked / game frozen | Hosts should keep the screen on; any player can also take over hosting with the 👑 button in the game header (or from the lobby). |
+| "Different version" screen | The room was started by another build of this app. Rooms are not upgraded in place — start a fresh one. |
+| "The round paused" screen | The host's deadline came due while it was away for over 10s. The host taps **Resume** and that activity restarts with a fresh countdown. |
+| "The game engine stopped" | A write to the room failed (usually rules or network). Nothing moves until the host taps **reconcile & resume**. |
+| "⚠️ that tap didn't count" | The submission arrived after the phase it was meant for. Nothing is wrong — the engine refused it instead of replaying it into the next phase. |
+| Host phone locked / game frozen | Hosts should keep the screen on; any player can take over hosting with the 👑 button in the game header (or from the lobby). A long absence now pauses the room visibly instead of skipping ahead. |
 | A player shows as "left the room" when their phone only locked | Their browser unloaded the page (phones do that to reclaim memory). Reopening the site puts them straight back in, playing from the next game. |

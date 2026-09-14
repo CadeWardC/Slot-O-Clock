@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { memo, useEffect, useState, type CSSProperties } from 'react';
 import { Button, TimerBar } from '../../components/ui';
 import { serverNow } from '../../state/serverTime';
 import type { GameViewProps } from '../../engine/types';
@@ -45,8 +45,8 @@ const CALL_MS = 420;
  */
 const SURGE = 0.02;
 /** Where the run starts, and how much ground it covers, as a % of the lane. */
-const START_PCT = 7;
-const SPAN_PCT = 83;
+const START_PCT = 10;
+const SPAN_PCT = 78;
 /**
  * The ground rolls under the field so speed still reads on a narrow phone.
  * GROUND_TILE must match the stripe period of `.hr-ground` in styles.css.
@@ -59,6 +59,50 @@ const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 function fmt(ms: number): string {
   return `${(ms / 1000).toFixed(2)}s`;
 }
+
+/**
+ * The runner on the track: a galloping horse in its own silks.
+ *
+ * One 64x44 viewBox, nose to the right (the way the field runs). The body is a
+ * single closed contour — barrel, neck, head and both ears — so the silhouette
+ * stays clean; the legs, tail and mane are stroked open paths, which is what
+ * lets a CSS transform swing them from the shoulder and the hip.
+ *
+ * The horse takes no props: everything it needs is `currentColor`, so `memo`
+ * keeps it out of the per-frame re-render the race clock drives.
+ */
+const HORSE_BODY =
+  'M23.4,18 C26.8,15.7 31.6,14.9 36.4,15.3 C40.6,15.7 44.2,16.7 46.8,18.8 ' +
+  'C48,13.6 50,9.8 53,7.4 L52.2,3.4 L54.6,6.6 L56.2,3 L57.6,7.6 ' +
+  'C59.6,9.2 61.2,11.2 62.4,13.4 C63,14.4 63.4,15.4 62.6,16.2 ' +
+  'C61.8,17 60.4,16.8 59,16.4 C57.6,16 56.4,15.4 55.2,14.8 ' +
+  'C53.6,17.4 52,20 50.2,22.4 C49.2,23.6 48.4,25.4 48.2,27.2 ' +
+  'C46.4,30.6 41.5,31.8 36.5,31.8 C31,31.8 25.8,30.6 23.6,27.6 ' +
+  'C22.2,25.6 22,20.6 23.4,18 Z';
+/** The pair that reaches for the line — swings from the shoulder. */
+const HORSE_FORELEGS =
+  'M45.4,26.4 C48.4,28.4 50.2,31.4 51.4,34.8 L52,41.4 ' +
+  'M43.6,26.8 C44.6,29.6 45.2,32.6 45.2,35.4 L45,41.4';
+/** The pair that drives from behind — swings from the hip, out of phase. */
+const HORSE_HINDLEGS =
+  'M27,26.2 C24,28.4 21.6,31.6 19.6,35 L17.4,41.2 ' +
+  'M29.4,26.4 C27.4,29.2 26.2,32.4 26.2,35.6 L26.6,41.2';
+const HORSE_TAIL = 'M23,18.4 C18.4,16.6 13.6,16 9.4,16.8 M23.4,20.4 C18.6,19.6 14,18.8 10.2,18.6';
+const HORSE_MANE = 'M52.6,6.4 C49.4,9 47.2,12.8 46,17.4';
+
+const HorseIcon = memo(function HorseIcon() {
+  return (
+    <svg className="hr-horse" viewBox="0 0 64 44" aria-hidden="true" focusable="false">
+      <g className="hr-horse-hair">
+        <path d={HORSE_TAIL} />
+        <path d={HORSE_MANE} />
+      </g>
+      <path className="hr-horse-hind" d={HORSE_HINDLEGS} />
+      <path className="hr-horse-fore" d={HORSE_FORELEGS} />
+      <path className="hr-horse-body" d={HORSE_BODY} />
+    </svg>
+  );
+});
 
 /** Racing silks: the one thing that reliably tells runners apart on a track. */
 function Silk({ horse, small }: { horse: HrHorse; small?: boolean }) {
@@ -146,14 +190,17 @@ function Track({
                 <span className="hr-ground" style={{ backgroundPosition: `${ground}px 0` }} />
                 <span
                   className={`hr-racer ${lead ? 'hr-racer-lead' : ''} ${home ? 'hr-racer-home' : ''}`}
-                  style={{
-                    left: `${START_PCT + p * SPAN_PCT}%`,
-                    backgroundColor: horse.silk,
-                    color: horse.silk,
-                    animationDuration: `${0.34 + (horse.n % 4) * 0.04}s`,
-                    animationDelay: `-${(horse.n * 0.11).toFixed(2)}s`,
-                  }}
+                  style={
+                    {
+                      left: `${START_PCT + p * SPAN_PCT}%`,
+                      color: horse.silk,
+                      // each runner gets its own stride, so the field never gallops in lockstep
+                      '--hr-stride': `${0.46 + (horse.n % 4) * 0.05}s`,
+                      '--hr-stride-delay': `-${(horse.n * 0.13).toFixed(2)}s`,
+                    } as CSSProperties
+                  }
                 >
+                  <HorseIcon />
                   <span className="hr-racer-n">{horse.n}</span>
                   {lead && <span className="hr-racer-crown">👑</span>}
                 </span>

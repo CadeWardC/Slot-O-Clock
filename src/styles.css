@@ -468,7 +468,36 @@ a { color: var(--cyan); }
   color: var(--text);
 }
 .ready-chip.ready-on .ready-chip-mark { color: var(--green); }
+/* a required phone that dropped: still holding the gate, visibly reconnecting */
+.ready-chip.ready-reconnecting {
+  border-color: rgba(255, 201, 77, 0.55);
+  background: rgba(255, 201, 77, 0.1);
+  color: var(--text);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.ready-chip.ready-reconnecting .ready-chip-mark { color: var(--gold); }
+/* past the grace period: shown, but no longer counted */
+.ready-chip.ready-away { border-style: dashed; opacity: 0.75; }
 .ready-count { margin: 0; font-weight: 800; }
+
+/* sending vs accepted: a tap that has not been acknowledged yet says so */
+.send-state {
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.send-rejected { color: var(--red); }
+
+/* the engine paused itself: a recovery pause or a stopped engine */
+.engine-pause { flex: 1; display: flex; align-items: center; justify-content: center; padding: 8px; }
+.engine-pause .gate-card { border-color: rgba(255, 201, 77, 0.45); }
+.engine-pause.engine-fault .gate-card { border-color: rgba(255, 95, 110, 0.55); }
+.engine-pause .engine-detail {
+  color: var(--muted);
+  font-size: 0.78rem;
+  word-break: break-word;
+}
 
 /* scores modal */
 .modal-overlay {
@@ -537,6 +566,19 @@ a { color: var(--cyan); }
   animation: toastIn 0.25s ease;
   max-width: 88vw;
   text-align: center;
+}
+
+/* the host's own engine could not reach the room: loud, and it stays put */
+.toast-error {
+  border-color: var(--red);
+  background: #2a1420;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  text-align: left;
+  z-index: 120;
 }
 @keyframes toastIn {
   from { transform: translate(-50%, 16px); opacity: 0; }
@@ -1267,34 +1309,76 @@ a { color: var(--cyan); }
 }
 .hr-track-done .hr-road::after { opacity: 1; box-shadow: 0 0 20px rgba(255, 255, 255, 0.6); }
 
-/* the runner: a saddle-cloth disc in the horse's silk, and the wind it makes */
+/* the runner: a galloping horse in its own silks, and the wind it makes.
+   The horse is an SVG (see HorseIcon in View.tsx) painted entirely in
+   `currentColor`, which the lane sets to the runner's silk. */
 .hr-racer {
   position: absolute;
   top: 50%;
   z-index: 2;
+  width: 40px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+}
+.hr-horse {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  will-change: transform;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6));
+  transform-origin: 50% 60%;
+  animation: hrGallop var(--hr-stride, 0.5s) ease-in-out infinite;
+  animation-delay: var(--hr-stride-delay, 0s);
+}
+/* legs, tail and mane are strokes; the barrel is the one filled shape */
+.hr-horse path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hr-horse .hr-horse-body { fill: currentColor; stroke: none; }
+/* mane and tail read as hair rather than as more horse */
+.hr-horse .hr-horse-hair { opacity: 0.72; }
+/* the stride: each pair swings from its own joint, hind legs out of phase */
+.hr-horse .hr-horse-fore,
+.hr-horse .hr-horse-hind {
+  transform-box: fill-box;
+  transform-origin: 50% 6%;
+  animation: hrStride var(--hr-stride, 0.5s) ease-in-out infinite;
+  animation-delay: var(--hr-stride-delay, 0s);
+}
+.hr-horse .hr-horse-hind { animation-direction: reverse; }
+/* the saddle cloth: the number the runner carries, in white and black */
+.hr-racer-n {
+  position: absolute;
+  left: 56%;
+  top: 53%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  margin: -15px 0 0 -15px;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
-  background-image:
-    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.55), transparent 58%),
-    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.28) 0 2px, transparent 2px 7px);
-  animation: hrGallop 0.42s ease-in-out infinite;
-  will-change: transform;
+  min-width: 12px;
+  height: 11px;
+  padding: 0 1px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(20, 12, 40, 0.92);
+  border-radius: 3px;
+  background: #f4f0ff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  color: #1a1030;
+  font-size: 0.5rem;
+  font-weight: 900;
+  line-height: 1;
 }
-.hr-racer-n { color: #1a1030; font-size: 0.82rem; font-weight: 900; }
 .hr-racer::before {            /* kicked-up dust, in the runner's colours */
   content: '';
   position: absolute;
-  left: -7px;
-  bottom: -3px;
+  left: 4px;
+  bottom: -1px;
   width: 16px;
-  height: 11px;
+  height: 10px;
   border-radius: 50%;
   background: currentColor;
   filter: blur(5px);
@@ -1303,8 +1387,8 @@ a { color: var(--cyan); }
 .hr-racer::after {             /* a streak of wind trailing behind */
   content: '';
   position: absolute;
-  right: 100%;
-  top: 50%;
+  right: 78%;
+  top: 42%;
   width: 24px;
   height: 5px;
   margin-top: -2.5px;
@@ -1313,16 +1397,15 @@ a { color: var(--cyan); }
   filter: blur(0.6px);
   animation: hrStreak 0.42s linear infinite;
 }
-.hr-racer-lead {
-  box-shadow: 0 0 0 2px rgba(255, 201, 77, 0.55), 0 0 20px rgba(255, 201, 77, 0.5),
-    0 3px 10px rgba(0, 0, 0, 0.55);
+.hr-racer-lead .hr-horse {
+  filter: drop-shadow(0 0 6px rgba(255, 201, 77, 0.95)) drop-shadow(0 2px 2px rgba(0, 0, 0, 0.55));
 }
 .hr-racer-home::before,
 .hr-racer-home::after { animation: none; opacity: 0; }
 .hr-racer-crown {
   position: absolute;
-  top: -5px;
-  right: -4px;
+  top: -7px;
+  right: 1px;
   font-size: 0.62rem;
   line-height: 1;
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7));
@@ -1352,8 +1435,13 @@ a { color: var(--cyan); }
 .hr-note { margin: 0; }
 
 @keyframes hrGallop {
-  0%, 100% { transform: translateY(-1.5px); }
-  50% { transform: translateY(1.5px); }
+  0%, 100% { transform: translateY(-1.2px) rotate(-1.6deg); }
+  50% { transform: translateY(1.4px) rotate(1.6deg); }
+}
+/* one stride: a pair of legs swinging about the joint it hangs from */
+@keyframes hrStride {
+  0%, 100% { transform: rotate(-11deg); }
+  50% { transform: rotate(11deg); }
 }
 @keyframes hrDust {
   0% { opacity: 0.55; transform: translateX(0) scale(0.7); }
@@ -1473,7 +1561,12 @@ a { color: var(--cyan); }
 
 @media (prefers-reduced-motion: reduce) {
   .hr-card, .hr-row, .hr-drink, .hr-winner, .hr-call { animation: none; }
-  .hr-racer, .hr-racer-crown { animation: none; }
+  .hr-racer,
+  .hr-racer-crown,
+  .hr-horse,
+  /* the stride rule is two classes deep, so this has to match its weight */
+  .hr-horse .hr-horse-fore,
+  .hr-horse .hr-horse-hind { animation: none; }
   .hr-racer::before, .hr-racer::after { animation: none; opacity: 0.25; }
 }
 

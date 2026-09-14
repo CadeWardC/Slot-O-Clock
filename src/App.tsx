@@ -1,11 +1,13 @@
 import { AppStateProvider, useApp } from './state/AppState';
 import { useHostLoop } from './state/useHostLoop';
+import { protocolMatches } from './state/protocol';
 import { isFirebaseConfigured } from './firebase-config';
+import { phaseOf } from './types';
 import { Home } from './screens/Home';
 import { Lobby } from './screens/Lobby';
 import { GameScreen } from './screens/GameScreen';
-import { RoomGone, SetupScreen, Splash } from './screens/SetupScreen';
-import { Toast } from './components/ui';
+import { RoomGone, SetupScreen, Splash, VersionMismatch } from './screens/SetupScreen';
+import { Button, Toast } from './components/ui';
 import { SlotIntro } from './components/SlotIntro';
 import { Component, useCallback, useState, type ReactNode } from 'react';
 
@@ -34,23 +36,49 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: unknown 
   }
 }
 
+/**
+ * A failure the host's own room could not be told about (rules rejected the
+ * write, the network is down). The engine has already stopped itself, so the
+ * host's screen has to say so — silently carrying on from a private copy of
+ * the state is exactly the bug this whole layer exists to prevent.
+ */
+function EngineFaultBanner({ message }: { message: string }) {
+  const { engineCommand } = useApp();
+  return (
+    <div className="toast toast-error">
+      <span>🧯 engine stopped: {message}</span>
+      <Button variant="ghost" size="sm" onClick={() => engineCommand({ type: 'retry' })}>
+        retry
+      </Button>
+    </div>
+  );
+}
+
 function Root() {
   const st = useApp();
 
-  // The room owner's phone runs the authoritative game loop.
-  useHostLoop(st.room, st.uid, st.isAuthority);
+  // The room owner's tab runs the authoritative engine; every other phone runs
+  // a worker too, but only the lease holder is allowed to commit.
+  const engineStatus = useHostLoop(st.room, st.uid);
+  const phase = phaseOf(st.room);
+  const wrongProtocol = !!st.room && !protocolMatches(st.room.meta.protocol);
+  const localFault = engineStatus?.localError ?? null;
 
   let screen;
   if (!isFirebaseConfigured) screen = <SetupScreen />;
   else if (!st.authReady || (st.session && !st.roomLoaded)) screen = <Splash />;
   else if (st.session && st.roomLoaded && !st.room) screen = <RoomGone onHome={() => st.leaveRoom()} />;
+  else if (wrongProtocol) screen = <VersionMismatch onHome={() => st.leaveRoom()} />;
   else if (!st.session || !st.room) screen = <Home />;
-  else if (st.room.meta.phase === 'lobby') screen = <Lobby />;
+  else if (phase === 'lobby') screen = <Lobby />;
   else screen = <GameScreen />;
 
   return (
     <>
       <ErrorBoundary>{screen}</ErrorBoundary>
+      {st.isAuthority && localFault && !st.room?.engine?.fault && (
+        <EngineFaultBanner message={localFault} />
+      )}
       <Toast text={st.notice} />
     </>
   );

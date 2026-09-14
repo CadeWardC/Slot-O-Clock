@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app';
+import { initializeAppCheck, ReCaptchaEnterpriseProvider } from 'firebase/app-check';
 import {
   getDatabase,
   connectDatabaseEmulator,
@@ -8,6 +9,15 @@ import { getAuth, connectAuthEmulator, signInAnonymously, type Auth } from 'fire
 import { firebaseConfig, isFirebaseConfigured } from './firebase-config';
 
 export const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
+// Register the deployed domain in Firebase App Check before supplying this
+// public site key. Enable console enforcement after the updated build is live.
+const appCheckSiteKey = import.meta.env.VITE_RECAPTCHA_ENTERPRISE_SITE_KEY;
+if (app && appCheckSiteKey && import.meta.env.VITE_USE_EMULATOR !== '1') {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaEnterpriseProvider(appCheckSiteKey),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
 export const db: Database | null = app ? getDatabase(app) : null;
 export const auth: Auth | null = app ? getAuth(app) : null;
 

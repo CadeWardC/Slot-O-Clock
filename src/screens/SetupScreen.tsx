@@ -46,3 +46,29 @@ export function RoomGone({ onHome }: { onHome: () => void }) {
     </div>
   );
 }
+
+/**
+ * A room that speaks a protocol this build does not.
+ *
+ * Room progress is only safe when every client agrees on what a phase, a
+ * timer and a Ready tap *are* (see src/state/protocol.ts), so an incompatible
+ * room is refused outright rather than half-driven: the older client is left
+ * to finish its night, and this one sends the table to a fresh room.
+ */
+export function VersionMismatch({ onHome }: { onHome: () => void }) {
+  return (
+    <div className="screen splash">
+      <div className="gate-card">
+        <div className="gate-emoji">🔄</div>
+        <h2>Different version</h2>
+        <p className="muted">
+          This room was started by another build of Slot-O-Clock. Rooms can't be upgraded while
+          they're running — start a fresh room to play on this version.
+        </p>
+        <button className="btn btn-gold btn-lg btn-full" onClick={onHome}>
+          start a new room
+        </button>
+      </div>
+    </div>
+  );
+}

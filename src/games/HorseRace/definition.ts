@@ -29,8 +29,8 @@ import type {
 import { View } from './View';
 
 /** Every runner finishes somewhere in [BASE_MS, BASE_MS + SPREAD_MS]. */
-export const BASE_MS = 5200;
-export const SPREAD_MS = 2400;
+export const BASE_MS = 7000;
+export const SPREAD_MS = 3000;
 /** Total animation length: the slowest possible runner, plus a beat at the line. */
 export const RACE_MS = BASE_MS + SPREAD_MS + 900;
 export const BET_MS = 30_000;

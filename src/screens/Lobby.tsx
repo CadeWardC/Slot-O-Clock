@@ -1,5 +1,12 @@
 import { useApp } from '../state/AppState';
-import { activePlayers, departedPlayers, livePlayers, pacingOf } from '../types';
+import {
+  activePlayers,
+  departedPlayers,
+  engineOf,
+  isPresent,
+  livePlayers,
+  pacingOf,
+} from '../types';
 import { allGames } from '../games';
 import { triviaTopics } from '../games/Trivia/definition';
 import { Button, PlayerChip, PlayerForm } from '../components/ui';
@@ -24,10 +31,12 @@ export function Lobby() {
   const players = activePlayers(room);
   const active = livePlayers(room);
   const departed = departedPlayers(room);
-  // shared-mode rooms have no players node until the host adds one
-  const owner = room.players?.[meta.ownerUid];
+  // the crown follows the engine lease, not the seat that created the room:
+  // a takeover moves the authority (and the crown) with it
+  const hostUid = engineOf(room)?.lease?.uid ?? meta.ownerUid;
+  const owner = room.players?.[hostUid];
   const ownerGone =
-    meta.mode === 'party' && owner && (owner.connected === false || owner.left === true);
+    meta.mode === 'party' && owner && !owner.local && !isPresent(room, hostUid);
 
   const enabled = new Set(meta.settings.enabledGames ?? []);
   const eligible = allGames.filter((g) => enabled.has(g.id));
@@ -106,11 +115,11 @@ export function Lobby() {
             <PlayerChip
               key={p.uid}
               player={p}
-              crown={p.uid === meta.ownerUid}
-              note={!p.local && !p.connected ? 'phone off' : undefined}
+              crown={p.uid === hostUid}
+              note={!p.local && !isPresent(room, p.uid) ? 'phone off' : undefined}
               drinks={p.drinkCount}
               badge={
-                isAuthority && p.uid !== meta.ownerUid ? (
+                isAuthority && p.uid !== hostUid ? (
                   <button className="chip-x" onClick={() => removePlayer(p.uid)} aria-label="remove">✕</button>
                 ) : undefined
               }

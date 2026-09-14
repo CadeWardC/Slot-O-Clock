@@ -2,15 +2,23 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useApp } from '../state/AppState';
 import {
   activePlayers,
+  gateBlockers,
   inCurrentRound,
+  isPresent,
   livePlayers,
   pacingOf,
+  phaseOf,
   playerList,
   roundPlayers,
-  type GameInputEntry,
+  engineOf,
+  activeTimer,
+  stageInputs,
+  type GateBlockerState,
+  type InputStatus,
   type RoomData,
 } from '../types';
 import { gameById } from '../games';
+import { serverNow } from '../state/serverTime';
 import { Button, Modal, PlayerChip } from '../components/ui';
 import type { PlayerInfo } from '../engine/types';
 
@@ -19,8 +27,13 @@ export function GameScreen() {
   const [scoresOpen, setScoresOpen] = useState(false);
   if (!room) return null;
   const meta = room.meta;
+  const engine = engineOf(room);
+  const phase = phaseOf(room);
   const players = activePlayers(room);
-  const owner = room.players?.[meta.ownerUid];
+  // the crown belongs to whoever holds the engine lease, not to the seat that
+  // created the room — a takeover moves the authority with it
+  const hostUid = engine?.lease?.uid ?? meta.ownerUid;
+  const owner = room.players?.[hostUid];
   // The host phone *is* the game server, so when it's asleep or gone the room
   // can pick hosting up from here instead of waiting for a lobby nobody sees.
   const hostGone =
@@ -28,23 +41,26 @@ export function GameScreen() {
     !isAuthority &&
     !!owner &&
     !owner.local &&
-    (owner.connected === false || owner.left === true);
+    !isPresent(room, hostUid);
   // Joined mid-match: this round is already running without them.
   const waitingForNext =
-    meta.phase === 'playing' &&
+    phase === 'playing' &&
     meta.mode === 'party' &&
     !!me &&
     me.left !== true &&
     !inCurrentRound(room, me.uid);
+  // A paused engine is the whole screen: nobody should be tapping into a round
+  // whose clock has stopped.
+  const paused = !!engine?.recovery || !!engine?.fault;
 
   return (
     <div className="screen game-screen">
       <header className="game-head">
-        <span className="round-chip">{meta.phase === 'claim' ? 'ORDER' : `R${meta.round}`}</span>
+        <span className="round-chip">{phase === 'claim' ? 'ORDER' : `R${engine?.round ?? 0}`}</span>
         <span className="game-title">
-          {meta.phase === 'playing' || meta.phase === 'outcome'
-            ? (gameById.get(room.game?.type ?? '')?.name ?? '…')
-            : (gameById.get(meta.rotation[meta.gameIndex] ?? '')?.name ?? '…')}
+          {phase === 'playing' || phase === 'outcome'
+            ? (gameById.get(engine?.game?.type ?? '')?.name ?? '…')
+            : (gameById.get(engine?.rotation?.[engine.gameIndex] ?? '')?.name ?? '…')}
         </span>
         {hostGone && (
           <button
@@ -62,14 +78,16 @@ export function GameScreen() {
       </header>
 
       <main className="game-body">
-        {waitingForNext ? (
+        {paused ? (
+          <EnginePaused room={room} />
+        ) : waitingForNext ? (
           <JoiningNext />
         ) : (
           <>
-            {meta.phase === 'claim' && <ClaimView room={room} />}
-            {meta.phase === 'intro' && <IntroView room={room} />}
-            {meta.phase === 'playing' && <PlayingView room={room} />}
-            {meta.phase === 'outcome' && <OutcomeView room={room} />}
+            {phase === 'claim' && <ClaimView room={room} />}
+            {phase === 'intro' && <IntroView room={room} />}
+            {phase === 'playing' && <PlayingView room={room} />}
+            {phase === 'outcome' && <OutcomeView room={room} />}
           </>
         )}
       </main>
@@ -79,10 +97,68 @@ export function GameScreen() {
   );
 }
 
+/**
+ * The engine stopped itself. Either a deadline came due while the host was
+ * away for too long (a recovery pause — Resume re-times the countdown), or a
+ * commit failed and nothing may run until the room is reconciled.
+ */
+function EnginePaused({ room }: { room: RoomData }) {
+  const { isAuthority, engineCommand } = useApp();
+  const engine = engineOf(room);
+  const recovery = engine?.recovery;
+  const fault = engine?.fault;
+
+  if (fault) {
+    return (
+      <div className="engine-pause engine-fault">
+        <div className="gate-card">
+          <div className="gate-emoji">🧯</div>
+          <h2>The game engine stopped</h2>
+          <p className="muted small">
+            A write to the room failed, so nothing authoritative has moved since — no phase runs on
+            top of an unconfirmed one.
+          </p>
+          <p className="engine-detail">{fault.message}</p>
+          {isAuthority ? (
+            <Button variant="gold" size="lg" full onClick={() => engineCommand({ type: 'retry' })}>
+              reconcile & resume ▶
+            </Button>
+          ) : (
+            <p className="muted small">waiting for the host to reconcile it…</p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!recovery) return null;
+  const seconds = Math.round(Math.max(1, recovery.durationMs) / 1000);
+  return (
+    <div className="engine-pause">
+      <div className="gate-card">
+        <div className="gate-emoji">⏸</div>
+        <h2>The round paused</h2>
+        <p className="muted small">
+          {recovery.message}, so the {seconds}s countdown finished with nobody watching. The table
+          paused instead of skipping ahead — Resume starts a <b>fresh</b> {seconds}s countdown.
+        </p>
+        {isAuthority ? (
+          <Button variant="gold" size="lg" full onClick={() => engineCommand({ type: 'resume' })}>
+            resume with a fresh countdown ▶
+          </Button>
+        ) : (
+          <p className="muted small">waiting for the host to resume…</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /** You walked in halfway through a round — you're in the room, up next game. */
 function JoiningNext() {
   const { room } = useApp();
-  const nextDef = gameById.get(room?.meta.rotation[room.meta.gameIndex] ?? '');
+  const engine = room ? engineOf(room) : null;
+  const nextDef = gameById.get(engine?.rotation?.[engine.gameIndex] ?? '');
   return (
     <div className="gate">
       <div className="gate-card">
@@ -103,9 +179,10 @@ function JoiningNext() {
 function ClaimView({ room }: { room: RoomData }) {
   const { me, claimTurn, isAuthority, hostSkipRound } = useApp();
   const meta = room.meta;
+  const engine = engineOf(room);
   const players = activePlayers(room);
-  const nextDef = gameById.get(meta.rotation[meta.gameIndex] ?? '');
-  const order = meta.turnOrder ?? [];
+  const nextDef = gameById.get(engine?.rotation?.[engine.gameIndex] ?? '');
+  const order = engine?.turnOrder ?? [];
   const ordered = order
     .map((uid) => players.find((p) => p.uid === uid))
     .filter((p): p is PlayerInfo => !!p);
@@ -117,7 +194,10 @@ function ClaimView({ room }: { room: RoomData }) {
   return (
     <div className="claim">
       <p className="claim-upnext">
-        First up: <span className="claim-game">{nextDef?.emoji} {nextDef?.name}</span>
+        First up:{' '}
+        <span className="claim-game">
+          {nextDef?.emoji} {nextDef?.name}
+        </span>
       </p>
       <h2>{isFirstSlot ? "Who's kicking things off?" : "Who's next in the order?"}</h2>
 
@@ -145,15 +225,9 @@ function ClaimView({ room }: { room: RoomData }) {
       ) : !me ? (
         <p className="muted">You're not in this room — reload the page to take a seat.</p>
       ) : iAmIn ? (
-        <p className="muted">You're in at spot {order.indexOf(me!.uid) + 1} — waiting for the others…</p>
+        <p className="muted">You're in at spot {order.indexOf(me.uid) + 1} — waiting for the others…</p>
       ) : (
-        <Button
-          variant="claim"
-          size="lg"
-          full
-          className="claim-btn"
-          onClick={() => claimTurn()}
-        >
+        <Button variant="claim" size="lg" full className="claim-btn" onClick={() => claimTurn()}>
           {isFirstSlot ? "I'LL START 🍺" : "I'M NEXT 🍻"}
         </Button>
       )}
@@ -171,7 +245,8 @@ function ClaimView({ room }: { room: RoomData }) {
 
 function IntroView({ room }: { room: RoomData }) {
   const { isAuthority, hostSkipRound } = useApp();
-  const def = gameById.get(room.meta.rotation[room.meta.gameIndex] ?? '');
+  const engine = engineOf(room);
+  const def = gameById.get(engine?.rotation?.[engine.gameIndex] ?? '');
   if (!def) return null;
   // Same pacing rule as the outcome screen: the splash parks on the ready
   // gate until the table says go (or the host runs the room themselves).
@@ -199,22 +274,22 @@ function IntroView({ room }: { room: RoomData }) {
 /* ============ playing: renders the game plugin's View ============ */
 
 function PlayingView({ room }: { room: RoomData }) {
-  const { me, submitInput, isAuthority, hostSkipRound } = useApp();
-  const def = gameById.get(room.game?.type ?? '');
+  const { me, submitInput, isAuthority, hostSkipRound, inputStatus } = useApp();
+  const engine = engineOf(room);
+  const game = engine?.game ?? null;
+  const def = gameById.get(game?.type ?? '');
   // this round's roster, not the room: a phone that died mid-round keeps its
   // seat, and anyone who joined mid-round plays from the next game
   const players = roundPlayers(room);
   const variant = room.meta.mode;
-
-  const inputs = useMemo(() => {
-    const list = Object.values(room.game?.inputs ?? {}) as GameInputEntry[];
-    return list.sort((a, b) => (a.at ?? 0) - (b.at ?? 0));
-  }, [room.game?.inputs]);
-
-  const answeredUids = useMemo(
-    () => [...new Set(inputs.map((v) => v.forUid ?? v.uid))],
-    [inputs],
-  );
+  // Only the inputs of the stage on screen: a submission from the phase before
+  // can no longer make a phone look "answered" in this one.
+  const inputs = useMemo(() => stageInputs(room), [room]);
+  const answeredUids = useMemo(() => [...new Set(inputs.map((v) => v.forUid ?? v.uid))], [inputs]);
+  // A deadline is only ever drawn for the round and phase on screen.
+  const timerEndsAt = activeTimer(room)?.endsAt ?? null;
+  const actorUid = engine?.actorUid ?? null;
+  const stageKey = engine?.stageKey ?? null;
 
   if (!def) return null;
   if (players.length === 0) {
@@ -239,19 +314,20 @@ function PlayingView({ room }: { room: RoomData }) {
 
   // actor-only games in shared mode: the phone goes straight to the actor
   if (variant === 'shared' && def.sharedInput === 'actor') {
-    const actor = players.find((p) => p.uid === room.meta.actorUid) ?? players[0];
+    const actor = players.find((p) => p.uid === actorUid) ?? players[0];
     return (
       <div className="playing-wrap">
+        <SendState status={inputStatus(stageKey, actor.uid)} />
         <def.View
-          state={room.game?.state ?? {}}
+          state={game?.state ?? {}}
           me={actor}
           players={players}
-          actorUid={room.meta.actorUid}
+          actorUid={actorUid}
           isActor={true}
           isAuthority={isAuthority}
           myInput={latestInput(inputs, actor.uid)}
           answeredUids={answeredUids}
-          timerEndsAt={room.game?.timerEndsAt ?? null}
+          timerEndsAt={timerEndsAt}
           submitInput={(input: unknown) => submitInput(input, actor.uid)}
           variant="shared"
         />
@@ -268,30 +344,36 @@ function PlayingView({ room }: { room: RoomData }) {
     // A game with a turn order of its own names the holder (Poison passes the
     // phone poisoner to poisoner); otherwise the phone simply moves on to the
     // next player who hasn't acted yet. Nobody left to wait for → no gate.
-    const declaredUid = def.sharedHolderUid?.(room.game!.state, {
-      players,
-      actorUid: room.meta.actorUid,
-    });
+    const declaredUid = game
+      ? def.sharedHolderUid?.(game.state, { players, actorUid })
+      : undefined;
     const declared = declaredUid ? (players.find((p) => p.uid === declaredUid) ?? null) : null;
     const awaiting = players.filter((p) => !answeredUids.includes(p.uid));
     const holder = declared ?? awaiting[0] ?? players[0];
     return (
       <div className="playing-wrap">
-        <SharedGate player={declared ?? awaiting[0] ?? null} answeredCount={answeredUids.length} total={players.length}>
+        <SharedGate
+          player={declared ?? awaiting[0] ?? null}
+          answeredCount={answeredUids.length}
+          total={players.length}
+        >
           {() => (
-            <def.View
-              state={room.game!.state}
-              me={holder}
-              players={players}
-              actorUid={room.meta.actorUid}
-              isActor={holder.uid === room.meta.actorUid}
-              isAuthority={isAuthority}
-              myInput={latestInput(inputs, holder.uid)}
-              answeredUids={answeredUids}
-              timerEndsAt={room.game?.timerEndsAt ?? null}
-              submitInput={(input: unknown) => submitInput(input, holder.uid)}
-              variant="shared"
-            />
+            <>
+              <SendState status={inputStatus(stageKey, holder.uid)} />
+              <def.View
+                state={game?.state ?? {}}
+                me={holder}
+                players={players}
+                actorUid={actorUid}
+                isActor={holder.uid === actorUid}
+                isAuthority={isAuthority}
+                myInput={latestInput(inputs, holder.uid)}
+                answeredUids={answeredUids}
+                timerEndsAt={timerEndsAt}
+                submitInput={(input: unknown) => submitInput(input, holder.uid)}
+                variant="shared"
+              />
+            </>
           )}
         </SharedGate>
         {isAuthority && (
@@ -322,16 +404,17 @@ function PlayingView({ room }: { room: RoomData }) {
   }
   return (
     <div className="playing-wrap">
+      <SendState status={inputStatus(stageKey, me.uid)} />
       <def.View
-        state={room.game?.state ?? {}}
+        state={game?.state ?? {}}
         me={me}
         players={players}
-        actorUid={room.meta.actorUid}
-        isActor={me.uid === room.meta.actorUid}
+        actorUid={actorUid}
+        isActor={me.uid === actorUid}
         isAuthority={isAuthority}
         myInput={latestInput(inputs, me.uid)}
         answeredUids={answeredUids}
-        timerEndsAt={room.game?.timerEndsAt ?? null}
+        timerEndsAt={timerEndsAt}
         submitInput={(input: unknown) => submitInput(input)}
         variant="party"
       />
@@ -344,9 +427,23 @@ function PlayingView({ room }: { room: RoomData }) {
   );
 }
 
-function latestInput(inputs: GameInputEntry[], uid: string): any {
+function latestInput(inputs: ReturnType<typeof stageInputs>, uid: string): any {
   const mine = inputs.filter((v) => (v.forUid ?? v.uid) === uid);
   return mine.length > 0 ? mine[mine.length - 1].input : null;
+}
+
+/**
+ * "Sent" and "counted" are different things. A submission sits in the room
+ * unacknowledged until the engine commits it with the reducer result, so the
+ * phone can say which of the two it is — and say so when a tap arrived after
+ * the phase it was meant for.
+ */
+function SendState({ status }: { status: InputStatus }) {
+  if (status === 'sending') return <p className="muted small send-state">📤 sending…</p>;
+  if (status === 'rejected') {
+    return <p className="muted small send-state send-rejected">⚠️ that tap didn't count — the phase had moved on</p>;
+  }
+  return null;
 }
 
 /** Shared-phone pass-and-play gate: hides inputs until the phone is passed. */
@@ -371,7 +468,9 @@ function SharedGate({
   return (
     <div className="gate">
       <div className="gate-card">
-        <p className="gate-progress">{answeredCount}/{total} done</p>
+        <p className="gate-progress">
+          {answeredCount}/{total} done
+        </p>
         <div className="gate-emoji">{player.emoji}</div>
         <h2>Pass the phone to</h2>
         <h1>{player.name}</h1>
@@ -387,7 +486,7 @@ function SharedGate({
 
 function OutcomeView({ room }: { room: RoomData }) {
   const { isAuthority, hostSkipRound, me } = useApp();
-  const outcome = room.meta.outcome;
+  const outcome = engineOf(room)?.outcome;
   // names for the drink list and the recap: every seat in the room, so a player
   // who walked off mid-round is still readable on the screen that names them
   const players = playerList(room);
@@ -435,11 +534,11 @@ function OutcomeView({ room }: { room: RoomData }) {
         {assignments.length === 0 && (
           <p className="outcome-none">{outcome.note || 'No drinks this round 🎉'}</p>
         )}
-        {assignments.map((a) => {
+        {assignments.map((a, i) => {
           const p = players.find((x) => x.uid === a.uid);
           if (!p) return null;
           return (
-            <div key={a.uid} className="outcome-row">
+            <div key={`${a.uid}-${i}`} className="outcome-row">
               <span className="outcome-who">
                 {p.emoji} {p.name}
               </span>
@@ -449,9 +548,7 @@ function OutcomeView({ room }: { room: RoomData }) {
           );
         })}
       </div>
-      {outcome.note && assignments.length > 0 && (
-        <p className="outcome-note">{outcome.note}</p>
-      )}
+      {outcome.note && assignments.length > 0 && <p className="outcome-note">{outcome.note}</p>}
       {pacing === 'manual' ? (
         isAuthority ? (
           <Button variant="gold" size="lg" onClick={() => hostSkipRound()}>
@@ -468,25 +565,40 @@ function OutcomeView({ room }: { room: RoomData }) {
 }
 
 /**
- * The ready gate: nothing moves on until every player who can actually tap has
- * tapped Ready. It guards two moments — the rules splash (`intro`) and the
- * between-round outcome screen — and it only counts phones that are awake, so a
- * phone that nodded off never freezes the table (it keeps its seat and its
- * score and slides back in when it wakes). On a shared phone there is only one
- * device to tap, so one press readies the whole table.
+ * The ready gate: nothing moves on until every phone the gate was opened for
+ * has tapped Ready.
+ *
+ * The gate belongs to the engine, not to whoever happened to be connected at
+ * render time: it snapshotted its required players when it opened, so a Wi-Fi
+ * blip can neither release it early nor remove a phone from it. A required
+ * phone that drops shows as *reconnecting* and keeps holding the gate for a
+ * grace period; past that it stops counting, and the host always has the
+ * explicit "continue without them". A gate nobody is holding is never a green
+ * light — somebody has to say so out loud.
  */
 function ReadyGate({ room, intro = false }: { room: RoomData; intro?: boolean }) {
   const { me, setReady, isAuthority, hostSkipRound } = useApp();
-  const players = livePlayers(room);
-  // asleep phones are still in the game, they just can't hold the table up
-  const away = activePlayers(room).filter((p) => !p.local && !p.connected);
-  const shared = room.meta.mode === 'shared';
-  const waiting = players.filter((p) => p.ready !== true);
-  const readyCount = players.length - waiting.length;
-  const allReady = waiting.length === 0;
-  const iAmReady = !!me && me.ready === true;
-  // one phone, one tap — only the room owner is allowed to flag everyone
-  const readyEveryone = shared && isAuthority;
+  const engine = engineOf(room);
+  const gate = engine?.gate ?? null;
+  const ready = engine?.ready ?? {};
+  const now = serverNow();
+  const blockers = gateBlockers(room, now);
+  const byUid = new Map(playerList(room).map((p) => [p.uid, p] as const));
+  const required = (gate?.uids ?? [])
+    .map((uid) => byUid.get(uid))
+    .filter((p): p is PlayerInfo => !!p);
+  const players = required.length > 0 ? required : livePlayers(room);
+  const stateOf = (uid: string): GateBlockerState | null =>
+    blockers.find((b) => b.uid === uid)?.state ?? null;
+  const waiting = blockers.filter((b) => b.state === 'waiting');
+  const reconnecting = blockers.filter((b) => b.state === 'reconnecting');
+  const away = blockers.filter((b) => b.state === 'away');
+  const readyCount = players.length - blockers.length;
+  const allReady = blockers.length === 0 && players.length > 0;
+  const iAmReady = !!me && !!gate && ready[me.uid] === gate.id;
+  // one phone, one tap — only the lease holder is allowed to flag everyone
+  const readyEveryone = room.meta.mode === 'shared' && isAuthority;
+  const nameOf = (uid: string) => byUid.get(uid)?.name ?? '?';
   const copy = intro
     ? {
         allReady: "everyone's ready — here we go 🍻",
@@ -499,26 +611,46 @@ function ReadyGate({ room, intro = false }: { room: RoomData; intro?: boolean })
         ready: 'READY FOR THE NEXT GAME 🍻',
       };
 
+  if (!gate) return null;
+
   return (
     <div className="ready">
       <div className="ready-chips">
-        {players.map((p) => (
-          <span key={p.uid} className={`ready-chip ${p.ready === true ? 'ready-on' : ''}`}>
-            <span className="ready-chip-emoji">{p.emoji}</span>
-            <span className="ready-chip-name">{p.name}</span>
-            <span className="ready-chip-mark">{p.ready === true ? '✔' : '…'}</span>
-          </span>
-        ))}
+        {players.map((p) => {
+          const state = stateOf(p.uid);
+          const isReady = ready[p.uid] === gate.id;
+          const mark = isReady ? '✔' : state === 'reconnecting' ? '📶' : state === 'away' ? '📴' : '…';
+          const cls = isReady
+            ? 'ready-on'
+            : state === 'reconnecting'
+              ? 'ready-reconnecting'
+              : state === 'away'
+                ? 'ready-away'
+                : '';
+          return (
+            <span key={p.uid} className={`ready-chip ${cls}`}>
+              <span className="ready-chip-emoji">{p.emoji}</span>
+              <span className="ready-chip-name">{p.name}</span>
+              <span className="ready-chip-mark">{mark}</span>
+            </span>
+          );
+        })}
       </div>
       <p className="ready-count">
         {allReady ? copy.allReady : `${readyCount}/${players.length} ready`}
       </p>
 
+      {reconnecting.length > 0 && (
+        <p className="muted small">
+          📶 {reconnecting.map((b) => nameOf(b.uid)).join(', ')}{' '}
+          {reconnecting.length === 1 ? 'is' : 'are'} reconnecting — the gate waits a moment rather
+          than taking a dropped socket for a yes
+        </p>
+      )}
       {away.length > 0 && (
         <p className="muted small">
-          📴 {away.map((p) => p.name).join(', ')}{' '}
-          {away.length === 1 ? 'has' : 'have'} a dark screen — still in the game, just not
-          holding anyone up
+          📴 {away.map((b) => nameOf(b.uid)).join(', ')}{' '}
+          {away.length === 1 ? 'has' : 'have'} been dark a while — no longer holding the table up
         </p>
       )}
 
@@ -533,7 +665,9 @@ function ReadyGate({ room, intro = false }: { room: RoomData; intro?: boolean })
         </Button>
       ) : iAmReady ? (
         <>
-          <p className="muted small">waiting on {waiting.map((p) => p.name).join(', ')}…</p>
+          <p className="muted small">
+            waiting on {blockers.map((b) => nameOf(b.uid)).join(', ')}…
+          </p>
           <Button variant="ghost" size="sm" onClick={() => setReady(false)}>
             not ready yet
           </Button>
@@ -546,8 +680,16 @@ function ReadyGate({ room, intro = false }: { room: RoomData; intro?: boolean })
 
       {isAuthority && !allReady && (
         <Button variant="ghost" size="sm" onClick={() => hostSkipRound()}>
-          start without them ▶
+          {reconnecting.length > 0 || away.length > 0
+            ? 'continue without them ▶'
+            : 'start without them ▶'}
         </Button>
+      )}
+      {waiting.length > 0 && (
+        <p className="muted small">
+          {waiting.map((b) => nameOf(b.uid)).join(', ')} still {waiting.length === 1 ? 'has' : 'have'}{' '}
+          to tap
+        </p>
       )}
     </div>
   );

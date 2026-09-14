@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -10,7 +11,6 @@ import {
 import {
   onDisconnect,
   onValue,
-  push,
   ref,
   runTransaction,
   set,
@@ -21,18 +21,22 @@ import {
 import { db, ensureAuth } from '../firebase';
 import { serverNow } from './serverTime';
 import { ROOM_TTL_MS, sweepExpiredRooms } from './gc';
-import type { PlayerInfo, RoomMode, RoomSettings } from '../engine/types';
-import { allGames, gameById } from '../games';
-import { triviaTopics } from '../games/Trivia/definition';
-import {
-  activePlayers,
-  livePlayers,
-  randomRoomCode,
-  readyResetPaths,
-  type RoomData,
-  type Session,
+import { PROTOCOL_VERSION, shortId } from './protocol';
+import { initialEngine } from './room';
+import { tabInstanceId } from './instance';
+import { sendEngineCommand } from './useHostLoop';
+import type { EngineCommand } from './engine';
+import type {
+  GameInputEntry,
+  HostLease,
+  InputStatus,
+  RoomData,
+  Session,
 } from '../types';
-import { shuffled } from '../engine/rng';
+import type { PlayerInfo, RoomMode, RoomSettings } from '../engine/types';
+import { allGames } from '../games';
+import { triviaTopics } from '../games/Trivia/definition';
+import { engineOf, playerList, randomRoomCode, stageInputs } from '../types';
 
 const SESSION_KEY = 'soc.session';
 const PROFILE_KEY = 'soc.profile';
@@ -77,9 +81,13 @@ function newPlayer(
     drinkCount: 0,
     score: 0,
     joinedAt: serverNow(),
-    ready: false,
   };
 }
+
+/**
+ * The room's engine node as it exists the moment a room is created — see
+ * state/room.ts for why it is born with a lease, a revision and identities.
+ */
 
 interface AppStateValue {
   uid: string | null;
@@ -90,8 +98,11 @@ interface AppStateValue {
   profile: Profile;
   notice: string | null;
   notify: (text: string) => void;
+  /** this tab holds the room's engine lease (a second host tab is a viewer) */
   isAuthority: boolean;
   me: PlayerInfo | null;
+  /** how my latest submission for the stage on screen is doing */
+  inputStatus: (stageKey?: string | null, forUid?: string) => InputStatus;
   createRoom: (opts: { mode: RoomMode; name: string; emoji: string }) => Promise<void>;
   joinRoom: (opts: { code: string; name: string; emoji: string }) => Promise<void>;
   addLocalPlayer: (name: string, emoji: string) => Promise<void>;
@@ -100,11 +111,13 @@ interface AppStateValue {
   renameMe: (name: string, emoji: string) => Promise<void>;
   claimTurn: (forUid?: string) => Promise<void>;
   submitInput: (input: unknown, forUid?: string) => Promise<void>;
-  /** ready gate between rounds: ready me, or (shared phone) every listed uid */
+  /** ready gate: acknowledge *this* gate, or (shared phone) every listed uid */
   setReady: (ready: boolean, uids?: string[]) => Promise<void>;
   updateSettings: (partial: Partial<RoomSettings>) => Promise<void>;
   startGame: () => Promise<void>;
   hostSkipRound: () => Promise<void>;
+  /** resume after a recovery pause, retry after a failed commit */
+  engineCommand: (command: EngineCommand) => void;
   endGame: () => Promise<void>;
   resetDrinks: () => Promise<void>;
   takeOverHost: () => Promise<void>;
@@ -122,6 +135,9 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<string | null>(null);
   const noticeTimer = useRef<number | undefined>(undefined);
 
+  /** this tab's identity: the unit of "one authority" and of presence */
+  const instanceId = useMemo(() => tabInstanceId(), []);
+
   // ---- anonymous auth ----
   useEffect(() => {
     if (!db) {
@@ -132,10 +148,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     ensureAuth()
       .then((uid) => {
         setUid(uid);
-        // lazy GC: every app open sweeps abandoned rooms past their TTL
+        // Cleanup only a remembered room; the global room index is private.
         if (!swept) {
           swept = true;
-          void sweepExpiredRooms(db!);
+          void sweepExpiredRooms(db!, loadSession()?.code);
         }
       })
       .catch((e) => {
@@ -182,23 +198,25 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [session?.code, notify]);
 
   // ---- my seat: presence, and the difference between asleep and gone ----
-  // `connected` answers one question: is this phone's page alive right now? A
-  // sleeping phone, a lift, a Wi-Fi blip all drop the socket — and a dropped
-  // socket is *not* a departure, so the heartbeat re-arms itself and re-asserts
-  // the seat the moment the socket is back. (Without this a phone that nodded
-  // off stayed "away" for the rest of the night, which is what dropped players
-  // out of the game.) Closing the site *is* a departure: pagehide marks the
-  // seat `left`, which is what the room drops players on.
+  // Presence is tracked *per connection*, not per player: every tab writes its
+  // own `players/{uid}/connections/{instanceId}` and arms an onDisconnect for
+  // that one child. A second tab closing — or a phone's browser unloading one
+  // page to reclaim memory — therefore cannot mark a player who is still there
+  // as gone, which is what used to release a Ready gate early.
   const meExists = !!(session && room?.players?.[session.uid]);
-  const myPlayerRef = session ? `rooms/${session.code}/players/${session.uid}` : null;
   const leavingRef = useRef(false);
   useEffect(() => {
-    if (!db || !myPlayerRef || !meExists) return;
-    const playerRef = ref(db, myPlayerRef);
+    if (!db || !session || !meExists) return;
+    const playerRef = ref(db, `rooms/${session.code}/players/${session.uid}`);
+    const connRef = ref(db, `rooms/${session.code}/players/${session.uid}/connections/${instanceId}`);
     leavingRef.current = false;
+
     /** I'm here, and I never left — clears a stale marker on the way back in */
-    const mine = () =>
+    const mine = () => {
+      onDisconnect(connRef).remove().catch(() => {});
+      set(connRef, { at: serverNow(), tab: instanceId }).catch(() => {});
       update(playerRef, { connected: true, left: null, leftAt: null }).catch(() => {});
+    };
 
     const unsubConn = onValue(ref(db, '.info/connected'), (snap) => {
       if (snap.val() !== true) return;
@@ -232,7 +250,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       leavingRef.current = true;
       const marker = { connected: false, left: true, leftAt: serverNow() };
       onDisconnect(playerRef).update(marker).catch(() => {});
-      update(playerRef, marker).catch(() => {});
+      update(playerRef, { ...marker, [`connections/${instanceId}`]: null }).catch(() => {});
     };
     window.addEventListener('pagehide', leave);
     window.addEventListener('beforeunload', leave);
@@ -246,7 +264,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('pagehide', leave);
       window.removeEventListener('beforeunload', leave);
     };
-  }, [db, myPlayerRef, meExists]);
+  }, [db, session?.code, session?.uid, instanceId, meExists]);
 
   // ---- a stored session that lost its seat gets it back ----
   // A phone that reopens the site walks back into the room it was in (the host
@@ -286,29 +304,29 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     async (opts: { mode: RoomMode; name: string; emoji: string }) => {
       if (!db) throw new Error('Firebase not configured');
       const myUid = await ensureAuth();
+      const myInstance = instanceId;
       saveProfile({ name: opts.name, emoji: opts.emoji });
       for (let attempt = 0; attempt < 25; attempt++) {
         const code = randomRoomCode();
         const roomRef = ref(db, `rooms/${code}`);
+        await sweepExpiredRooms(db, code);
         const existing = await get(roomRef);
         if (existing.exists()) continue;
         try {
-          // root-level multi-path update: rules grant creation per-leaf
-          // (meta creation window + own player node + roomIndex entry);
-          // a racing creator loses on rules. roomIndex lists the room for
-          // TTL garbage collection (see state/gc.ts).
-          const expiresAt = serverNow() + ROOM_TTL_MS;
+          // Root-level multi-path update: rules validate the new room and
+          // its owner together, and a racing creator loses on rules. The room is born
+          // with its protocol stamp and its first host lease, so the engine
+          // has a revision to increment from the very first commit.
+          const now = serverNow();
+          const expiresAt = now + ROOM_TTL_MS;
           await update(ref(db), {
             [`rooms/${code}/meta`]: {
               code,
-              createdAt: serverNow(),
+              createdAt: now,
               expiresAt,
               ownerUid: myUid,
               mode: opts.mode,
-              phase: 'lobby',
-              round: 0,
-              rotation: [],
-              gameIndex: 0,
+              protocol: PROTOCOL_VERSION,
               settings: {
                 mode: opts.mode,
                 pointsMode: false,
@@ -318,15 +336,22 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
                 triviaTopics: triviaTopics.map((t) => t.id),
               },
             },
+            [`rooms/${code}/engine`]: initialEngine(myUid, myInstance, now),
             [`roomIndex/${code}`]: expiresAt,
             ...(opts.mode === 'party'
-              ? { [`rooms/${code}/players/${myUid}`]: newPlayer(myUid, opts.name, opts.emoji, { isHost: true }) }
+              ? {
+                  [`rooms/${code}/players/${myUid}`]: newPlayer(myUid, opts.name, opts.emoji, {
+                    isHost: true,
+                  }),
+                }
               : {}),
           });
           saveSession({ code, uid: myUid });
           return;
         } catch (e) {
-          const code = (typeof e === 'object' && e && 'code' in e) ? (e as { code?: string }).code : undefined;
+          const code = ((typeof e === 'object' && e && 'code' in e
+            ? (e as { code?: string }).code
+            : undefined) ?? '') as string;
           if (code === 'permission-denied' || code === 'PERMISSION_DENIED') {
             continue; // someone claimed this code mid-flight — try another
           }
@@ -335,13 +360,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       }
       throw new Error("Couldn't allocate a room code — try again");
     },
-    [db, saveProfile, saveSession],
+    [db, saveProfile, saveSession, instanceId],
   );
 
   /**
    * Join a room by code — any time, including mid-match. A player who arrives
    * while a round is running is in the room straight away (their phone shows
-   * "you're up next game") and the host puts them in the next round's roster.
+   * "you're up next game") and the engine puts them in the next round's roster.
    * Coming back to a room you were already in keeps your seat, score and
    * drinks; only a seat the host cleared starts from scratch.
    */
@@ -351,6 +376,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       const myUid = await ensureAuth();
       saveProfile({ name: opts.name, emoji: opts.emoji });
       const code = opts.code.trim().toUpperCase();
+      await sweepExpiredRooms(db, code);
       const existing = await get(ref(db, `rooms/${code}`));
       if (!existing.exists()) throw new Error(`No room "${code}" — double-check the code`);
       const seat = ref(db, `rooms/${code}/players/${myUid}`);
@@ -396,10 +422,13 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       // `leavingRef` stops this page's own heartbeat from clearing it again.
       leavingRef.current = true;
       const marker = { connected: false, left: true, leftAt: serverNow() };
-      await update(ref(db, `rooms/${session.code}/players/${session.uid}`), marker).catch(() => {});
+      await update(ref(db, `rooms/${session.code}/players/${session.uid}`), {
+        ...marker,
+        [`connections/${instanceId}`]: null,
+      }).catch(() => {});
     }
     saveSession(null);
-  }, [db, session, room, saveSession]);
+  }, [db, session, room, instanceId, saveSession]);
 
   const renameMe = useCallback(
     async (name: string, emoji: string) => {
@@ -416,50 +445,85 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   /**
    * First-write-wins claim of an order slot during the opening ceremony:
    * "I'll Start" claims slot 0, each "I'm Next" claims the next slot.
-   * Each player claims exactly once; the order then runs the whole game.
+   * Each player claims exactly once; the engine folds the claims into the
+   * turn order and opens round 1 (see state/engine.ts).
    */
   const claimTurn = useCallback(
     async (forUid?: string) => {
       if (!db || !session || !room) return;
       const target = forUid ?? session.uid;
-      const slot = room.meta.turnOrder?.length ?? 0;
-      if (room.meta.turnOrder?.includes(target)) return; // already ordered
+      const engine = engineOf(room);
+      if (!engine || engine.phase !== 'claim') return;
+      if ((engine.turnOrder ?? []).includes(target)) return; // already ordered
+      const slot = Object.keys(engine.claims ?? {}).length;
       await runTransaction(
-        ref(db, `rooms/${session.code}/turnClaim/${slot}`),
+        ref(db, `rooms/${session.code}/engine/claims/${slot}`),
         (cur) => (cur ? undefined : { uid: target, at: serverNow() }),
       );
     },
     [db, session, room],
   );
 
+  /**
+   * Submit an action for the stage on screen.
+   *
+   * The payload carries the round, the phase and the stage key, and the key in
+   * the database *is* the input id — so a delayed tap cannot reach a later
+   * phase that accepts the same action (the engine refuses it), and a retry
+   * with the same id can only ever apply once. The database rules enforce the
+   * same stage match, which is what makes a submission that races a transition
+   * fail loudly instead of landing in the wrong round.
+   */
   const submitInput = useCallback(
     async (input: unknown, forUid?: string) => {
-      if (!db || !session || !room || room.meta.phase !== 'playing') return;
-      await push(ref(db, rpath('game/inputs')), {
+      if (!db || !session || !room) return;
+      const engine = engineOf(room);
+      if (!engine || engine.phase !== 'playing') return;
+      if (!engine.roundId || !engine.phaseId || !engine.stageKey) return;
+      const inputId = shortId();
+      const entry: GameInputEntry = {
+        inputId,
         uid: session.uid,
         forUid: forUid ?? null,
         at: serverNow(),
+        roundId: engine.roundId,
+        phaseId: engine.phaseId,
+        stageKey: engine.stageKey,
         input,
-      });
+      };
+      try {
+        await set(ref(db, `rooms/${session.code}/engine/game/inputs/${inputId}`), entry);
+      } catch (e) {
+        const text = String(e);
+        notify(
+          /permission|denied/i.test(text)
+            ? 'That round just moved on — your tap did not count'
+            : "Couldn't send that — check your connection",
+        );
+      }
     },
-    [db, session, room],
+    [db, session, room, notify],
   );
 
   /**
    * Ready gate between rounds. Party mode: each phone flags its own player
-   * (rules allow self-writes). Shared phone: there is only one device, so
-   * the holder flags everyone at once (the room owner may write any player).
-   * Flags are cleared by the host loop as each round ends.
+   * (rules allow self-writes). Shared phone: one device, so the holder
+   * acknowledges for everyone at once (the lease holder may write any of them).
+   *
+   * A ready flag names the *gate* it belongs to: a `true` from a previous gate
+   * can never release the next one.
    */
   const setReady = useCallback(
     async (ready: boolean, uids?: string[]) => {
       if (!db || !session || !room) return;
+      const gateId = engineOf(room)?.gate?.id ?? null;
+      if (!gateId) return;
       const targets = (uids && uids.length > 0 ? uids : [session.uid]).filter(
         (uid) => room.players?.[uid] != null,
       );
       if (targets.length === 0) return;
       const updates: Record<string, unknown> = {};
-      for (const uid of targets) updates[`players/${uid}/ready`] = ready;
+      for (const uid of targets) updates[`engine/ready/${uid}`] = ready ? gateId : null;
       await update(ref(db, rpath('')), updates).catch(() => {});
     },
     [db, session, room],
@@ -472,64 +536,24 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     },
     [db, session, room],
   );
-  const startGame = useCallback(async () => {
-    if (!db || !session || !room) return;
-    const enabled = (room.meta.settings.enabledGames ?? []).filter((id) => gameById.has(id));
-    const pool = enabled.length > 0 ? enabled : allGames.map((g) => g.id);
-    const rotation = shuffled(pool, Math.random);
-    await update(ref(db, rpath('meta')), {
-      phase: 'claim',
-      round: 0,
-      rotation,
-      gameIndex: 0,
-      actorUid: null,
-      turnOrder: null,
-      forceStart: false,
-      outcome: null,
-    });
-  }, [db, session, room]);
 
-  /** Host escape hatch: fast-forward the current phase (also un-sticks a round). */
+  /** Host actions are *commands into the engine queue*, never direct writes. */
+  const engineCommand = useCallback(
+    (command: EngineCommand) => {
+      const sent = sendEngineCommand(session?.code, command);
+      if (!sent) notify('Only the active host can do that');
+      return sent;
+    },
+    [session?.code, notify],
+  );
+
+  const startGame = useCallback(async () => {
+    engineCommand({ type: 'start' });
+  }, [engineCommand]);
+
   const hostSkipRound = useCallback(async () => {
-    if (!db || !session || !room) return;
-    const m = room.meta;
-    const now = serverNow();
-    if (m.phase === 'claim') {
-      // lock in the ceremony with whoever has claimed (seed the first player if
-      // nobody has — someone whose phone is actually awake, so round 1 can run)
-      const order = m.turnOrder ?? [];
-      const awake = livePlayers(room);
-      const seed = (awake.length > 0 ? awake : activePlayers(room)).slice(0, 1).map((p) => p.uid);
-      const finalOrder = order.length > 0 ? order : seed;
-      if (finalOrder.length === 0) return;
-      await update(ref(db, rpath('meta')), { turnOrder: finalOrder, forceStart: true }).catch(() => {});
-    } else if (m.phase === 'intro') {
-      // release the splash's ready gate without waiting for the table
-      await update(ref(db, rpath('meta')), { forceNext: true }).catch(() => {});
-    } else if (m.phase === 'outcome') {
-      // the host's continue: 'manual' needs the explicit forceNext flag,
-      // and it also releases the ready gate when someone has gone quiet
-      await update(ref(db, rpath('meta')), { outcomeEndsAt: now, forceNext: true }).catch(() => {});
-    } else if (m.phase === 'playing') {
-      const gid = m.rotation[m.gameIndex] ?? '';
-      const g = gameById.get(gid);
-      // entering the outcome clears everyone's ready flag in the same write,
-      // so the gate below can't be satisfied by a stale one
-      await update(ref(db, rpath('')), {
-        'meta/phase': 'outcome',
-        'meta/outcome': {
-          gameId: gid,
-          gameName: g?.name ?? '',
-          gameEmoji: g?.emoji ?? '',
-          assignments: [],
-          note: 'Round skipped',
-        },
-        'meta/outcomeEndsAt': null,
-        'meta/forceNext': false,
-        ...readyResetPaths(room),
-      }).catch(() => {});
-    }
-  }, [db, session, room]);
+    engineCommand({ type: 'skip' });
+  }, [engineCommand]);
 
   const endGame = useCallback(async () => {
     if (!db || !session) return;
@@ -540,24 +564,69 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [db, session, saveSession]);
 
   const resetDrinks = useCallback(async () => {
-    if (!db || !session || !room) return;
-    const updates: Record<string, unknown> = {};
-    for (const p of Object.values(room.players)) {
-      updates[`players/${p.uid}/drinkCount`] = 0;
-      updates[`players/${p.uid}/score`] = 0;
-    }
-    await update(ref(db, rpath('')), updates);
-  }, [db, session, room]);
+    engineCommand({ type: 'reset-awards' });
+  }, [engineCommand]);
 
+  /**
+   * Take the room over. The lease is a transaction, so two players tapping 👑
+   * at the same moment cannot both win: the generation increments once and the
+   * loser's commit is refused.
+   */
   const takeOverHost = useCallback(async () => {
     if (!db || !session || !room) return;
-    await set(ref(db, rpath('meta/ownerUid')), session.uid);
-    await set(ref(db, rpath(`players/${session.uid}/isHost`)), true);
-    notify('You are the host now 🍻');
-  }, [db, session, room, notify]);
+    const next: HostLease = {
+      uid: session.uid,
+      instanceId,
+      generation: 0,
+      renewedAt: serverNow(),
+    };
+    const res = await runTransaction(ref(db, rpath('engine/lease')), (cur) => {
+      const lease = cur as HostLease | null;
+      if (lease && lease.uid === session.uid && lease.instanceId === instanceId) return lease;
+      next.generation = (lease?.generation ?? 0) + 1;
+      return next;
+    });
+    if (!res.committed) {
+      notify("Couldn't take over the room — try again");
+      return;
+    }
+    await set(ref(db, rpath(`players/${session.uid}/isHost`)), true).catch(() => {});
+    notify('You are the host now 🍺');
+  }, [db, session, room, instanceId, notify]);
 
-  const isAuthority = !!(session && room && room.meta.ownerUid === session.uid);
-  const me = session ? (room?.players?.[session.uid] ?? null) : null;
+  const lease = room?.engine?.lease ?? null;
+  const isAuthority = !!(
+    session &&
+    room &&
+    (lease
+      ? lease.uid === session.uid && lease.instanceId === instanceId
+      : room.meta.ownerUid === session.uid) // online-only fallback: meta.ownerUid <= lease.uid
+  );
+  // my seat, with the engine's ledger folded in (drinks and points are the
+  // ledger's to say, not the player node's)
+  const me = session ? (playerList(room).find((p) => p.uid === session.uid) ?? null) : null;
+
+  /**
+   * How the latest submission for a stage is doing, read straight from the
+   * room: in the database but not acknowledged = sending, acknowledged =
+   * accepted (and whether it actually changed anything), refused = rejected.
+   */
+  const inputStatus = useCallback(
+    (stageKey?: string | null, forUid?: string): InputStatus => {
+      if (!room) return 'idle';
+      const current = stageKey ?? engineOf(room)?.stageKey ?? null;
+      if (!current) return 'idle';
+      const mine = stageInputs(room).filter(
+        (entry) => (entry.forUid ?? entry.uid) === (forUid ?? session?.uid ?? ''),
+      );
+      const last = mine[mine.length - 1];
+      if (!last) return 'idle';
+      if (last.rejected) return 'rejected';
+      if (last.ack) return 'accepted';
+      return 'sending';
+    },
+    [room, session?.uid],
+  );
 
   const value: AppStateValue = {
     uid,
@@ -570,6 +639,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     notify,
     isAuthority,
     me,
+    inputStatus,
     createRoom,
     joinRoom,
     addLocalPlayer,
@@ -582,6 +652,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     updateSettings,
     startGame,
     hostSkipRound,
+    engineCommand,
     endGame,
     resetDrinks,
     takeOverHost,

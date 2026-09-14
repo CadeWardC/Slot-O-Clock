@@ -1,40 +1,23 @@
-import {
-  endAt,
-  get,
-  orderByValue,
-  query,
-  ref,
-  remove,
-  type Database,
-} from 'firebase/database';
+import { get, ref, remove, type Database } from 'firebase/database';
+import { ROOM_TTL_MS } from './protocol';
+import { serverNow } from './serverTime';
 
-/**
- * Abandoned-room garbage collection.
- *
- * There is no server (GitHub Pages hosting), so cleanup is lazy: every room
- * carries an `expiresAt` TTL (refreshed by the host while the room lives)
- * and is listed in `roomIndex/{code}`. Any client that opens the app sweeps
- * entries past their TTL — the security rules only allow deleting a room
- * whose `meta/expiresAt` is already in the past, so a live room can never
- * be collected.
+export { ROOM_TTL_MS };
+
+/** Clean up a known room only. The global index is private to prevent discovery.
+ * Unvisited abandoned rooms require scheduled cleanup with a trusted backend.
+ * Rules independently enforce expiry before a non-owner can delete a room.
  */
-export const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
-
-export async function sweepExpiredRooms(db: Database): Promise<void> {
+export async function sweepExpiredRooms(db: Database, code?: string): Promise<void> {
+  if (!code || !/^[A-Z0-9]{4}$/.test(code)) return;
   try {
-    const snap = await get(query(ref(db, 'roomIndex'), orderByValue(), endAt(Date.now())));
-    const stale: string[] = [];
-    snap.forEach((child) => {
-      if (child.key) stale.push(child.key);
-    });
-    await Promise.all(
-      stale.map((code) =>
-        remove(ref(db, `rooms/${code}`))
-          .catch(() => {})
-          .then(() => remove(ref(db, `roomIndex/${code}`)).catch(() => {})),
-      ),
-    );
+    const roomRef = ref(db, 'rooms/' + code);
+    const snap = await get(roomRef);
+    const expiresAt: unknown = snap.child('meta/expiresAt').val();
+    if (snap.exists() && !(typeof expiresAt === 'number' && expiresAt < serverNow() - 5000)) return;
+    if (snap.exists()) await remove(roomRef);
+    await remove(ref(db, 'roomIndex/' + code));
   } catch {
-    // rules not deployed / offline — cleanup is best-effort
+    // Offline, already collected, or refreshed by the host: cleanup is best-effort.
   }
 }
