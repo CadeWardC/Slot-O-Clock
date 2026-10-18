@@ -186,6 +186,19 @@
                 "at": {
                   ".validate": "(newData.isNumber()) && newData.getPriority() === null"
                 },
+                "ack": {
+                  ".validate": "newData.hasChildren(['rev', 'at', 'eventId', 'applied']) && newData.child('rev').isNumber() && newData.child('at').isNumber() && newData.child('eventId').isString() && newData.child('eventId').val().length <= 128 && newData.child('applied').isBoolean()",
+                  "rev": {},
+                  "at": {},
+                  "eventId": {},
+                  "applied": {},
+                  "$other": {
+                    ".validate": false
+                  }
+                },
+                "rejected": {
+                  ".validate": "newData.isString() && newData.val().length <= 64"
+                },
                 "input": {
                   "action": {
                     ".validate": "(newData.isString() && newData.val().length <= 1000) && newData.getPriority() === null"

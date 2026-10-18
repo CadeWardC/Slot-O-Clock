@@ -113,6 +113,21 @@ await deny('stale input', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', 
 await deny('oversized input', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', { ...input, inputId: 'evil', input: { text: 'x'.repeat(1001) } });
 await deny('scalar input payload', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', { ...input, inputId: 'evil', input: 'x'.repeat(2000) });
 await deny('nested input abuse', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', { ...input, inputId: 'evil', input: { shot: { dx: 0, dy: 0, ms: 1, garbage: 'x' } } });
+// the engine acknowledges (or refuses) an input inside its whole-engine transaction
+const acked = await runTransaction(ref(clients.get('host').db, 'rooms/TEST/engine'), (cur) => cur ? {
+  ...cur,
+  rev: cur.rev + 1,
+  game: { ...cur.game, inputs: { input: { ...cur.game.inputs.input, ack: { rev: cur.rev + 1, at: now, eventId: 'ev', applied: true }, rejected: null } } },
+} : cur);
+assert.equal(acked.committed, true, 'engine transaction that acks an input succeeds');
+checks++;
+const refused = await runTransaction(ref(clients.get('host').db, 'rooms/TEST/engine'), (cur) => cur ? {
+  ...cur,
+  rev: cur.rev + 1,
+  game: { ...cur.game, inputs: { input: { ...cur.game.inputs.input, ack: null, rejected: 'stale-phase' } } },
+} : cur);
+assert.equal(refused.committed, true, 'engine transaction that rejects an input succeeds');
+checks++;
 await allow('age lease fixture', 'admin', 'rooms/TEST/engine/lease/renewedAt', 'PUT', now - 60000);
 await deny('outsider takeover', 'intruder', 'rooms/TEST/engine/lease', 'PUT', { uid: 'intruder', instanceId: 'evil', generation: 2, renewedAt: now });
 await allow('member takeover after timeout', 'guest', 'rooms/TEST/engine/lease', 'PUT', { uid: 'guest', instanceId: 'guest-tab', generation: 2, renewedAt: now });
