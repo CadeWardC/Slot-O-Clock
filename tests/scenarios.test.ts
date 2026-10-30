@@ -639,3 +639,29 @@ test('a shared phone cannot submit as somebody else', async () => {
   await h.submit('host', { action: 'tap' }, 'local_a');
   assert.equal(h.state.phase, 'b');
 });
+
+/* ============================================================
+ *  Games that need a bigger table sit out
+ * ============================================================ */
+
+test('a game needing more players than are here is skipped, every round', async () => {
+  const big = { ...tiny, id: 'big', name: 'Big', minPlayers: 3 };
+  const h = await newHarness({
+    players: ['host', 'p2'],
+    allGames: [big, tiny],
+    settings: { enabledGames: ['big', 'tiny'] },
+  });
+  for (let round = 1; round <= 4; round++) {
+    if (round === 1) await h.startGame();
+    else await h.readyAll();
+    assert.equal(h.phase, 'playing');
+    assert.equal(h.engine.game?.type, 'tiny', `round ${round} plays a game two can play`);
+    for (const uid of h.playerUids) await h.submit(uid, { action: 'tap' });
+    h.clock.advance(TINY_B_MS + 1);
+    await h.settle();
+    h.clock.advance(1_000);
+    await h.settle();
+    assert.equal(h.phase, 'outcome');
+    await h.readyAll();
+  }
+});

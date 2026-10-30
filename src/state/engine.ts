@@ -754,6 +754,19 @@ export class EngineWorker {
     return id ? this.games.byId.get(id) : undefined;
   }
 
+  /**
+   * The first spot in the rotation, from `start` on, whose game this many
+   * players can actually play. Games that need a bigger table sit out until
+   * enough phones are around; -1 when nothing left in the rotation fits.
+   */
+  private fittingIndex(rotation: string[], start: number, players: number): number {
+    for (let i = Math.max(0, start); i < rotation.length; i++) {
+      const def = this.games.byId.get(rotation[i]);
+      if (def && def.minPlayers <= players) return i;
+    }
+    return -1;
+  }
+
   private defOf(room: RoomData): GameDefinition<any, any> | undefined {
     const id = room.engine?.game?.type ?? '';
     return id ? this.games.byId.get(id) : undefined;
@@ -888,6 +901,13 @@ export class EngineWorker {
     if (roster.length === 0) return null;
     const present = livePlayers(room);
     const round = engine.phase === 'claim' ? 1 : (engine.round ?? 1);
+    const rotation = engine.rotation ?? [];
+    const found = this.fittingIndex(
+      rotation,
+      engine.gameIndex ?? 0,
+      (present.length > 0 ? present : roster).length,
+    );
+    const gameIndex = found >= 0 ? found : (engine.gameIndex ?? 0);
     const roundId = this.newIdFn();
     const phaseId = this.newIdFn();
     const actor = actorFromOrder(order, present.length > 0 ? present : roster, round);
@@ -910,6 +930,7 @@ export class EngineWorker {
         fields: {
           phase: 'intro' as RoomPhase,
           round,
+          gameIndex,
           turnOrder: order,
           actorUid: actor,
           roundUids: null,
@@ -1117,17 +1138,21 @@ export class EngineWorker {
     const pool = enabled.length > 0 ? enabled : this.games.all.map((g) => g.id);
     if (pool.length === 0) return null;
 
-    const rotation = [...(engine.rotation ?? [])];
-    let gameIndex = (engine.gameIndex ?? 0) + 1;
-    let nextRotation = rotation;
-    if (rotation.length === 0 || gameIndex >= rotation.length) {
-      const rng = mulberry32(hashSeed(`${this.code}:rotation:${engine.round ?? 0}`));
-      nextRotation = shuffled(pool, rng);
-      gameIndex = 0;
-    }
     const roster = activePlayers(room);
     if (roster.length === 0) return null;
     const present = livePlayers(room);
+    const players = (present.length > 0 ? present : roster).length;
+
+    const rotation = [...(engine.rotation ?? [])];
+    let nextRotation = rotation;
+    let gameIndex = this.fittingIndex(rotation, (engine.gameIndex ?? 0) + 1, players);
+    if (gameIndex < 0) {
+      // rotation used up (or nothing left fits this table): deal a fresh one
+      const rng = mulberry32(hashSeed(`${this.code}:rotation:${engine.round ?? 0}`));
+      nextRotation = shuffled(pool, rng);
+      // nothing fits at all: play the rotation anyway rather than stall the room
+      gameIndex = Math.max(0, this.fittingIndex(nextRotation, 0, players));
+    }
     const order = turnOrderForRoom(room);
     const round = (engine.round ?? 0) + 1;
     const actor = actorFromOrder(order, present.length > 0 ? present : roster, round);

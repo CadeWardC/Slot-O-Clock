@@ -40,8 +40,11 @@ export function Lobby() {
 
   const enabled = new Set(meta.settings.enabledGames ?? []);
   const eligible = allGames.filter((g) => enabled.has(g.id));
-  const need = eligible.length > 0 ? Math.max(...eligible.map((g) => g.minPlayers)) : Infinity;
+  // the room can start once any enabled game fits the table; games that need
+  // more players sit out of the rotation until enough phones are around
+  const need = eligible.length > 0 ? Math.min(...eligible.map((g) => g.minPlayers)) : Infinity;
   const canStart = eligible.length > 0 && active.length >= need;
+  const sittingOut = eligible.filter((g) => g.minPlayers > active.length);
   const pointsLabel = meta.settings.pointsMode ? 'points' : 'sips';
 
   const shareText = `Join my Slot-O-Clock party! 🍺 Code: ${meta.code} → ${location.origin}${location.pathname}`;
@@ -245,6 +248,11 @@ export function Lobby() {
           </Button>
         ) : (
           <p className="muted">Waiting for the host to start…</p>
+        )}
+        {canStart && sittingOut.length > 0 && (
+          <p className="muted">
+            {sittingOut.map((g) => g.emoji).join(' ')} sit out until {Math.min(...sittingOut.map((g) => g.minPlayers))}+ players are here
+          </p>
         )}
         <Button variant="ghost" size="sm" onClick={() => leaveRoom()}>
           leave room
