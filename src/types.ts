@@ -247,9 +247,9 @@ export interface RoomData {
   game?: { type?: string; state?: unknown; timerEndsAt?: number | null } | null;
   events?: Record<string, EventEntry>;
   /**
-   * The only part of the room players write to freely: things thrown at each
-   * other (`fx`) and the lightweight's choice of next game (`pick`). Nothing
-   * here is authoritative; the engine reads `pick` and checks it itself.
+   * The lightweight's choice of next game (`pick`). Not authoritative: the
+   * engine reads it and checks it itself. `fx` is where throws used to live;
+   * they ride in the thrower's seat now (see `thrownThings`).
    */
   social?: {
     fx?: Record<string, ThrownThing>;
@@ -303,6 +303,41 @@ export function activeTimer(room: RoomData | null | undefined): GameTimer | null
   if (engine.recovery || engine.fault) return null;
   if (timer.roundId !== engine.roundId || timer.phaseId !== engine.phaseId) return null;
   return timer;
+}
+
+/**
+ * How a game input travels. The database rules only know a short list of
+ * field names for `input`, and every game that sent a field outside it (a
+ * sketch stroke, a hand-out, a stake) had its write refused — which the phone
+ * reported as "your tap did not count". So the payload goes as one JSON
+ * string in fields every published version of the rules accepts, and no game
+ * ever needs a rules change to add an input again. The reducer is what
+ * validates an input; the rules only bound its size.
+ */
+const PACKED = '#json';
+/** the rules cap `text` at 1000 characters */
+export const MAX_INPUT_CHARS = 1000;
+
+export function packInput(input: unknown): { action: string; text: string } | null {
+  let text: string;
+  try {
+    text = JSON.stringify(input);
+  } catch {
+    return null;
+  }
+  if (typeof text !== 'string' || text.length > MAX_INPUT_CHARS) return null;
+  return { action: PACKED, text };
+}
+
+/** What the player actually sent: unpacked, or as-is for a plain payload. */
+export function unpackInput(raw: unknown): unknown {
+  const r = raw as { action?: unknown; text?: unknown } | null | undefined;
+  if (!r || typeof r !== 'object' || r.action !== PACKED || typeof r.text !== 'string') return raw;
+  try {
+    return JSON.parse(r.text);
+  } catch {
+    return null;
+  }
 }
 
 /** Inputs that belong to the stage on screen, in submission order. */
@@ -392,7 +427,32 @@ export function activePlayers(room: RoomData | null): PlayerInfo[] {
 export function connectionIds(room: RoomData | null, uid: string): string[] {
   const connections = (room?.players?.[uid] as { connections?: Record<string, unknown> } | undefined)
     ?.connections;
-  return connections ? Object.keys(connections) : [];
+  return connections ? Object.keys(connections).filter((id) => !id.startsWith(THROW_PREFIX)) : [];
+}
+
+/**
+ * Things thrown between players ride in the thrower's own seat, next to their
+ * connections: `players/{from}/connections/fx-{id} = { at, tab: "to|kind" }`.
+ * It is the one place every published version of the rules lets a player
+ * write a short-lived note, so throwing works without a rules update. These
+ * entries are not connections and never count as presence.
+ */
+export const THROW_PREFIX = 'fx-';
+
+export function thrownThings(room: RoomData | null | undefined): Record<string, ThrownThing> {
+  const out: Record<string, ThrownThing> = {};
+  for (const [from, player] of Object.entries(room?.players ?? {})) {
+    const connections = (player as { connections?: Record<string, { at?: number; tab?: string }> } | null)
+      ?.connections;
+    if (!connections) continue;
+    for (const [id, entry] of Object.entries(connections)) {
+      if (!id.startsWith(THROW_PREFIX) || !entry || typeof entry.tab !== 'string') continue;
+      const cut = entry.tab.lastIndexOf('|');
+      if (cut <= 0) continue;
+      out[id] = { from, to: entry.tab.slice(0, cut), kind: entry.tab.slice(cut + 1), at: entry.at ?? 0 };
+    }
+  }
+  return out;
 }
 
 export function isPresent(room: RoomData | null, uid: string): boolean {

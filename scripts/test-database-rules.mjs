@@ -53,7 +53,7 @@ async function deny(label, ...args) {
   assert.ok([401, 403].includes(result.status), `${label}: ${JSON.stringify(result)}`);
   checks++;
 }
-await allow('compile rules', 'admin', '.settings/rules', 'PUT', JSON.parse(await readFile('database.rules.json', 'utf8')));
+await allow('compile rules', 'admin', '.settings/rules', 'PUT', JSON.parse(await readFile(process.env.RULES_FILE ?? 'database.rules.json', 'utf8')));
 await allow('reset emulator namespace', 'admin', '', 'PUT', null);
 const now = Date.now();
 const player = (uid, isHost = false) => ({ uid, name: uid, emoji: '🍺', local: false, isHost, connected: true, score: 0, drinkCount: 0, joinedAt: now });
@@ -113,6 +113,20 @@ await deny('stale input', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', 
 await deny('oversized input', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', { ...input, inputId: 'evil', input: { text: 'x'.repeat(1001) } });
 await deny('scalar input payload', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', { ...input, inputId: 'evil', input: 'x'.repeat(2000) });
 await deny('nested input abuse', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', { ...input, inputId: 'evil', input: { shot: { dx: 0, dy: 0, ms: 1, garbage: 'x' } } });
+// What the phones actually send: the game's payload as one JSON string in
+// `action` + `text` (packInput in src/types.ts). A field the whitelist does
+// not know is refused — which is why a raw payload from a newer game never
+// arrived — and the packed form of the very same payload goes through.
+await deny('raw payload with an unlisted field', 'guest', 'rooms/TEST/engine/game/inputs/raw', 'PUT', { ...input, inputId: 'raw', input: { action: 'pick', index: 1 } });
+const packed = (id, payload) => ({ ...input, inputId: id, input: { action: '#json', text: JSON.stringify(payload) } });
+await allow('packed sketch stroke', 'guest', 'rooms/TEST/engine/game/inputs/pk1', 'PUT', packed('pk1', { action: 'stroke', pts: 'a0b1'.repeat(40) }));
+await allow('packed hand-out', 'guest', 'rooms/TEST/engine/game/inputs/pk2', 'PUT', packed('pk2', { gift: { host: 2 } }));
+await deny('packed but stale', 'guest', 'rooms/TEST/engine/game/inputs/pk3', 'PUT', { ...packed('pk3', { most: ['host'] }), stageKey: 'old' });
+// A thrown thing rides in the thrower's own seat, beside their connections.
+await allow('member throws a tomato from their seat', 'guest', 'rooms/TEST/players/guest/connections/fx-a', 'PUT', { at: now, tab: 'host|tomato' });
+await deny('throw from somebody else\'s seat', 'guest', 'rooms/TEST/players/host/connections/fx-b', 'PUT', { at: now, tab: 'guest|tomato' });
+await deny('outsider throws', 'intruder', 'rooms/TEST/players/guest/connections/fx-c', 'PUT', { at: now, tab: 'host|egg' });
+await allow('thrower cleans up their throw', 'guest', 'rooms/TEST/players/guest/connections/fx-a', 'PUT', null);
 // the engine acknowledges (or refuses) an input inside its whole-engine transaction
 const acked = await runTransaction(ref(clients.get('host').db, 'rooms/TEST/engine'), (cur) => cur ? {
   ...cur,

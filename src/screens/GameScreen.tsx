@@ -13,6 +13,7 @@ import {
   engineOf,
   activeTimer,
   stageInputs,
+  unpackInput,
   type GateBlockerState,
   type InputStatus,
   type RoomData,
@@ -511,7 +512,7 @@ function PlayingView({ room }: { room: RoomData }) {
 
 function latestInput(inputs: ReturnType<typeof stageInputs>, uid: string): any {
   const mine = inputs.filter((v) => (v.forUid ?? v.uid) === uid);
-  return mine.length > 0 ? mine[mine.length - 1].input : null;
+  return mine.length > 0 ? unpackInput(mine[mine.length - 1].input) : null;
 }
 
 /**

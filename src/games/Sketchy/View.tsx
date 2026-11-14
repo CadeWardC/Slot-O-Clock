@@ -13,6 +13,11 @@ import {
 } from './definition';
 
 type Pt = [number, number];
+/**
+ * A line is sent every this many points while the finger is still down, so
+ * the table watches it being drawn instead of getting each stroke when it ends.
+ */
+const CHUNK_POINTS = 12;
 /** a new point is kept once the finger has moved this far (0–255 grid) */
 const MIN_STEP = 5;
 
@@ -43,12 +48,13 @@ function Strokes({ strokes, live }: { strokes: string[]; live?: Pt[] }) {
 }
 
 /** Everyone but the artist: the drawing as it stands in the room. */
-function Paper({ strokes, small }: { strokes: string[]; small?: boolean }) {
+function Paper({ strokes, small, empty }: { strokes: string[]; small?: boolean; empty?: string }) {
   return (
     <div className={`sk-paper ${small ? 'sk-paper-small' : ''}`}>
       <svg viewBox="0 0 255 255" className="sk-svg" aria-label="the drawing">
         <Strokes strokes={strokes} />
       </svg>
+      {empty && strokes.length === 0 && <span className="sk-paper-hint">{empty}</span>}
     </div>
   );
 }
@@ -103,7 +109,7 @@ function Pad({
     const last = cur[cur.length - 1];
     if (last && Math.hypot(p[0] - last[0], p[1] - last[1]) < MIN_STEP) return;
     let next = [...cur, p];
-    if (next.length >= MAX_POINTS) {
+    if (next.length >= Math.min(CHUNK_POINTS, MAX_POINTS)) {
       // a long line goes out in pieces, each picking up where the last ended
       commit(next);
       next = [p];
@@ -159,7 +165,9 @@ function Pad({
         >
           Start over
         </button>
-        <span className="sk-ink">{full ? 'Out of ink' : `${MAX_STROKES - mine.length} strokes left`}</span>
+        <span className="sk-ink">
+          {full ? 'Out of ink' : `Ink ${Math.round(((MAX_STROKES - mine.length) / MAX_STROKES) * 100)}%`}
+        </span>
       </div>
     </>
   );
@@ -341,7 +349,7 @@ export function View({
             </button>
           </form>
         )}
-        <Paper strokes={strokes} small />
+        <Paper strokes={strokes} small empty={`${artist?.name ?? 'The artist'} hasn't drawn anything yet`} />
         <TimerBar deadline={timerEndsAt} totalMs={total} />
         <p className="sk-count">
           {artist?.name ?? 'Someone'} is drawing · {got.length} of {others.length} got it

@@ -1,4 +1,4 @@
-/* --- Most Likely To: a prompt card and a paper ballot --- */
+/* --- Most Likely To: a prompt card, a count, and real fingers --- */
 .gv.ml { gap: 14px; justify-content: flex-start; align-items: stretch; text-align: left; padding-top: 6px; }
 
 .ml .ml-card {
@@ -78,28 +78,31 @@
 .ml-pick-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ml-pick-name small, .ml-row-who small { font-weight: 600; font-size: 0.8rem; }
 
-/* the votes, turned over */
-.ml .ml-tally { padding: 4px 14px; }
-.ml-row {
+/* the count, and the moment everyone points */
+.ml-stage {
+  min-height: 190px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 2px dashed #c9bd9f;
-  animation: fxRise 0.3s ease-out both;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
 }
-.ml-row:last-child { border-bottom: none; }
-.ml-row-who { font-weight: 800; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.ml-row-won .ml-row-who { background: var(--red); padding: 0 5px; margin-left: -5px; border-radius: 3px; }
-.ml-row-none { color: #8a826c; }
-.ml-voters { flex: 1; display: flex; flex-wrap: wrap; gap: 2px; font-size: 1.05rem; min-width: 0; }
-.ml-count { font-family: var(--font-display); font-size: 1.3rem; line-height: 1; min-width: 16px; text-align: right; }
-.ml-drinks { flex: none; font-size: 0.7rem; }
+.ml-step { margin: 0; font-weight: 800; font-size: 1.15rem; line-height: 1.25; }
+.ml-point {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 4.2rem;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow: 3px 4px 0 var(--ink);
+}
 
 .ml-line { margin: 0; font-weight: 800; font-size: 1.15rem; padding-left: 12px; border-left: 5px solid var(--gold); }
 .ml-line-me { border-left-color: var(--red); }
 .ml-status { margin: 0; font-weight: 700; font-size: 0.92rem; color: var(--muted); }
 
 @media (prefers-reduced-motion: reduce) {
-  .ml .ml-card, .ml-row { animation: none; }
+  .ml .ml-card { animation: none; }
 }

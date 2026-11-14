@@ -13,7 +13,7 @@ import { View } from './View';
 
 const WORDS = pack as string[];
 
-export const PICK_MS = 10_000;
+export const PICK_MS = 15_000;
 export const DRAW_MS = 40_000;
 /** one phone: nobody is typing, the table shouts — a little longer */
 export const SHARED_DRAW_MS = 60_000;
@@ -21,7 +21,8 @@ export const REVEAL_MS = 6_000;
 
 /** a stroke is hex "xxyy" per point on a 0–255 grid */
 export const MAX_POINTS = 40;
-export const MAX_STROKES = 50;
+/** a long line travels in several short pieces, so the cap counts pieces */
+export const MAX_STROKES = 160;
 export const MAX_GUESS = 24;
 const FEED_SIZE = 6;
 const MISS_SIPS = 1;

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useApp } from '../state/AppState';
 import { serverNow } from '../state/serverTime';
-import type { ThrownThing } from '../types';
+import { thrownThings, type ThrownThing } from '../types';
 
 /** What can be thrown. `kind` is what travels; the rest is how it lands. */
 export const THROWABLES = [
@@ -36,10 +36,12 @@ export function Reactions() {
   const [landed, setLanded] = useState<Landed[]>([]);
   const seen = useRef(new Set<string>());
   const timers = useRef(new Set<number>());
-  const fx = room?.social?.fx;
+  // keyed on the ids in flight, so an unrelated room update does not re-run this
+  const fx = thrownThings(room);
+  const fxKey = Object.keys(fx).sort().join(',');
 
   useEffect(() => {
-    if (!fx) return;
+    if (!fxKey) return;
     const now = serverNow();
     const fresh: Landed[] = [];
     for (const [id, thing] of Object.entries(fx)) {
@@ -64,7 +66,8 @@ export function Reactions() {
       setLanded((cur) => cur.filter((l) => !ids.has(l.id)));
     }, SHOW_MS);
     timers.current.add(t);
-  }, [fx]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fxKey]);
 
   useEffect(() => {
     const pending = timers.current;
@@ -75,27 +78,27 @@ export function Reactions() {
   const nameOf = (uid: string) => room.players?.[uid]?.name ?? 'Someone';
 
   return (
-    <div className="rx" aria-live="polite">
+    <div className="thrown" aria-live="polite">
       {landed.map((l) => {
         const t = byKind.get(l.thing.kind) ?? THROWABLES[0];
         const atMe = !!me && l.thing.to === me.uid;
         if (atMe) {
           return (
-            <div key={l.id} className={`rx-hit rx-hit-${t.kind}`}>
+            <div key={l.id} className={`thrown-hit thrown-hit-${t.kind}`}>
               <span
-                className="rx-splat"
-                style={{ left: `${l.x}%`, top: `${l.y}%`, ['--rx-spin' as string]: `${l.spin}deg` }}
+                className="thrown-splat"
+                style={{ left: `${l.x}%`, top: `${l.y}%`, ['--thrown-spin' as string]: `${l.spin}deg` }}
               >
                 {t.emoji}
               </span>
-              <p className="rx-from">
+              <p className="thrown-from">
                 {nameOf(l.thing.from)} {t.verb} you
               </p>
             </div>
           );
         }
         return (
-          <p key={l.id} className="rx-note">
+          <p key={l.id} className="thrown-note">
             <span>{t.emoji}</span> {nameOf(l.thing.from)} {t.verb} {nameOf(l.thing.to)}
           </p>
         );

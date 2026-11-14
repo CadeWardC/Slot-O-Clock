@@ -37,6 +37,7 @@ import {
   type RecoveryInfo,
   type RoomData,
   type RoomPhase,
+  unpackInput,
 } from '../types';
 import {
   ENGINE_LOG_MAX,
@@ -1032,7 +1033,7 @@ export class EngineWorker {
     const uid = entry.forUid ?? entry.uid;
     const ctx = this.buildCtx(room, roster, now);
     const before = engine.game.state;
-    const res = reduceWithGifts(def, before, { type: 'INPUT', uid, input: entry.input, inputId }, ctx);
+    const res = reduceWithGifts(def, before, { type: 'INPUT', uid, input: unpackInput(entry.input), inputId }, ctx);
     return this.transitionPlan({
       kind: 'input',
       room,
@@ -1054,7 +1055,8 @@ export class EngineWorker {
   private validateInput(room: RoomData, entry: GameInputEntry, roster: PlayerInfo[]): string | null {
     const engine = room.engine as EngineNode;
     if (entry.roundId !== engine.roundId || entry.phaseId !== engine.phaseId) return 'stale-phase';
-    if (!entry.input || typeof entry.input !== 'object') return 'bad-payload';
+    const payload = unpackInput(entry.input);
+    if (!payload || typeof payload !== 'object') return 'bad-payload';
     if (room.meta.mode === 'shared') {
       if (!entry.forUid) return 'no-holder';
       const target = room.players?.[entry.forUid];
@@ -1709,12 +1711,20 @@ export class EngineWorker {
     this.lastTtlRefresh = now;
     const until = now + ROOM_TTL_MS - 60000;
     try {
+      // The rules never let a room's expiry move backwards, and a room is
+      // born with a full TTL — so a refresh in its first minute (every room's
+      // first one) asked for less than it already had and was refused, which
+      // the host saw as "engine stopped: ttl". Nothing to extend, nothing to write.
+      const current = (await this.store.readRoom())?.meta?.expiresAt ?? 0;
+      if (!this.alive(g) || current >= until) return;
       await this.store.writeRoot({
         [`rooms/${this.code}/meta/expiresAt`]: until,
         [`roomIndex/${this.code}`]: until,
       });
     } catch (e) {
-      if (this.alive(g)) this.noteError('ttl', e);
+      // housekeeping only: a room that could not push its expiry out is still
+      // a room that is running fine, so this never raises the fault banner
+      console.warn(`[engine ${this.code}] ttl refresh failed`, e);
     }
   }
 

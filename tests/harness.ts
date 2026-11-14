@@ -3,6 +3,7 @@ import { initialEngine } from '../src/state/room.ts';
 import { LEASE_TTL_MS, PROTOCOL_VERSION } from '../src/state/protocol.ts';
 import type { GameDefinition, PlayerInfo, RoomMode, RoomSettings } from '../src/engine/types.ts';
 import type { EngineNode, GameInputEntry, GameTimer, RoomData, RoomPhase } from '../src/types.ts';
+import { packInput } from '../src/types.ts';
 import { FakeStore } from './fakeStore.ts';
 
 /** A clock the test owns: every deadline in these scenarios is a number. */
@@ -216,7 +217,8 @@ export class Harness {
       roundId: engine.roundId ?? '',
       phaseId: engine.phaseId ?? '',
       stageKey: engine.stageKey ?? '',
-      input,
+      // packed, exactly as a phone sends it (see packInput in src/types.ts)
+      input: packInput(input) ?? input,
     };
     this.store.patch({ [`engine/game/inputs/${inputId}`]: entry });
     await this.settle();

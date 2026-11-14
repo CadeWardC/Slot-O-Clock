@@ -1,6 +1,6 @@
 import { useEffect, useReducer, useRef, useState } from 'react';
 import { TimerBar, useCountdown } from '../../components/ui';
-import { Confetti } from '../../components/fx';
+import { BigCount, Confetti } from '../../components/fx';
 import { serverNow } from '../../state/serverTime';
 import type { GameViewProps, PlayerInfo } from '../../engine/types';
 import {
@@ -11,6 +11,7 @@ import {
   BOOM_SIPS,
   CATCH_SIPS,
   HANDOFF_MS,
+  START_MS,
   type BcFeed,
   type BcInput,
   type BcShotLog,
@@ -102,10 +103,26 @@ export function View({ state, me, players, variant, timerEndsAt, submitInput }: 
   }, [linger]);
   const holding = cup != null && s.phase !== 'handoff';
   const laneCup = holding ? cup : (linger?.cup ?? null);
+  // the count-in: nothing has been flicked yet and the first ball is not live
+  const startLeft = useCountdown(s.seq === 0 && s.startAt > 0 ? s.startAt : null) ?? 0;
+  const countIn = startLeft > 0 ? Math.min(Math.ceil(START_MS / 1000), Math.ceil(startLeft / 1000)) : 0;
 
   return (
     <div className="gv bc">
-      <Headline s={s} players={players} meUid={me.uid} cup={cup} iChoose={iChoose} />
+      {countIn > 0 ? (
+        <div className="bc-head bc-countin">
+          <div className="bc-countin-text">
+            <p className="fx-kicker">{cup != null ? `you start with the ${CUP_NAME[cup]} cup` : 'you start without a cup'}</p>
+            <h2 className="fx-title bc-head-title fx-title-gold">Get ready</h2>
+            <p className="bc-head-sub">
+              {cup != null ? 'Flick the ball up into your cup when the count ends.' : 'Watch the cups. One is coming your way.'}
+            </p>
+          </div>
+          <BigCount n={countIn} />
+        </div>
+      ) : (
+        <Headline s={s} players={players} meUid={me.uid} cup={cup} iChoose={iChoose} />
+      )}
 
       <TableMap s={s} players={players} meUid={me.uid} />
 
@@ -167,8 +184,30 @@ export function View({ state, me, players, variant, timerEndsAt, submitInput }: 
 
       {s.phase === 'handoff' && <TimerBar deadline={timerEndsAt} totalMs={HANDOFF_MS} />}
 
-      <Feed feed={feed} players={players} meUid={me.uid} newestId={lastEvent?.id ?? 0} />
+      {feed.length === 0 ? (
+        <HowTo />
+      ) : (
+        <Feed feed={feed} players={players} meUid={me.uid} newestId={lastEvent?.id ?? 0} />
+      )}
     </div>
+  );
+}
+
+/* ---------- the whole game in three lines, until something happens ---------- */
+
+function HowTo() {
+  return (
+    <ol className="bc-howto">
+      <li>
+        <b>Two cups go round the table</b>, clockwise. The map shows who has them.
+      </li>
+      <li>
+        <b>Got a cup? Flick the ball in.</b> When it drops, the cup moves to the next player.
+      </li>
+      <li>
+        <b>Don't get caught.</b> If a cup reaches you while you still have the other one, you drink.
+      </li>
+    </ol>
   );
 }
 
@@ -210,15 +249,17 @@ function Headline({
     if (behind === 1) {
       title = 'Sink it or drink';
       tone = 'fx-title-red';
-      sub = `${nameOf(players, otherUid)}'s cup is one seat behind you.`;
+      sub = `${nameOf(players, otherUid)} is right behind you. If their cup reaches you before you sink yours, you drink.`;
     } else if (ahead === 1) {
       title = 'Go for the catch';
       tone = 'fx-title-green';
-      sub = `Sink it and ${nameOf(players, otherUid)} drinks.`;
+      sub = `${nameOf(players, otherUid)} is next to you and still has a cup. Sink yours and they drink.`;
     } else {
       title = 'Flick it in';
       tone = 'fx-title-gold';
-      sub = otherUid ? `${nameOf(players, otherUid)}'s cup is ${seats(behind)} behind you.` : 'First try and you pick who gets it.';
+      sub = otherUid
+        ? `Flick the ball into the cup to pass it on. ${nameOf(players, otherUid)}'s cup is chasing you, ${seats(behind)} back.`
+        : 'Flick the ball into the cup. First try and you pick who gets it.';
     }
   } else {
     // no cup: which one reaches me first?
@@ -230,10 +271,13 @@ function Headline({
     if (near && near.d === 1) {
       title = "You're next";
       tone = 'fx-title-gold';
-      sub = `${nameOf(players, near.uid)}'s cup comes to you when it drops.`;
+      sub = `${nameOf(players, near.uid)} is shooting. The moment it goes in, that cup is yours.`;
     } else {
       title = 'Watch the table';
-      sub = near && near.d < 99 ? `Nearest cup is ${seats(near.d)} away.` : 'The next cup that reaches you is yours.';
+      sub =
+        near && near.d < 99
+          ? `Nothing to do yet. The nearest cup is ${seats(near.d)} away from you.`
+          : 'Nothing to do yet. The next cup that reaches you is yours.';
     }
   }
 
@@ -287,11 +331,13 @@ function TableMap({ s, players, meUid }: { s: BcState; players: PlayerInfo[]; me
             </i>
           ))}
         </span>
-        <span className="bc-middlenum">{s.middle} in the middle</span>
+        <span className="bc-middlenum">
+          {s.middle} {s.middle === 1 ? 'beer' : 'beers'} left
+        </span>
         {s.middle === 1 ? (
           <span className="bc-lastbeer">last beer: BOOM +{BOOM_SIPS}</span>
         ) : (
-          <span className="bc-map-dir">clockwise</span>
+          <span className="bc-map-dir">cups go clockwise ↻</span>
         )}
       </div>
 
@@ -910,9 +956,7 @@ function Feed({
 }) {
   const who = (uid: string | undefined) => (uid === meUid ? 'You' : nameOf(players, uid));
   const whom = (uid: string | undefined) => (uid === meUid ? 'you' : nameOf(players, uid));
-  if (feed.length === 0) {
-    return <p className="bc-feed-empty">Sink it and the cup moves on. Catch the other cup and they drink.</p>;
-  }
+  if (feed.length === 0) return null;
   const line = (e: BcFeed) => {
     const cupName = CUP_NAME[e.cup];
     switch (e.kind) {

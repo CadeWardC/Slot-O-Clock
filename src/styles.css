@@ -1476,16 +1476,16 @@ a { color: var(--gold); }
 .throw-cancel { background: none; border: none; color: var(--muted); }
 
 /* where a throw lands */
-.rx { position: fixed; inset: 0; pointer-events: none; z-index: 200; }
-.rx-hit { position: absolute; inset: 0; }
-.rx-splat {
+.thrown { position: fixed; inset: 0; pointer-events: none; z-index: 200; }
+.thrown-hit { position: absolute; inset: 0; }
+.thrown-splat {
   position: absolute;
   font-size: 9rem;
   line-height: 1;
   translate: -50% -50%;
-  animation: rxSplat 2.6s ease-in both;
+  animation: thrownSplat 2.6s ease-in both;
 }
-.rx-from {
+.thrown-from {
   position: absolute;
   left: 50%;
   bottom: 18%;
@@ -1500,7 +1500,7 @@ a { color: var(--gold); }
   font-weight: 800;
   animation: fxPop 0.3s cubic-bezier(0.2, 1.5, 0.4, 1) both;
 }
-.rx-note {
+.thrown-note {
   position: absolute;
   left: 50%;
   top: calc(14px + env(safe-area-inset-top));
@@ -1515,16 +1515,16 @@ a { color: var(--gold); }
   padding: 6px 12px;
   font-weight: 800;
   font-size: 0.88rem;
-  animation: rxNote 2.6s ease both;
+  animation: thrownNote 2.6s ease both;
 }
-@keyframes rxSplat {
+@keyframes thrownSplat {
   0% { transform: scale(0.1) rotate(0deg); opacity: 0; }
-  12% { transform: scale(1.5) rotate(var(--rx-spin, 20deg)); opacity: 1; }
-  20% { transform: scale(1.25) rotate(var(--rx-spin, 20deg)); }
-  75% { transform: scale(1.25) rotate(var(--rx-spin, 20deg)) translateY(0); opacity: 1; }
-  100% { transform: scale(1.2) rotate(var(--rx-spin, 20deg)) translateY(60vh); opacity: 0; }
+  12% { transform: scale(1.5) rotate(var(--thrown-spin, 20deg)); opacity: 1; }
+  20% { transform: scale(1.25) rotate(var(--thrown-spin, 20deg)); }
+  75% { transform: scale(1.25) rotate(var(--thrown-spin, 20deg)) translateY(0); opacity: 1; }
+  100% { transform: scale(1.2) rotate(var(--thrown-spin, 20deg)) translateY(60vh); opacity: 0; }
 }
-@keyframes rxNote {
+@keyframes thrownNote {
   0% { opacity: 0; transform: translateY(-12px); }
   10%, 85% { opacity: 1; transform: translateY(0); }
   100% { opacity: 0; transform: translateY(-12px); }
@@ -1602,7 +1602,7 @@ a { color: var(--gold); }
 .awards-actions .muted { margin: 0; }
 
 @media (prefers-reduced-motion: reduce) {
-  .wild-card, .award, .rx-splat, .rx-note { animation: none; }
+  .wild-card, .award, .thrown-splat, .thrown-note { animation: none; }
 }
 
 /* the hand-out stage every game shares */

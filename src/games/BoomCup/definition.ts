@@ -56,6 +56,8 @@ export const SHOT_COOLDOWN_MS = 450;
 export const HANDOFF_MS = 20_000;
 /** nobody has shot for this long → the round closes itself (phones walking off) */
 export const IDLE_MS = 150_000;
+/** the count-in before the first ball can be flicked */
+export const START_MS = 6_000;
 
 export type CupIndex = 0 | 1;
 
@@ -112,6 +114,8 @@ export interface BcState {
   miss: [number, number];
   /** earliest server time each cup can be shot again (the ball is coming back) */
   nextAt: [number, number];
+  /** server time the first ball may be flicked: the table gets a count-in first */
+  startAt: number;
   /** shared phone only: which cup's attempt it is */
   turn: CupIndex;
   /** shot counter */
@@ -186,6 +190,7 @@ export function readState(state: BcState): BcState {
     hold: state?.hold ?? ['', ''],
     miss: state?.miss ?? [0, 0],
     nextAt: state?.nextAt ?? [0, 0],
+    startAt: state?.startAt ?? 0,
     turn: state?.turn ?? 0,
     seq: state?.seq ?? 0,
     last: state?.last ?? null,
@@ -449,6 +454,7 @@ export const definition: GameDefinition<BcState, BcInput> = {
       hold: [ring[0] ?? '', ring[second] ?? ring[0] ?? ''],
       miss: [0, 0],
       nextAt: [0, 0],
+      startAt: 0,
       turn: 0,
       seq: 0,
       last: null,
@@ -474,9 +480,15 @@ export const definition: GameDefinition<BcState, BcInput> = {
     }
 
     if (event.type === 'BEGIN') {
-      // nothing is on a clock until somebody shoots; this only closes a round
-      // nobody ever actually plays
-      return { state: s, effects: [{ type: 'TIMER', ms: IDLE_MS }] };
+      // A count-in before the first ball: every phone shows who has which cup
+      // and what the game is, and nobody can flick until it runs out. After
+      // that nothing is on a clock until somebody shoots; the timer only
+      // closes a round nobody ever actually plays.
+      const startAt = ctx.now + START_MS;
+      return {
+        state: { ...s, startAt, nextAt: [startAt, startAt] },
+        effects: [{ type: 'TIMER', ms: IDLE_MS }],
+      };
     }
 
     if (event.type === 'INPUT') {

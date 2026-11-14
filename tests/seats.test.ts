@@ -12,7 +12,11 @@ import {
   inCurrentRound,
   isPresent,
   livePlayers,
+  packInput,
   playerList,
+  thrownThings,
+  unpackInput,
+  connectionIds,
   roundPlayers,
   turnOrderForRoom,
   type EngineNode,
@@ -294,4 +298,45 @@ test('a round with no roster snapshot falls back to every seat', () => {
     'p0',
     'round 1 opens with the first claimed slot',
   );
+});
+
+/* ---------- what phones write outside the engine's own commits ---------- */
+
+test('an input travels in the two fields the database rules have always allowed', () => {
+  // the rules whitelist field names under `input`; anything else is refused,
+  // which is what every newer game ran into ("your tap did not count")
+  const inputs: unknown[] = [
+    { action: 'pick', index: 2 },
+    { action: 'stroke', pts: 'a0b1'.repeat(40) },
+    { gift: { p1: 2, p2: 1 } },
+    { vote: 'p3' },
+    { most: ['p1', 'p2'] },
+    { action: 'bet', horseId: 'h1', stake: 7 },
+    { sniff: 3 },
+    { action: 'write', text: 'x'.repeat(90) },
+  ];
+  for (const input of inputs) {
+    const packed = packInput(input);
+    assert.ok(packed, 'fits');
+    assert.deepEqual(Object.keys(packed).sort(), ['action', 'text']);
+    assert.ok(typeof packed.action === 'string' && typeof packed.text === 'string');
+    assert.ok(packed.text.length <= 1000, 'inside the rules\' length cap');
+    assert.deepEqual(unpackInput(packed), input);
+  }
+  assert.equal(packInput({ text: 'x'.repeat(2000) }), null, 'too big is refused before it is sent');
+  // a plain payload (an older phone, a test) is read as it is
+  assert.deepEqual(unpackInput({ action: 'spin' }), { action: 'spin' });
+});
+
+test('a thrown thing rides in the thrower\'s seat and is never counted as a connection', () => {
+  const r = makeRoom([seat(0), seat(1), seat(2)]);
+  r.players.p1 = seat(1, {
+    connections: { 'tab-1': { at: NOW }, 'fx-abc': { at: NOW, tab: 'p2|tomato' } },
+  } as Partial<PlayerInfo>);
+  assert.deepEqual(thrownThings(r), { 'fx-abc': { from: 'p1', to: 'p2', kind: 'tomato', at: NOW } });
+  assert.deepEqual(connectionIds(r, 'p1'), ['tab-1']);
+  // the phone dropped but its throw has not been swept yet: still away
+  r.players.p1 = seat(1, { connections: { 'fx-abc': { at: NOW, tab: 'p2|egg' } } } as Partial<PlayerInfo>);
+  assert.equal(isPresent(r, 'p1'), false);
+  assert.equal(Object.keys(thrownThings(r)).length, 1);
 });

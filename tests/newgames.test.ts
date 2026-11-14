@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import type { Effect, GameContext, PlayerInfo, RoomMode } from '../src/engine/types.ts';
 import { mulberry32 } from '../src/engine/rng.ts';
-import mostLikely, { MAX_SIPS, type MlState } from '../src/games/MostLikely/definition.ts';
+import mostLikely, { POINT_SIPS, type MlState } from '../src/games/MostLikely/definition.ts';
 import knowMe, { type KmState } from '../src/games/KnowMe/definition.ts';
 
 /**
@@ -43,56 +43,69 @@ const endOf = (effects: Effect[] | undefined) =>
 
 /* ---------------- Most Likely To ---------------- */
 
-function vote(s: MlState, uid: string, target: string) {
-  return mostLikely.reduce(s, { type: 'INPUT', uid, input: { vote: target } }, ctx());
+function call(s: MlState, uid: string, most: string[]) {
+  return mostLikely.reduce(s, { type: 'INPUT', uid, input: { most } }, ctx());
 }
 function tick(s: MlState) {
   return mostLikely.reduce(s, { type: 'TIME_UP', now: 0 }, ctx());
 }
-/** play one prompt: these votes, then the reveal timer */
-function prompt(s: MlState, votes: Record<string, string>) {
-  let r = { state: s } as ReturnType<typeof vote>;
-  for (const [voter, target] of Object.entries(votes)) r = vote(r.state, voter, target);
-  if (r.state.phase === 'vote') r = tick(r.state);
+/** play one prompt: the count runs out, `uid` calls it (or nobody does), the reveal timer */
+function prompt(s: MlState, most: string[] | null, uid = 'a') {
+  let r = tick(s);
+  assert.equal(r.state.phase, 'tally', 'the count ends with fingers up');
+  r = most ? call(r.state, uid, most) : tick(r.state);
   assert.equal(r.state.phase, 'reveal');
   return tick(r.state);
 }
 
-test('Most Likely To: three different prompts, a vote is final and secret until everyone is in', () => {
+test('Most Likely To: three prompts, a count before the pointing, and the first call stands', () => {
   const s = mostLikely.createInitialState(ctx());
   assert.equal(new Set(s.prompts).size, 3);
-  let r = vote(s, 'a', 'b');
-  r = vote(r.state, 'a', 'c');
-  assert.equal(r.state.votes.a, 'b', 'one vote each, final');
-  assert.equal(vote(r.state, 'a', 'zed').state, r.state);
-  for (const v of ['b', 'c']) r = vote(r.state, v, 'b');
-  assert.equal(r.state.phase, 'vote', 'still waiting on d');
-  r = vote(r.state, 'd', 'a');
-  assert.equal(r.state.phase, 'reveal', 'last vote turns them over');
+  assert.equal(s.phase, 'count');
+  const begin = mostLikely.reduce(s, { type: 'BEGIN' }, ctx());
+  assert.ok(begin.effects?.some((fx) => fx.type === 'TIMER'), 'the countdown is on a clock');
+  assert.equal(call(s, 'a', ['b']).state, s, 'nobody can call it before the count is over');
+  let r = tick(s);
+  assert.equal(call(r.state, 'zed', ['b']).state, r.state, 'only a seated player can call it');
+  r = call(r.state, 'd', ['b', 'nobody-here']);
+  assert.equal(r.state.phase, 'reveal');
   assert.deepEqual(r.state.rounds[0].winners, ['b']);
-  assert.equal(r.state.rounds[0].sips, 3);
+  assert.equal(r.state.rounds[0].sips, POINT_SIPS);
+  assert.equal(r.state.rounds[0].by, 'd');
+  assert.equal(call(r.state, 'a', ['c']).state, r.state, 'the first call stands');
 });
 
-test('Most Likely To: ties drink together, the cap holds, a silent prompt costs nothing, one bill at the end', () => {
-  let s = mostLikely.createInitialState(ctx());
-  let r = prompt(s, { a: 'b', b: 'b', c: 'b', d: 'b' }); // 4 votes, capped
+test('Most Likely To: ties drink together, an uncalled prompt costs nothing, one bill at the end', () => {
+  const s = mostLikely.createInitialState(ctx());
+  let r = prompt(s, ['b']);
   assert.ok(r.effects?.some((fx) => fx.type === 'CLEAR_INPUTS'), 'next prompt opens a new stage');
-  r = prompt(r.state, { a: 'c', b: 'd' }); // tie, 1 each
-  r = prompt(r.state, {}); // nobody voted
+  assert.equal(r.state.phase, 'count');
+  r = prompt(r.state, ['d', 'c'], 'b'); // a tie
+  r = prompt(r.state, null); // nobody called it
   const end = endOf(r.effects);
   assert.ok(end);
   const bill = Object.fromEntries((end.assignments ?? []).map((a) => [a.uid, a.sips]));
-  assert.deepEqual(bill, { b: Math.min(MAX_SIPS, 4), c: 1, d: 1 });
-  assert.ok((end.highlights ?? []).some((h) => h.kind === 'mlt-unanimous' && h.uid === 'b'));
+  assert.deepEqual(bill, { b: POINT_SIPS, c: POINT_SIPS, d: POINT_SIPS });
+  assert.ok((end.highlights ?? []).some((h) => h.kind === 'mlt-clean' && h.uid === 'a'));
 });
 
-test('Most Likely To: winning all three is a reputation', () => {
-  let r = { state: mostLikely.createInitialState(ctx()) } as ReturnType<typeof vote>;
-  for (let i = 0; i < 3; i++) r = prompt(r.state, { a: 'c', b: 'c', d: 'a' });
+test('Most Likely To: "too close to call" is a call, and nobody drinks for it', () => {
+  let r = { state: mostLikely.createInitialState(ctx()) } as ReturnType<typeof call>;
+  for (let i = 0; i < 3; i++) r = prompt(r.state, []);
+  const end = endOf(r.effects);
+  assert.deepEqual(end?.assignments, []);
+});
+
+test('Most Likely To: pointed at all three times is a reputation', () => {
+  let r = { state: mostLikely.createInitialState(ctx()) } as ReturnType<typeof call>;
+  for (let i = 0; i < 3; i++) r = prompt(r.state, ['c']);
   const end = endOf(r.effects);
   const magnet = end?.highlights?.find((h) => h.kind === 'mlt-magnet');
   assert.equal(magnet?.uid, 'c');
-  assert.equal(magnet?.n, 6);
+  assert.deepEqual(
+    (end?.assignments ?? []).map((a) => [a.uid, a.sips]),
+    [['c', POINT_SIPS * 3]],
+  );
 });
 
 /* ---------------- Know Me ---------------- */

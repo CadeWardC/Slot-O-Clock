@@ -187,15 +187,11 @@ const BY_KIND: Record<string, Line[]> = {
   'sketch-one-missed': ['Everyone got {text} except {name}, who was looking at a different picture.'],
 
   // Most Likely To
-  'mlt-unanimous': [
-    'Every single vote went to {name}: most likely to {text}. No debate, no appeal.',
-    'Unanimous. {name} is most likely to {text}, and {name} knows it.',
+  'mlt-clean': ['Everyone else got pointed at. {name} did not. Either blameless or forgettable.'],
+  'mlt-magnet': [
+    'Every finger, all three times: {name}. That is not a reputation, that is a file.',
+    '{name} got pointed at three times out of three. The table has made up its mind.',
   ],
-  'mlt-self-vote': [
-    '{name} voted for themselves as most likely to {text}, and won. Self-awareness is a gift.',
-  ],
-  'mlt-clean': ['Three prompts and not one vote for {name}. Either blameless or forgettable.'],
-  'mlt-magnet': ['{name} won all three with {n} votes. That is not a reputation, that is a file.'],
 
   // Know Me
   'know-best': [

@@ -149,10 +149,7 @@ const room: RoomData = {
       pairs: { p0: { p2: 7, p4: 2 }, p2: { p0: 2 }, p1: { p2: 1 } },
     },
   },
-  social:
-    party && phase === 'outcome'
-      ? { fx: { a: { from: 'p2', to: meUid, kind: 'tomato', at: now }, b: { from: 'p4', to: 'p3', kind: 'clap', at: now } } }
-      : null,
+  social: null,
 };
 
 const noop = async () => {};

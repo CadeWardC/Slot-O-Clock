@@ -36,7 +36,7 @@ import type {
 import type { PlayerInfo, RoomMode, RoomSettings } from '../engine/types';
 import { allGames } from '../games';
 import { triviaTopics } from '../games/Trivia/definition';
-import { engineOf, playerList, randomRoomCode, stageInputs } from '../types';
+import { engineOf, packInput, playerList, randomRoomCode, stageInputs, THROW_PREFIX } from '../types';
 
 const SESSION_KEY = 'soc.session';
 const PROFILE_KEY = 'soc.profile';
@@ -142,6 +142,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile>(loadProfile);
   const [notice, setNotice] = useState<string | null>(null);
   const noticeTimer = useRef<number | undefined>(undefined);
+  // The newest snapshot, for actions: a handler a game view captured a few
+  // renders ago must still stamp its tap with the stage that is on screen now.
+  const roomRef = useRef<RoomData | null>(null);
+  roomRef.current = room;
 
   /** this tab's identity: the unit of "one authority" and of presence */
   const instanceId = useMemo(() => tabInstanceId(), []);
@@ -484,10 +488,16 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
    */
   const submitInput = useCallback(
     async (input: unknown, forUid?: string) => {
-      if (!db || !session || !room) return;
-      const engine = engineOf(room);
+      const live = roomRef.current;
+      if (!db || !session || !live) return;
+      const engine = engineOf(live);
       if (!engine || engine.phase !== 'playing') return;
       if (!engine.roundId || !engine.phaseId || !engine.stageKey) return;
+      const packed = packInput(input);
+      if (!packed) {
+        notify("That was too big to send");
+        return;
+      }
       const inputId = shortId();
       const entry: GameInputEntry = {
         inputId,
@@ -497,20 +507,44 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
         roundId: engine.roundId,
         phaseId: engine.phaseId,
         stageKey: engine.stageKey,
-        input,
+        input: packed,
       };
       try {
         await set(ref(db, `rooms/${session.code}/engine/game/inputs/${inputId}`), entry);
       } catch (e) {
-        const text = String(e);
-        notify(
-          /permission|denied/i.test(text)
-            ? 'That round just moved on — your tap did not count'
-            : "Couldn't send that — check your connection",
-        );
+        if (!/permission|denied/i.test(String(e))) {
+          notify("Couldn't send that — check your connection");
+          return;
+        }
+        // Refused by the rules. Say which of the three reasons it was, because
+        // "the round moved on" is only true for one of them.
+        const now = roomRef.current;
+        const after = engineOf(now);
+        if (now && !now.players?.[session.uid]) {
+          // my seat is gone (cleared while this phone was away): take it back
+          const name = profile.name.trim();
+          if (name && now.meta.mode === 'party') {
+            await set(
+              ref(db, `rooms/${session.code}/players/${session.uid}`),
+              newPlayer(session.uid, name, profile.emoji),
+            ).catch(() => {});
+          }
+          notify('You were out of the room. You are back in from the next game');
+        } else if (!after || after.stageKey !== entry.stageKey) {
+          notify('That round just moved on — your tap did not count');
+        } else {
+          // same stage, seat intact, still refused: this phone's sign-in went
+          // stale (it happens after a long spell in the background)
+          await ensureAuth().catch(() => {});
+          try {
+            await set(ref(db, `rooms/${session.code}/engine/game/inputs/${inputId}`), entry);
+          } catch {
+            notify('That tap was refused. Reload the page if it keeps happening');
+          }
+        }
       }
     },
-    [db, session, room, notify],
+    [db, session, notify, profile.name, profile.emoji],
   );
 
   /**
@@ -564,25 +598,30 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [engineCommand]);
 
   // Things players throw at each other. Not authoritative, not part of the
-  // engine: one small node per throw, removed again a few seconds later by the
-  // phone that threw it. A failed write (rules not published yet) is silent.
+  // engine: one small entry per throw in the thrower's own seat (see
+  // `thrownThings` in types.ts), removed again a few seconds later by the
+  // phone that threw it — or by the server if that phone drops first.
   const lastThrow = useRef(0);
   const throwAt = useCallback(
     async (toUid: string, kind: string) => {
-      if (!db || !session || !room) return;
+      const live = roomRef.current;
+      if (!db || !session || !live?.players?.[session.uid]) return;
       const now = Date.now();
       if (now - lastThrow.current < 1200) return;
       lastThrow.current = now;
-      const id = shortId();
-      const path = rpath(`social/fx/${id}`);
+      const node = ref(
+        db,
+        `rooms/${session.code}/players/${session.uid}/connections/${THROW_PREFIX}${shortId()}`,
+      );
       try {
-        await set(ref(db, path), { from: session.uid, to: toUid, kind, at: serverNow() });
-        window.setTimeout(() => void remove(ref(db!, path)).catch(() => {}), 6000);
+        onDisconnect(node).remove().catch(() => {});
+        await set(node, { at: serverNow(), tab: `${toUid}|${kind}` });
+        window.setTimeout(() => void remove(node).catch(() => {}), 6000);
       } catch {
-        /* nothing to do: a thrown tomato is not worth an error */
+        notify("That one didn't leave your hand — try again");
       }
     },
-    [db, session, room],
+    [db, session, notify],
   );
 
   const pickNextGame = useCallback(
