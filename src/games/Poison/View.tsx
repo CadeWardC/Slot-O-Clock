@@ -315,7 +315,8 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
         return;
       }
       const next = hover === c ? null : c;
-      submitInput({ hover: next });
+      // -1 = hand off the table: the database drops a null field, and with it the whole input
+      submitInput({ hover: next ?? -1 });
     };
     return (
       <div className="gv ps">

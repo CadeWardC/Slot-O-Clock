@@ -113,6 +113,29 @@ await deny('stale input', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', 
 await deny('oversized input', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', { ...input, inputId: 'evil', input: { text: 'x'.repeat(1001) } });
 await deny('scalar input payload', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', { ...input, inputId: 'evil', input: 'x'.repeat(2000) });
 await deny('nested input abuse', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', { ...input, inputId: 'evil', input: { shot: { dx: 0, dy: 0, ms: 1, garbage: 'x' } } });
+// every field a game's view actually sends has to pass the input schema
+const payloads = {
+  sketchyPick: { action: 'pick', index: 2 },
+  sketchyStroke: { action: 'stroke', pts: '00ff'.repeat(40) },
+  sketchyVerdict: { action: 'verdict', got: true },
+  sketchyGuess: { action: 'guess', text: 'rainbow' },
+  knowMe: { pick: 1 },
+  mostLikely: { vote: 'host' },
+  promptsVote: { vote: false },
+  chickenBail: { action: 'bail', at: now },
+  tallyGive: { action: 'gift', give: { host: 2, guest: 1 } },
+  boomCupGive: { give: 'host' },
+  horseBet: { action: 'bet', horseId: 'h1', stake: 3 },
+  poisonSniff: { sniff: 2 },
+  poisonHover: { hover: -1 },
+  poisonReact: { react: '😈' },
+  winnersGift: { gift: { host: 1 } },
+};
+for (const [id, payload] of Object.entries(payloads)) {
+  await allow(`input ${id}`, 'guest', `rooms/TEST/engine/game/inputs/${id}`, 'PUT', { ...input, inputId: id, input: payload });
+}
+await deny('oversized stroke', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', { ...input, inputId: 'evil', input: { action: 'stroke', pts: 'f'.repeat(164) } });
+await deny('non-numeric hand-out', 'guest', 'rooms/TEST/engine/game/inputs/evil', 'PUT', { ...input, inputId: 'evil', input: { gift: { host: 'x'.repeat(500) } } });
 // the engine acknowledges (or refuses) an input inside its whole-engine transaction
 const acked = await runTransaction(ref(clients.get('host').db, 'rooms/TEST/engine'), (cur) => cur ? {
   ...cur,

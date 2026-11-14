@@ -210,7 +210,10 @@
                     ".validate": "(newData.isString() && newData.val().length <= 1000) && newData.getPriority() === null"
                   },
                   "give": {
-                    ".validate": "(newData.isString() && newData.val().length <= 1000) && newData.getPriority() === null"
+                    "$uid": {
+                      ".validate": "($uid.length <= 128 && newData.isNumber()) && newData.getPriority() === null"
+                    },
+                    ".validate": "((newData.isString() && newData.val().length <= 1000) || newData.hasChildren()) && newData.getPriority() === null"
                   },
                   "text": {
                     ".validate": "(newData.isString() && newData.val().length <= 1000) && newData.getPriority() === null"
@@ -225,7 +228,7 @@
                     ".validate": "(newData.isNumber()) && newData.getPriority() === null"
                   },
                   "vote": {
-                    ".validate": "(newData.isBoolean()) && newData.getPriority() === null"
+                    ".validate": "(newData.isBoolean() || (newData.isString() && newData.val().length <= 128)) && newData.getPriority() === null"
                   },
                   "early": {
                     ".validate": "(newData.isBoolean()) && newData.getPriority() === null"
@@ -247,6 +250,39 @@
                     "$other": {
                       ".validate": false
                     }
+                  },
+                  "gift": {
+                    "$uid": {
+                      ".validate": "($uid.length <= 128 && newData.isNumber()) && newData.getPriority() === null"
+                    },
+                    ".validate": "(newData.hasChildren()) && newData.getPriority() === null"
+                  },
+                  "index": {
+                    ".validate": "(newData.isNumber()) && newData.getPriority() === null"
+                  },
+                  "pick": {
+                    ".validate": "(newData.isNumber()) && newData.getPriority() === null"
+                  },
+                  "at": {
+                    ".validate": "(newData.isNumber()) && newData.getPriority() === null"
+                  },
+                  "stake": {
+                    ".validate": "(newData.isNumber()) && newData.getPriority() === null"
+                  },
+                  "sniff": {
+                    ".validate": "(newData.isNumber()) && newData.getPriority() === null"
+                  },
+                  "hover": {
+                    ".validate": "(newData.isNumber()) && newData.getPriority() === null"
+                  },
+                  "got": {
+                    ".validate": "(newData.isBoolean()) && newData.getPriority() === null"
+                  },
+                  "pts": {
+                    ".validate": "(newData.isString() && newData.val().length <= 160) && newData.getPriority() === null"
+                  },
+                  "react": {
+                    ".validate": "(newData.isString() && newData.val().length <= 32) && newData.getPriority() === null"
                   },
                   "$other": {
                     ".validate": false
