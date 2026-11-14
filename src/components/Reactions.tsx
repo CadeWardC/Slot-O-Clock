@@ -35,6 +35,7 @@ export function Reactions() {
   const { room, me } = useApp();
   const [landed, setLanded] = useState<Landed[]>([]);
   const seen = useRef(new Set<string>());
+  const timers = useRef(new Set<number>());
   const fx = room?.social?.fx;
 
   useEffect(() => {
@@ -55,13 +56,20 @@ export function Reactions() {
     }
     if (fresh.length === 0) return;
     setLanded((cur) => [...cur, ...fresh]);
+    // Not tied to this effect's cleanup: the room snapshot (and so `fx`) is a
+    // new object on every update, and a cleanup would cancel the removal.
     const ids = new Set(fresh.map((f) => f.id));
-    const t = window.setTimeout(
-      () => setLanded((cur) => cur.filter((l) => !ids.has(l.id))),
-      SHOW_MS,
-    );
-    return () => window.clearTimeout(t);
+    const t = window.setTimeout(() => {
+      timers.current.delete(t);
+      setLanded((cur) => cur.filter((l) => !ids.has(l.id)));
+    }, SHOW_MS);
+    timers.current.add(t);
   }, [fx]);
+
+  useEffect(() => {
+    const pending = timers.current;
+    return () => pending.forEach((t) => window.clearTimeout(t));
+  }, []);
 
   if (!room || landed.length === 0) return null;
   const nameOf = (uid: string) => room.players?.[uid]?.name ?? 'Someone';
