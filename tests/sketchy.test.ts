@@ -68,6 +68,16 @@ test('Sketchy: only the artist picks and only the artist draws', async () => {
   assert.equal(h.state.strokes.length, 2, 'nor rub it out');
   await h.submit(artist, { action: 'undo' });
   assert.deepEqual(h.state.strokes, [STROKE]);
+  // a line that went out in three pieces comes back off in one undo
+  for (const pts of ['01010202', '02020303', '03030404']) await h.submit(artist, { action: 'stroke', pts });
+  await h.submit(artist, { action: 'undo', n: 3 });
+  assert.deepEqual(h.state.strokes, [STROKE]);
+  await h.submit(artist, { action: 'undo', n: 99 });
+  assert.equal((h.state.strokes ?? []).length, 0, 'never more than there is');
+  await h.submit(artist, { action: 'stroke', pts: STROKE });
+  await h.submit(artist, { action: 'undo', n: -4 });
+  assert.equal((h.state.strokes ?? []).length, 0, 'a nonsense count still takes one');
+  await h.submit(artist, { action: 'stroke', pts: STROKE });
   await h.submit(artist, { action: 'clear' });
   assert.equal((h.state.strokes ?? []).length, 0);
 });

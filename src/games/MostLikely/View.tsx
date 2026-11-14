@@ -36,6 +36,13 @@ export function View({ state, me, players, timerEndsAt, submitInput, variant }: 
     setSent(false);
   }, [idx, state.phase]);
 
+  // a call that never landed must not leave this phone's buttons dead
+  useEffect(() => {
+    if (!sent) return;
+    const id = window.setTimeout(() => setSent(false), 3000);
+    return () => window.clearTimeout(id);
+  }, [sent]);
+
   // a buzz on zero, so nobody has to be looking at the phone to point on time
   const pointNow = state.phase === 'tally' || (state.phase === 'count' && left != null && left <= 0);
   useEffect(() => {

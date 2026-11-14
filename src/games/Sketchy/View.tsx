@@ -14,10 +14,12 @@ import {
 
 type Pt = [number, number];
 /**
- * A line is sent every this many points while the finger is still down, so
- * the table watches it being drawn instead of getting each stroke when it ends.
+ * A line still being drawn is sent in pieces, so the table watches it appear
+ * instead of getting each stroke when the finger lifts. Pieces go out on a
+ * clock rather than per point: every piece is a commit on the host, and a
+ * fast scribble must not flood it.
  */
-const CHUNK_POINTS = 12;
+const PIECE_MS = 450;
 /** a new point is kept once the finger has moved this far (0–255 grid) */
 const MIN_STEP = 5;
 
@@ -71,7 +73,7 @@ function Pad({
 }: {
   initial: string[];
   onStroke: (pts: string) => void;
-  onUndo: () => void;
+  onUndo: (pieces: number) => void;
   onClear: () => void;
 }) {
   const [mine, setMine] = useState<string[]>(initial);
@@ -79,6 +81,10 @@ function Pad({
   const liveRef = useRef<Pt[]>([]);
   const countRef = useRef(initial.length);
   const drawing = useRef(false);
+  /** pieces per pen stroke, so Undo takes back a whole line and not a third of one */
+  const groups = useRef<number[]>(initial.map(() => 1));
+  /** when the piece in hand was started */
+  const pieceAt = useRef(0);
   const full = mine.length >= MAX_STROKES;
 
   const at = (e: RPointerEvent<SVGSVGElement>): Pt => {
@@ -90,6 +96,8 @@ function Pad({
     if (pts.length === 0 || countRef.current >= MAX_STROKES) return;
     const s = pack(pts);
     countRef.current += 1;
+    const g = groups.current;
+    if (g.length > 0) g[g.length - 1] += 1;
     setMine((m) => [...m, s]);
     onStroke(s);
   };
@@ -99,6 +107,8 @@ function Pad({
     e.preventDefault();
     e.currentTarget.setPointerCapture?.(e.pointerId);
     drawing.current = true;
+    groups.current.push(0);
+    pieceAt.current = performance.now();
     liveRef.current = [at(e)];
     setLive(liveRef.current);
   };
@@ -109,10 +119,12 @@ function Pad({
     const last = cur[cur.length - 1];
     if (last && Math.hypot(p[0] - last[0], p[1] - last[1]) < MIN_STEP) return;
     let next = [...cur, p];
-    if (next.length >= Math.min(CHUNK_POINTS, MAX_POINTS)) {
+    const due = next.length >= MAX_POINTS || (next.length >= 2 && performance.now() - pieceAt.current >= PIECE_MS);
+    if (due) {
       // a long line goes out in pieces, each picking up where the last ended
       commit(next);
       next = [p];
+      pieceAt.current = performance.now();
       if (countRef.current >= MAX_STROKES) drawing.current = false;
     }
     liveRef.current = next;
@@ -121,7 +133,11 @@ function Pad({
   const up = () => {
     if (!drawing.current) return;
     drawing.current = false;
-    commit(liveRef.current);
+    const g = groups.current;
+    const sentSome = g.length > 0 && g[g.length - 1] > 0;
+    // the lone point left over after a piece went out is already on the paper
+    if (!(sentSome && liveRef.current.length < 2)) commit(liveRef.current);
+    if (g.length > 0 && g[g.length - 1] === 0) g.pop();
     liveRef.current = [];
     setLive([]);
   };
@@ -147,9 +163,10 @@ function Pad({
           className="sk-tool"
           disabled={mine.length === 0}
           onClick={() => {
-            countRef.current = Math.max(0, countRef.current - 1);
-            setMine((m) => m.slice(0, -1));
-            onUndo();
+            const n = Math.max(1, Math.min(groups.current.pop() ?? 1, countRef.current));
+            countRef.current = Math.max(0, countRef.current - n);
+            setMine((m) => m.slice(0, Math.max(0, m.length - n)));
+            onUndo(n);
           }}
         >
           Undo
@@ -159,6 +176,7 @@ function Pad({
           disabled={mine.length === 0}
           onClick={() => {
             countRef.current = 0;
+            groups.current = [];
             setMine([]);
             onClear();
           }}
@@ -280,7 +298,7 @@ export function View({
             key={`${actorUid}-${word}`}
             initial={strokes}
             onStroke={(pts) => submitInput({ action: 'stroke', pts })}
-            onUndo={() => submitInput({ action: 'undo' })}
+            onUndo={(n) => submitInput({ action: 'undo', n })}
             onClear={() => submitInput({ action: 'clear' })}
           />
           <TimerBar deadline={timerEndsAt} totalMs={total} />

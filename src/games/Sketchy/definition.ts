@@ -58,7 +58,8 @@ export interface SkState {
 export type SkInput =
   | { action: 'pick'; index: number }
   | { action: 'stroke'; pts: string }
-  | { action: 'undo' }
+  /** take back the last `n` pieces: one pen stroke, however many pieces it went out in */
+  | { action: 'undo'; n?: number }
   | { action: 'clear' }
   | { action: 'guess'; text: string }
   | { action: 'verdict'; got: boolean };
@@ -233,7 +234,8 @@ export const definition: GameDefinition<SkState, SkInput> = {
     }
     if (input.action === 'undo') {
       if (!isArtist || strokes.length === 0) return { state };
-      return { state: { ...state, strokes: strokes.slice(0, -1) } };
+      const n = Math.max(1, Math.min(strokes.length, Math.floor(Number(input.n) || 1)));
+      return { state: { ...state, strokes: strokes.slice(0, strokes.length - n) } };
     }
     if (input.action === 'clear') {
       if (!isArtist || strokes.length === 0) return { state };
