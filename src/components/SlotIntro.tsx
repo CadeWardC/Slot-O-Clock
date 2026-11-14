@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
  * Launch intro: the sober → drunk slider.
  *
  * The thumb starts on SOBER (green), races to DRUNK (red), wobbles with a
- * decaying bounce and dies right on the slim blue band in the middle — the
+ * decaying bounce and dies right on the mustard notch in the middle — the
  * slot. Timings here must stay in step with the `siSettle` / `siSlotLock`
  * keyframes in styles.css.
  */
@@ -45,9 +45,11 @@ export function SlotIntro({ onDone }: { onDone: () => void }) {
       onClick={() => setLeaving(true)}
     >
       <div className="logo-block si-logo">
-        <div className="logo-emoji">🎰</div>
-        <h1 className="logo-title">Slot-O-Clock</h1>
-        <p className="logo-tag">drinking minigames · one room · everyone's phone</p>
+        <div className="logo-sign">
+          <h1 className="logo-title">
+            Slot<span className="logo-o">-O-</span>Clock
+          </h1>
+        </div>
       </div>
 
       <div className="si-slider">
@@ -63,7 +65,7 @@ export function SlotIntro({ onDone }: { onDone: () => void }) {
         </div>
       </div>
 
-      <p className="si-hint">{leaving ? '🍻' : 'tap to skip'}</p>
+      <p className="si-hint">{leaving ? '' : 'tap to skip'}</p>
     </div>
   );
 }
