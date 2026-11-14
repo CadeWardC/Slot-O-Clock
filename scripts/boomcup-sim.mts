@@ -15,7 +15,8 @@
  * Run: npx tsx scripts/boomcup-sim.mts
  *  or, offline with the esbuild that ships with vite:
  *      node node_modules/esbuild/bin/esbuild scripts/boomcup-sim.mts --bundle \
- *        --platform=node --format=cjs --outfile=node_modules/.tmp-boomcup-sim.cjs \
+ *        --platform=node --format=cjs '--define:import.meta.env={}' \
+ *        --outfile=node_modules/.tmp-boomcup-sim.cjs \
  *        && node node_modules/.tmp-boomcup-sim.cjs
  */
 import {

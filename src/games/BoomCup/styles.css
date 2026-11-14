@@ -12,7 +12,8 @@
 .bc-map {
   position: relative;
   width: 100%;
-  height: 196px;
+  height: 182px;
+  margin-top: 10px;
   flex: 0 0 auto;
 }
 /* the table top: wood rim, felt, a pool of light */
@@ -73,6 +74,8 @@
   gap: 1px;
   z-index: 2;
 }
+/* far side of the table: the name goes above, so the cup never covers it */
+.bc-seat-top { flex-direction: column-reverse; }
 .bc-seat-emoji {
   width: 34px;
   height: 34px;

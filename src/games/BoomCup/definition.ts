@@ -81,6 +81,26 @@ export interface BcCatchLog {
   boom: boolean;
 }
 
+/** one line of the table's running commentary (the View words it) */
+export interface BcFeed {
+  id: number;
+  /** pass = sunk, on to the next seat · first = sunk first try, choosing ·
+   *  give = handed to a chosen player · catch / boom = `to` was caught by `uid` */
+  kind: 'pass' | 'first' | 'give' | 'catch' | 'boom';
+  uid: string;
+  to?: string;
+  cup: CupIndex;
+  at: number;
+}
+/** how many lines of commentary ride along in the state */
+export const FEED_MAX = 6;
+
+function pushFeed(s: BcState, e: Omit<BcFeed, 'id'>): BcFeed[] {
+  const feed = s.feed ?? [];
+  const id = (feed[feed.length - 1]?.id ?? 0) + 1;
+  return [...feed, { ...e, id }].slice(-FEED_MAX);
+}
+
 export interface BcState {
   phase: 'shooting' | 'handoff';
   /** the seating order this round runs on (uids) */
@@ -111,6 +131,8 @@ export interface BcState {
   lastCatch: BcCatchLog | null;
   boomUid: string | null;
   note: string | null;
+  /** the last few things that happened, oldest first */
+  feed?: BcFeed[];
 }
 
 export interface BcInput {
@@ -175,6 +197,7 @@ export function readState(state: BcState): BcState {
     lastCatch: state?.lastCatch ?? null,
     boomUid: state?.boomUid ?? null,
     note: state?.note ?? null,
+    feed: state?.feed ?? [],
   };
 }
 
@@ -201,8 +224,17 @@ function reconcile(s: BcState, ctx: GameContext): BcState {
   return { ...s, ring, hold };
 }
 
+/** how many seats a cup at `from` has to travel to reach `to` (0 = same seat) */
+export function seatsBetween(s: BcState, from: string, to: string): number {
+  const ring = s.ring ?? [];
+  const a = ring.indexOf(from);
+  const b = ring.indexOf(to);
+  if (a < 0 || b < 0 || ring.length === 0) return 0;
+  return (b - a + ring.length) % ring.length;
+}
+
 /** the next player in the seating order (wrapping) */
-function nextHolder(s: BcState, uid: string): string {
+export function nextHolder(s: BcState, uid: string): string {
   const ring = s.ring ?? [];
   if (ring.length === 0) return uid;
   const i = ring.indexOf(uid);
@@ -243,6 +275,7 @@ function passTo(
   targetUid: string,
   byUid: string,
   ctx: GameContext,
+  how: 'pass' | 'give' = 'pass',
 ): ReduceResult<BcState> {
   const other = flip(cup);
   const shared = ctx.settings.mode === 'shared';
@@ -259,6 +292,7 @@ function passTo(
   let boomUid = s.boomUid ?? null;
   let lastCatch = s.lastCatch ?? null;
   let boom = false;
+  let feed = pushFeed(s, { kind: how, uid: byUid, to: targetUid, cup, at: ctx.now });
 
   if ((hold[other] ?? '') === targetUid) {
     caught = { ...caught, [targetUid]: (caught[targetUid] ?? 0) + 1 };
@@ -273,6 +307,7 @@ function passTo(
     hold[cup] = nextHolder(s, targetUid);
     boom = middle <= 0;
     lastCatch = { uid: targetUid, byUid, at: ctx.now, boom };
+    feed = pushFeed({ ...s, feed }, { kind: boom ? 'boom' : 'catch', uid: byUid, to: targetUid, cup, at: ctx.now });
     effects.push({
       type: 'DRINKS',
       assignments: [
@@ -303,6 +338,7 @@ function passTo(
     catchers,
     boomUid,
     lastCatch,
+    feed,
     phase: 'shooting',
     give: null,
     turn: shared ? flip(s.turn ?? 0) : (s.turn ?? 0),
@@ -361,6 +397,7 @@ function shoot(
     return {
       state: {
         ...base,
+        feed: pushFeed(base, { kind: 'first', uid, cup, at: ctx.now }),
         phase: 'handoff',
         give: { uid, cup, nextUid: nextHolder(s, uid), at: ctx.now },
       },
@@ -378,7 +415,7 @@ function giveAway(s: BcState, uid: string, target: string, ctx: GameContext): Re
   // handing it to yourself isn't a thing; anything else at the table is —
   // including the player holding the other ball, which catches them
   const wanted = ring.includes(target) && target !== uid ? target : give.nextUid;
-  return passTo(s, give.cup, wanted, uid, ctx);
+  return passTo(s, give.cup, wanted, uid, ctx, 'give');
 }
 
 export const definition: GameDefinition<BcState, BcInput> = {
@@ -414,6 +451,7 @@ export const definition: GameDefinition<BcState, BcInput> = {
       lastCatch: null,
       boomUid: null,
       note: null,
+      feed: [],
     };
   },
 

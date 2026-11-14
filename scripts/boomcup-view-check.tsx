@@ -15,7 +15,8 @@
  * Run (no test runner in this repo, so bundle it with the esbuild that ships
  * with vite, then run the bundle):
  *   node node_modules/esbuild/bin/esbuild scripts/boomcup-view-check.tsx --bundle \
- *     --platform=node --format=cjs --jsx=automatic --outfile=node_modules/.tmp-bc-view.cjs
+ *     --platform=node --format=cjs --jsx=automatic --loader:.css=empty \
+ *     '--define:import.meta.env={}' --outfile=node_modules/.tmp-bc-view.cjs
  *   node node_modules/.tmp-bc-view.cjs
  */
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -52,6 +53,9 @@ function ctx(mode: RoomMode = 'party'): GameContext {
     settings: { mode, pointsMode: false, sipMultiplier: 1, enabledGames: ['boom-cup'] },
     rng: mulberry32(7),
     now,
+    roundId: 'r1',
+    phaseId: 'p1',
+    revision: 0,
   };
 }
 
@@ -99,13 +103,14 @@ const p0Html = render(opening, 'p0');
 const p1Html = render(opening, 'p1');
 expect(p0Html.includes('bc-table'), 'a holder gets the table to flick on');
 expect(p0Html.includes('flick up'), 'the holder is told what to do');
-expect(!p1Html.includes('bc-table'), 'a player with no cup does not get a dead table');
-expect(p1Html.includes('watch the chase'), 'the player with no cup watches the chase');
-const ringHtml = p0Html.slice(p0Html.indexOf('bc-ring'), p0Html.indexOf('bc-bar'));
-expect((ringHtml.match(/class="bc-dot /g) ?? []).length === 2, 'both cups are marked on the seating ring');
+expect(!p1Html.includes('flick up') && p1Html.includes('bc-table-watch'), 'a player with no cup gets lanes to watch, not one to flick');
+expect(p1Html.includes('bc-watch-lanes'), 'the player with no cup watches both lanes live');
+expect(p1Html.includes('up next'), 'and is told the cup reaches them next');
+expect((p0Html.match(/class="bc-tok bc-tok-/g) ?? []).length === 2, 'both cups sit on the table map');
+expect((p0Html.match(/class="bc-seat /g) ?? []).length === 4, 'every player has a seat at the table');
 expect(p0Html.includes('4 in the middle'), 'the middle reads out');
 expect(!p0Html.includes('bc-mercy'), 'no aim assist on a fresh cup');
-expect(p0Html.includes('Player2'), 'the other ball is named on your table');
+expect(p0Html.includes('Player2'), 'the other ball is named on your screen');
 
 /* ---- and it tells you nothing about the shot before you take it ---- */
 for (const leak of ['power', 'on target', 'off line', 'on the rim', 'aim assist', 'accuracy']) {
@@ -117,7 +122,7 @@ const missed = play('party', [() => ({ shot: { dx: 0, dy: IDEAL_SWIPE * 0.6, ms:
 const missedHtml = render(missed, 'p0');
 expect(missedHtml.includes('bc-mercy'), 'a missed cup quietly grows its mouth');
 expect(!missedHtml.includes('aim assist'), 'and the assist is never labelled');
-expect(!missedHtml.includes('miss 1'), 'and the streak is not read back to the shooter');
+expect(missedHtml.includes('✕1'), 'the miss is counted on the table map, next to the cup');
 
 /* ---- the pass moves the table to the next player ---- */
 const passed = play('party', [
@@ -125,7 +130,7 @@ const passed = play('party', [
   () => ({ shot: IN }),
 ]);
 expect(passed.hold[0] === 'p1', 'the sunk cup moved on');
-expect(!render(passed, 'p0').includes('bc-table'), 'the passer lost their table');
+expect(!render(passed, 'p0').includes('flick up'), 'the passer lost their table');
 expect(render(passed, 'p1').includes('bc-table'), 'the next player got it');
 
 /* ---- first try: the choice, and only the shooter gets it ---- */
@@ -136,9 +141,10 @@ const otherHtml = render(choosing, 'p2');
 expect(chooserHtml.includes('bc-give'), 'the shooter gets the picker');
 expect(chooserHtml.includes('CATCH them!'), 'the other ball is marked as the catch');
 expect(chooserHtml.includes('next in line'), 'the default pass is marked');
-expect((chooserHtml.match(/class="pick-person"/g) ?? []).length === 3, 'the picker offers everyone but you');
+expect((chooserHtml.match(/class="pick-person /g) ?? []).length === 3, 'the picker offers everyone but you');
 expect(!otherHtml.includes('bc-give'), 'nobody else can spend the choice');
 expect(otherHtml.includes('hold tight'), 'everyone else waits it out');
+expect(otherHtml.includes('FIRST TRY'), 'and the commentary says why');
 expect(otherHtml.includes('timerbar'), 'the choice is visibly on a clock');
 
 /* ---- the catch: they drink, the ball plays on past them ---- */
@@ -155,10 +161,11 @@ const justCaught: BcState = {
   lastCatch: { ...caught.lastCatch!, at: Date.now() },
 };
 const caughtHtml = render(justCaught, 'p2');
-expect(caughtHtml.includes('caught'), 'the catch is announced on every phone');
+expect(caughtHtml.includes('CAUGHT!'), 'the caught player gets the stamp');
+expect(render(justCaught, 'p1').includes('got caught'), 'the catch is announced on every phone');
 expect(caughtHtml.includes('bc-table'), 'the caught player still has their own cup to clear');
 expect(render(justCaught, 'p3').includes('bc-table'), 'and the ball is the next player\'s problem now');
-expect(!render(caught, 'p2').includes('caught'), 'a catch from minutes ago stops shouting');
+expect(!render(caught, 'p2').includes('bc-flash'), 'a catch from minutes ago stops shouting');
 
 /* ---- the BOOM: the chase keeps draining until the middle is dry ---- */
 const drains = Array.from({ length: 4 }, () => [
@@ -169,7 +176,7 @@ const chase = play('party', drains);
 expect(chase.middle === 0, `four catches drained the middle (${chase.middle} left)`);
 expect(!!chase.boomUid, 'the last one caught took the BOOM');
 expect(
-  render({ ...chase, lastCatch: { ...chase.lastCatch!, at: Date.now() } }, 'p0').includes('caught'),
+  render({ ...chase, lastCatch: { ...chase.lastCatch!, at: Date.now() } }, 'p0').includes('bc-flash'),
   'the catch flash renders',
 );
 
