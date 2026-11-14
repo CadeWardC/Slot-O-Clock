@@ -120,6 +120,25 @@ export interface DrinkAssignment {
   uid: string;
   sips: number;
   reason: string;
+  /**
+   * Who handed this drink out, when a player chose it (a winning bet, a banked
+   * streak, a caught cup). Feeds the "who gave whom" line on the drinks screen
+   * and the end-of-night awards; leave it out when the game itself decided.
+   */
+  fromUid?: string;
+}
+
+/**
+ * Something worth a line on the drinks screen. A game names the moment
+ * (`kind`), who it happened to and any number or word that makes the line
+ * specific; engine/roast.ts owns the wording. Unknown kinds are ignored, so a
+ * game can ship a highlight before its lines exist.
+ */
+export interface Highlight {
+  kind: string;
+  uid?: string;
+  n?: number;
+  text?: string;
 }
 
 /** one labelled, colour-coded row of the round recap shown when drinks land */
@@ -156,7 +175,14 @@ export type Effect =
    * End the round; `assignments` are applied AND shown on the outcome screen.
    * `recap` rides along to that same screen as colour-coded groups.
    */
-  | { type: 'END'; assignments?: DrinkAssignment[]; note?: string | null; recap?: OutcomeRecap };
+  | {
+      type: 'END';
+      assignments?: DrinkAssignment[];
+      note?: string | null;
+      recap?: OutcomeRecap;
+      /** moments the drinks screen can make a joke about — see `Highlight` */
+      highlights?: Highlight[];
+    };
 
 export interface ReduceResult<S> {
   state: S;

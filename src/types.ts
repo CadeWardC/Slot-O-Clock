@@ -5,6 +5,7 @@ import type {
   RoomMode,
   RoomSettings,
 } from './engine/types';
+import type { NextUp, PartyStats, SpotInfo, WildCard } from './engine/party';
 import { GATE_RECONNECT_GRACE_MS, ROOM_TTL_MS } from './state/protocol';
 
 export { ROOM_TTL_MS };
@@ -177,6 +178,14 @@ export interface EngineNode {
   recovery: RecoveryInfo | null;
   fault: FaultInfo | null;
   log: EngineLogEntry[];
+  /** the wild card in play for the round on screen (every third game) */
+  wild?: WildCard | null;
+  /** the lightweight who is on the spot this round: their drinks count double */
+  spot?: SpotInfo | null;
+  /** decided when a round ends: who (if anyone) gets to pick the next game */
+  next?: NextUp | null;
+  /** the night so far: streaks, biggest hits, who gave whom — feeds the awards */
+  stats?: PartyStats | null;
 }
 
 /**
@@ -209,6 +218,14 @@ export interface RoomMeta {
   outcome?: OutcomeInfo | null;
 }
 
+/** something one player threw at another on the drinks screen */
+export interface ThrownThing {
+  from: string;
+  to: string;
+  kind: string;
+  at: number;
+}
+
 export interface EventEntry {
   at: number;
   text: string;
@@ -221,6 +238,15 @@ export interface RoomData {
   /** legacy v1 nodes — read-only under the v2 rules */
   game?: { type?: string; state?: unknown; timerEndsAt?: number | null } | null;
   events?: Record<string, EventEntry>;
+  /**
+   * The only part of the room players write to freely: things thrown at each
+   * other (`fx`) and the lightweight's choice of next game (`pick`). Nothing
+   * here is authoritative; the engine reads `pick` and checks it itself.
+   */
+  social?: {
+    fx?: Record<string, ThrownThing>;
+    pick?: { uid: string; gateId: string; gameId: string } | null;
+  } | null;
   turnClaim?: Record<string, { uid: string; at: number }>;
 }
 

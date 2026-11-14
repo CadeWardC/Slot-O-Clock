@@ -1,0 +1,76 @@
+/* --- Chicken 🐔: one button, one number, nerve --- */
+.gv.ck { gap: 14px; align-items: stretch; justify-content: flex-start; text-align: left; padding-top: 8px; }
+
+.ck .fx-tag { align-self: flex-start; }
+.ck-head { display: flex; align-items: center; gap: 12px; }
+.ck-head-sub { font-weight: 800; font-size: 0.78rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+
+/* the number everyone is staring at */
+.ck-counter { height: 8.2rem; display: flex; align-items: center; }
+.ck-num { font-size: 9rem; line-height: 0.9; }
+.ck-num-ready { color: var(--paper); }
+
+/* the button: a mustard slab that sinks under the thumb */
+.ck-slab {
+  width: 100%;
+  min-height: min(34vh, 250px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 4px;
+  padding: 18px 20px 20px;
+  border: 3px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--hard-lg);
+  font-family: inherit;
+  color: var(--ink);
+  text-align: left;
+  position: relative;
+}
+.ck-slab-hold {
+  background: var(--gold);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+.ck-slab-down { transform: translate(5px, 6px); box-shadow: none; background: var(--orange); }
+.ck-slab-word { font-family: var(--font-display); font-size: clamp(3rem, 15vw, 4.1rem); line-height: 0.9; text-transform: uppercase; }
+.ck-slab-sub { font-weight: 800; font-size: 1rem; }
+
+/* bust: the whole slab goes tomato */
+.ck-slab-bust { background: var(--red); min-height: min(46vh, 340px); }
+.ck-slab-num { font-family: var(--font-display); font-size: 8rem; line-height: 0.9; }
+.ck .ck-stamp { position: absolute; top: 22px; right: 18px; color: var(--ink); font-size: 2.8rem; }
+
+/* got out: a paper slip */
+.ck-banked { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; transform: rotate(-1deg); }
+.ck-banked-big { margin: 4px 0 0; font-family: var(--font-display); font-size: 2rem; line-height: 1; text-transform: uppercase; }
+.ck-banked-sub { margin: 0; font-weight: 700; color: #6b6452; }
+
+.ck-line { margin: 0; font-weight: 700; }
+.ck-note { margin: 0; }
+.ck-left { font-family: var(--font-display); font-weight: 400; font-size: 1.3rem; color: var(--gold); }
+.ck-give-n { font-family: var(--font-display); margin-left: 4px; }
+.ck-give-actions { display: flex; gap: 10px; }
+.gv.ck .pick-call { text-align: left; }
+.gv.ck .pick-people { justify-content: flex-start; }
+
+/* who is still on the button */
+.ck-board { border-top: 2px dashed var(--line); }
+.ck-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 2px;
+  border-bottom: 2px dashed var(--line);
+  font-weight: 800;
+}
+.ck-row-what { font-size: 0.78rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold); }
+.ck-row-out .ck-row-what { color: var(--green); }
+.ck-row-bust .ck-row-who { background: var(--red); color: var(--ink); padding: 0 6px; border-radius: 3px; }
+.ck-row-bust .ck-row-what { color: var(--red); }

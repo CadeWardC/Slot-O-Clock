@@ -1,0 +1,159 @@
+/* --- Sketchy: a napkin, a pen, and a table shouting at it ---
+   Rules that restyle a shared class (.gv, .input, .btn, .fx-stamp) carry two
+   classes so they win whichever stylesheet happens to load last. */
+.gv.sk { width: 100%; gap: 10px; justify-content: flex-start; align-items: stretch; text-align: left; padding-top: 6px; }
+.sk > .fx-tag { align-self: flex-start; }
+.sk-line { margin: 0; }
+.sk .timerbar { width: 100%; }
+
+/* the three words on offer */
+.sk-options { display: flex; flex-direction: column; gap: 12px; margin: 4px 0 6px; }
+.sk-option {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: var(--hard);
+  padding: 18px 16px 15px;
+  cursor: pointer;
+  transform: rotate(var(--sk-tilt, 0deg));
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+.sk-option:active { transform: translateY(4px) rotate(var(--sk-tilt, 0deg)); box-shadow: none; }
+
+/* word / blanks / clock on one line */
+.sk-head { display: flex; align-items: center; gap: 10px; min-height: 40px; }
+.sk-head .fx-tag { flex: none; }
+.sk-word {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  line-height: 1.05;
+  text-transform: uppercase;
+  color: var(--gold);
+  overflow-wrap: anywhere;
+}
+.sk-blanks { flex: 1; min-width: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-end; }
+.sk-blank { width: 13px; height: 16px; border-bottom: 3px solid var(--text); }
+.sk-gap { width: 9px; }
+.sk-clock {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  line-height: 1;
+  min-width: 42px;
+  padding: 8px 6px 5px;
+  text-align: center;
+  color: var(--ink);
+  background: var(--gold);
+  border: 2.5px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: 2px 3px 0 var(--ink);
+  transform: rotate(3deg);
+}
+.sk-clock-hot { background: var(--red); }
+
+/* the napkin */
+.sk-paper {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 1;
+  align-self: center;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: var(--hard-lg);
+  overflow: hidden;
+}
+.sk-paper-small { max-width: 270px; }
+.sk-paper-pad { touch-action: none; }
+.sk-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sk-paper-pad .sk-svg { cursor: crosshair; }
+.sk-paper-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: #a39a82;
+}
+
+.sk-tools { display: flex; align-items: center; gap: 8px; }
+.sk-tool {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: transparent;
+  border: 2px solid var(--line);
+  border-radius: 9px;
+  padding: 7px 12px;
+  cursor: pointer;
+}
+.sk-tool:disabled { opacity: 0.4; cursor: default; }
+.sk-tool:not(:disabled):active { transform: scale(0.96); }
+.sk-ink { margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+
+/* guessing */
+.sk-guess { display: flex; gap: 8px; }
+.sk .sk-guess-input { flex: 1; min-width: 0; padding: 11px 12px; font-size: 1.05rem; }
+.sk .sk-guess-go { flex: none; font-size: 1rem; padding: 10px 14px 8px; }
+.sk-gotit { margin: 0; display: flex; align-items: center; gap: 14px; min-height: 50px; font-weight: 700; }
+.sk .sk-stamp { font-size: 1.2rem; padding: 6px 10px 4px; border-width: 4px; }
+.sk-count { margin: 0; font-size: 0.72rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+
+.sk-feed { list-style: none; margin: 0; padding: 0; border-top: 2px dashed var(--line); }
+.sk-feed li {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 2px dashed var(--line);
+  animation: fxRise 0.2s ease-out both;
+}
+.sk-feed-who { flex: none; font-weight: 700; font-size: 0.85rem; color: var(--muted); }
+.sk-feed-text { flex: 1; min-width: 0; font-weight: 800; overflow-wrap: anywhere; }
+.sk-feed-got { font-family: var(--font-display); font-size: 0.85rem; text-transform: uppercase; color: var(--green); }
+.sk-feed-empty { margin: 0; }
+
+.sk-verdict { display: flex; flex-direction: column; gap: 10px; }
+
+/* reveal */
+.sk-reveal { transform: rotate(-1deg); padding: 14px 16px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.gv h2.sk-reveal-word { margin: 0; font-size: 1.7rem; line-height: 1.05; color: var(--ink); overflow-wrap: anywhere; }
+.sk-reveal-stamp { flex: none; }
+.sk-result { list-style: none; margin: 0; padding: 0; border-top: 2px dashed var(--line); }
+.sk-result li { display: flex; align-items: baseline; gap: 8px; padding: 6px 0; border-bottom: 2px dashed var(--line); font-weight: 700; }
+.sk-result-pos { flex: none; width: 22px; font-family: var(--font-display); color: var(--gold); }
+.sk-result-who { flex: 1; min-width: 0; }
+.sk-result-first { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; color: var(--green); }
+.sk-result-miss .sk-result-pos { color: var(--red); }
+.sk-result-drink { font-family: var(--font-display); font-size: 0.8rem; text-transform: uppercase; color: var(--red); }
+.sk-verdict-line { font-weight: 800; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sk-feed li { animation: none; }
+}
