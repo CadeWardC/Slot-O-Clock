@@ -3,7 +3,8 @@
 .cat > .fx-tag { align-self: flex-start; margin-bottom: -6px; }
 
 /* the category sits on an index card with a red rule across the top */
-.cat-card {
+/* doubled selector: has to beat .fx-paper's own padding whichever sheet loads last */
+.fx-paper.cat-card {
   position: relative;
   padding: 32px 18px 14px;
   transform: rotate(-1deg);
