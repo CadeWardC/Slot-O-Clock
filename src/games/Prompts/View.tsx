@@ -3,9 +3,9 @@ import type { GameViewProps } from '../../engine/types';
 import type { PromptsInput, PromptsState } from './definition';
 
 const RULE_LABEL: Record<PromptsState['rule'], string> = {
-  guilty: '🙋 guilty side drinks',
-  innocent: '🙅 innocent side drinks',
-  minority: '🦄 minority drinks ×2',
+  guilty: 'Guilty drinks',
+  innocent: 'Innocent drinks',
+  minority: 'Odd ones out drink 2',
 };
 
 export function View({
@@ -36,14 +36,14 @@ export function View({
               disabled={myInput != null}
               onClick={() => submitInput({ vote: true })}
             >
-              <span className="pr-vote-emoji">🙋</span> Guilty!
+              I have
             </button>
             <button
               className={`pr-vote pr-vote-innocent ${myInput?.vote === false ? 'pr-vote-mine' : ''}`}
               disabled={myInput != null}
               onClick={() => submitInput({ vote: false })}
             >
-              <span className="pr-vote-emoji">🙅</span> Not me
+              Never
             </button>
           </div>
           <div className="pr-dots" aria-hidden="true">
@@ -53,10 +53,9 @@ export function View({
               </span>
             ))}
           </div>
-          <p className="muted">
-            {myInput ? '🔒 Vote locked in · ' : ''}
-            {answeredUids.length}/{players.length} voted
-            {left != null ? ` · ${Math.ceil(left / 1000)}s` : ''}
+          <p className="muted pr-status">
+            {answeredUids.length} of {players.length} in
+            {left != null ? `, ${Math.ceil(left / 1000)}s left` : ''}
           </p>
         </>
       ) : (
@@ -75,7 +74,7 @@ export function View({
                     return (
                       <span key={uid} className={`recap-chip ${a ? 'recap-chip-drinks' : ''}`}>
                         {p.emoji} {p.name}
-                        {a && <span className="recap-chip-sips">🍺×{a.sips}</span>}
+                        {a && <span className="recap-chip-sips">{a.sips}</span>}
                       </span>
                     );
                   })}
@@ -84,7 +83,7 @@ export function View({
             ))}
           {state.note && <p className="tr-note">{state.note}</p>}
           {(state.assignments ?? []).length > 0 && (
-            <p className="muted small">🍺 = they drink this round</p>
+            <p className="muted small">Yellow names drink.</p>
           )}
         </div>
       )}

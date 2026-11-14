@@ -45,7 +45,6 @@ export function Lobby() {
   const need = eligible.length > 0 ? Math.min(...eligible.map((g) => g.minPlayers)) : Infinity;
   const canStart = eligible.length > 0 && active.length >= need;
   const sittingOut = eligible.filter((g) => g.minPlayers > active.length);
-  const pointsLabel = meta.settings.pointsMode ? 'points' : 'sips';
 
   const shareText = `Join my Slot-O-Clock party! 🍺 Code: ${meta.code} → ${location.origin}${location.pathname}`;
 
@@ -110,8 +109,8 @@ export function Lobby() {
         </div>
         <p className="muted small">
           {meta.mode === 'party'
-            ? 'Friends: open the same link, hit Join, enter this code.'
-            : 'One phone — add the players below and pass it around.'}
+            ? 'Everyone else opens this site and joins with the code.'
+            : 'Add everyone below, then pass the phone around.'}
         </p>
       </div>
 
@@ -163,7 +162,7 @@ export function Lobby() {
 
         {ownerGone && (
           <Button variant="ghost" size="sm" onClick={() => takeOverHost()}>
-            👑 host is away — take over the room
+            Host has gone quiet. Take over the room
           </Button>
         )}
 
@@ -189,7 +188,7 @@ export function Lobby() {
               >
                 <span className="game-toggle-emoji">{g.emoji}</span>
                 <span className="game-toggle-name">{g.name}</span>
-                <span className="game-toggle-min">{g.minPlayers}+ 👤</span>
+                <span className="game-toggle-min">{g.minPlayers}+ players</span>
                 <span className="game-toggle-check">{enabled.has(g.id) ? '✔' : ''}</span>
               </button>
             ))}
@@ -216,13 +215,13 @@ export function Lobby() {
 
           <h3>House rules</h3>
           <div className="setting-row">
-            <span>Sober mode (count {pointsLabel === 'points' ? 'points' : 'sips'} as points)</span>
+            <span>Sober mode (points, not sips)</span>
             <button className={`switch ${meta.settings.pointsMode ? 'on' : ''}`} onClick={() => setPoints(!meta.settings.pointsMode)}>
               <span className="switch-knob" />
             </button>
           </div>
           <div className="setting-row">
-            <span>Drink intensity</span>
+            <span>How hard</span>
             <div className="seg">
               {[0.5, 1, 2].map((m) => (
                 <button key={m} className={`seg-cell ${meta.settings.sipMultiplier === m ? 'on' : ''}`} onClick={() => setMultiplier(m)}>
@@ -232,7 +231,7 @@ export function Lobby() {
             </div>
           </div>
           <div className="setting-row">
-            <span>Ready checks (rules splash + between rounds)</span>
+            <span>Who moves the game on</span>
             <div className="seg">
               {(['ready', 'manual'] as const).map((p) => (
                 <button
@@ -240,7 +239,7 @@ export function Lobby() {
                   className={`seg-cell ${pacingOf(meta.settings) === p ? 'on' : ''}`}
                   onClick={() => updateSettings({ roundPacing: p })}
                 >
-                  {p === 'ready' ? 'everyone ready ✓' : 'host ▶'}
+                  {p === 'ready' ? 'everyone taps' : 'host only'}
                 </button>
               ))}
             </div>
@@ -252,14 +251,14 @@ export function Lobby() {
         {isAuthority ? (
           <Button variant="gold" size="lg" full disabled={!canStart} onClick={() => startGame()}>
             {canStart
-              ? `Start the party 🍻`
+              ? 'Deal us in'
               : eligible.length === 0
                 ? 'Enable at least one game'
                 : `Need ${need} players — ${active.length} connected`}
           </Button>
         ) : (
           <p className="lobby-waiting">
-            <span className="fx-wiggle lobby-waiting-emoji">🍻</span> Waiting for the host to start…
+            Waiting on the host to start.
           </p>
         )}
         {canStart && sittingOut.length > 0 && (

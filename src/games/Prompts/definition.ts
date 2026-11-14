@@ -54,19 +54,19 @@ function recapOf(
   const groups: OutcomeRecapGroup[] = [];
   if (guilty.length > 0) {
     groups.push({
-      label: `🙋 Guilty${guiltyDrinks ? ' — drinks' : ''}`,
+      label: `Have${guiltyDrinks ? ' (drinking)' : ''}`,
       tone: 'bad',
       uids: guilty,
     });
   }
   if (innocent.length > 0) {
     groups.push({
-      label: `🙅 Not me${innocentDrinks ? ' — drinks' : ''}`,
+      label: `Never${innocentDrinks ? ' (drinking)' : ''}`,
       tone: 'good',
       uids: innocent,
     });
   }
-  return { title: 'who picked what', groups };
+  return { title: 'Who said what', groups };
 }
 
 function reveal(state: PromptsState, ctx: GameContext): ReduceResult<PromptsState> {
@@ -81,20 +81,20 @@ function reveal(state: PromptsState, ctx: GameContext): ReduceResult<PromptsStat
 
   if (guilty.length === innocent.length && guilty.length > 0) {
     for (const uid of ctx.players.map((p) => p.uid)) {
-      assignments.push({ uid, sips: 1, reason: 'Perfectly split — everyone drinks! 🤝' });
+      assignments.push({ uid, sips: 1, reason: 'Dead even, everyone drinks' });
     }
     note = `Split down the middle: ${guilty.length} vs ${innocent.length}`;
   } else if (state.rule === 'guilty') {
-    for (const uid of guilty) assignments.push({ uid, sips: 1, reason: 'Guilty 🙋' });
-    note = `Guilty side drinks — ${guilty.length} caught`;
+    for (const uid of guilty) assignments.push({ uid, sips: 1, reason: 'Has done it' });
+    note = `${guilty.length} guilty. They drink.`;
   } else if (state.rule === 'innocent') {
-    for (const uid of innocent) assignments.push({ uid, sips: 1, reason: 'Innocent 🙅' });
-    note = `Innocent side drinks — ${innocent.length} saints`;
+    for (const uid of innocent) assignments.push({ uid, sips: 1, reason: 'Never has' });
+    note = `${innocent.length} innocent. They drink.`;
   } else {
     const minority = guilty.length < innocent.length ? guilty : innocent;
     const label = guilty.length < innocent.length ? 'guilty' : 'innocent';
-    for (const uid of minority) assignments.push({ uid, sips: 2, reason: 'Brave minority 🦄' });
-    note = `Minority (${label}) drinks ×2 — ${minority.length} brave souls`;
+    for (const uid of minority) assignments.push({ uid, sips: 2, reason: 'Odd one out' });
+    note = `The ${label} side was outnumbered. They drink 2.`;
   }
 
   return {
@@ -108,7 +108,7 @@ export const definition: GameDefinition<PromptsState, PromptsInput> = {
   name: 'Never Have I Ever',
   emoji: '🙈',
   rules:
-    'A "never have I ever" prompt appears. Everyone votes honestly — guilty or not me. The round rule decides which side drinks, and it changes every round! Votes are revealed colour-coded before anyone moves on.',
+    'A prompt comes up and everyone answers honestly: have or never. The sticker at the top says which side drinks this time, and it changes every round.',
   minPlayers: 2,
 
   createInitialState(ctx: GameContext): PromptsState {

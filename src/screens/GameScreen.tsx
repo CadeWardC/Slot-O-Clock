@@ -68,7 +68,7 @@ export function GameScreen() {
                   : gameById.get(engine?.rotation?.[engine.gameIndex] ?? '');
             return def ? (
               <>
-                <span className="game-title-emoji">{def.emoji}</span> {def.name}
+                {def.name}
               </>
             ) : (
               '…'
@@ -80,13 +80,13 @@ export function GameScreen() {
             className="head-btn"
             onClick={() => takeOverHost()}
             aria-label="take over as host"
-            title="the host phone is away — take over the room"
+            title="the host phone is away, take over the room"
           >
             👑
           </button>
         )}
         <button className="head-btn" onClick={() => setScoresOpen(true)} aria-label="scores">
-          🏆
+          scores
         </button>
       </header>
 
@@ -126,18 +126,17 @@ function EnginePaused({ room }: { room: RoomData }) {
       <div className="engine-pause engine-fault">
         <div className="gate-card">
           <div className="gate-emoji">🧯</div>
-          <h2>The game engine stopped</h2>
+          <h2>The game stopped</h2>
           <p className="muted small">
-            A write to the room failed, so nothing authoritative has moved since — no phase runs on
-            top of an unconfirmed one.
+            A save to the room failed, so the game has stopped where it was. Nothing was lost.
           </p>
           <p className="engine-detail">{fault.message}</p>
           {isAuthority ? (
             <Button variant="gold" size="lg" full onClick={() => engineCommand({ type: 'retry' })}>
-              reconcile & resume ▶
+              Try again
             </Button>
           ) : (
-            <p className="muted small">waiting for the host to reconcile it…</p>
+            <p className="muted small">Waiting on the host to restart it.</p>
           )}
         </div>
       </div>
@@ -152,15 +151,15 @@ function EnginePaused({ room }: { room: RoomData }) {
         <div className="gate-emoji">⏸</div>
         <h2>The round paused</h2>
         <p className="muted small">
-          {recovery.message}, so the {seconds}s countdown finished with nobody watching. The table
-          paused instead of skipping ahead — Resume starts a <b>fresh</b> {seconds}s countdown.
+          {recovery.message}, so the {seconds}s timer ran out with nobody watching. Resume
+          starts it again from the top.
         </p>
         {isAuthority ? (
           <Button variant="gold" size="lg" full onClick={() => engineCommand({ type: 'resume' })}>
-            resume with a fresh countdown ▶
+            Resume
           </Button>
         ) : (
-          <p className="muted small">waiting for the host to resume…</p>
+          <p className="muted small">Waiting on the host to resume.</p>
         )}
       </div>
     </div>
@@ -175,12 +174,11 @@ function JoiningNext() {
   return (
     <div className="gate">
       <div className="gate-card">
-        <div className="gate-emoji">🍻</div>
-        <h2>You're in!</h2>
-        <h1>Up next game</h1>
+        <h2>You're in</h2>
+        <h1>Next game</h1>
         <p className="muted small">
           {nextDef ? `${nextDef.emoji} ${nextDef.name} is playing right now. ` : ''}
-          This round is already under way — you'll play the next one. Tap Ready when it shows up.
+          This round started without you. You're in from the next one.
         </p>
       </div>
     </div>
@@ -212,7 +210,7 @@ function ClaimView({ room }: { room: RoomData }) {
           {nextDef?.emoji} {nextDef?.name}
         </span>
       </p>
-      <h2 className="fx-title">{isFirstSlot ? "Who's kicking things off?" : "Who's next?"}</h2>
+      <h2 className="fx-title">{isFirstSlot ? 'Who goes first?' : 'Who goes next?'}</h2>
 
       <div className="claim-order">
         {ordered.map((p, i) => (
@@ -221,7 +219,7 @@ function ClaimView({ room }: { room: RoomData }) {
             <span className="claim-order-pos">{i + 1}</span> {p.emoji} {p.name}
           </span>
         ))}
-        {ordered.length === 0 && <span className="muted">No order yet — tap below to start it.</span>}
+        {ordered.length === 0 && <span className="muted">Nobody yet.</span>}
       </div>
 
       {meta.mode === 'shared' ? (
@@ -234,14 +232,14 @@ function ClaimView({ room }: { room: RoomData }) {
           </div>
         </>
       ) : pending.length === 0 ? (
-        <p className="muted">Order locked — let's go! 🍻</p>
+        <p className="muted">Order's set.</p>
       ) : !me ? (
-        <p className="muted">You're not in this room — reload the page to take a seat.</p>
+        <p className="muted">You're not in this room. Reload to take a seat.</p>
       ) : iAmIn ? (
-        <p className="muted">You're in at spot {order.indexOf(me.uid) + 1} — waiting for the others…</p>
+        <p className="muted">You're number {order.indexOf(me.uid) + 1}. Waiting on the rest.</p>
       ) : (
         <Button variant="claim" size="lg" full className="claim-btn" onClick={() => claimTurn()}>
-          {isFirstSlot ? "I'LL START 🍺" : "I'M NEXT 🍻"}
+          {isFirstSlot ? 'Me first' : "I'm next"}
         </Button>
       )}
 
@@ -266,23 +264,19 @@ function IntroView({ room }: { room: RoomData }) {
   const pacing = pacingOf(room.meta.settings);
   return (
     <div className="intro">
-      <p className="fx-kicker intro-kicker">Game {engine?.round ?? 1} · up next</p>
-      <div className="intro-badge">
-        <span className="intro-rays" aria-hidden="true" />
+      <div className="intro-card fx-paper" key={def.id}>
+        <span className="fx-tag">Game {engine?.round ?? 1}</span>
         <div className="intro-emoji">{def.emoji}</div>
-      </div>
-      <h1 className="intro-name fx-title">{def.name}</h1>
-      <div className="intro-rules fx-panel">
-        <p className="fx-kicker">how it works</p>
-        <p>{def.rules}</p>
+        <h1 className="intro-name">{def.name}</h1>
+        <p className="intro-rules">{def.rules}</p>
       </div>
       {pacing === 'manual' ? (
         isAuthority ? (
           <Button variant="gold" size="lg" onClick={() => hostSkipRound()}>
-            Start the round ▶
+            Start
           </Button>
         ) : (
-          <p className="muted">⏸ read up — the host starts the round</p>
+          <p className="muted">The host starts when everyone has read this.</p>
         )
       ) : (
         <ReadyGate room={room} intro />
@@ -322,7 +316,7 @@ function PlayingView({ room }: { room: RoomData }) {
           <h2>Nobody left in this round</h2>
           {isAuthority ? (
             <Button variant="gold" size="lg" full onClick={() => hostSkipRound()}>
-              skip round ⏭
+              skip this game
             </Button>
           ) : (
             <p className="muted small">waiting for the host…</p>
@@ -353,7 +347,7 @@ function PlayingView({ room }: { room: RoomData }) {
         />
         {isAuthority && (
           <Button variant="ghost" size="sm" onClick={() => hostSkipRound()}>
-            skip round ⏭
+            skip this game
           </Button>
         )}
       </div>
@@ -398,7 +392,7 @@ function PlayingView({ room }: { room: RoomData }) {
         </SharedGate>
         {isAuthority && (
           <Button variant="ghost" size="sm" onClick={() => hostSkipRound()}>
-            skip round ⏭
+            skip this game
           </Button>
         )}
       </div>
@@ -413,7 +407,7 @@ function PlayingView({ room }: { room: RoomData }) {
           <div className="gate-emoji">🫥</div>
           <h2>You're not in this room</h2>
           <p className="muted small">
-            The host took your seat out. Reload to walk back in — you'll play from the next game.
+            The host removed your seat. Reload to come back in from the next game.
           </p>
           <Button variant="gold" size="lg" full onClick={() => location.reload()}>
             rejoin
@@ -440,7 +434,7 @@ function PlayingView({ room }: { room: RoomData }) {
       />
       {isAuthority && (
         <Button variant="ghost" size="sm" onClick={() => hostSkipRound()}>
-          skip round ⏭
+          skip this game
         </Button>
       )}
     </div>
@@ -459,9 +453,9 @@ function latestInput(inputs: ReturnType<typeof stageInputs>, uid: string): any {
  * the phase it was meant for.
  */
 function SendState({ status }: { status: InputStatus }) {
-  if (status === 'sending') return <p className="muted small send-state">📤 sending…</p>;
+  if (status === 'sending') return <p className="muted small send-state">sending…</p>;
   if (status === 'rejected') {
-    return <p className="muted small send-state send-rejected">⚠️ that tap didn't count — the phase had moved on</p>;
+    return <p className="muted small send-state send-rejected">Too late, that one didn't count.</p>;
   }
   return null;
 }
@@ -491,11 +485,11 @@ function SharedGate({
         <p className="gate-progress">
           {answeredCount}/{total} done
         </p>
-        <div className="gate-emoji fx-wiggle">{player.emoji}</div>
+        <div className="gate-emoji">{player.emoji}</div>
         <h2>Pass the phone to</h2>
         <h1>{player.name}</h1>
         <Button variant="gold" size="lg" full onClick={() => setUnlocked(player.uid)}>
-          {`I'm ${player.name}!`}
+          {`I'm ${player.name}`}
         </Button>
       </div>
     </div>
@@ -526,33 +520,36 @@ function OutcomeView({ room }: { room: RoomData }) {
 
   return (
     <div className="outcome">
-      {personal && mySips === 0 && <Confetti />}
-      {personal && mySips > 0 && <Confetti emojis={['🍺', '🍻', '💧']} count={14} />}
-      <p className="fx-kicker">
-        {outcome.gameEmoji} {outcome.gameName} · the damage
-      </p>
+      {personal && mySips === 0 && assignments.length > 0 && <Confetti />}
+      <p className="fx-kicker">{outcome.gameName} · the tab</p>
       {personal ? (
         mySips > 0 ? (
           <div className="outcome-me outcome-me-drink">
             <span className="outcome-me-num">{mySips}</span>
             <span className="outcome-me-text">
               {unit}
-              {mySips === 1 ? '' : 's'} for you {room.meta.settings.pointsMode ? '🎯' : '🍺'}
+              {mySips === 1 ? '' : 's'}
+              <br />
+              for you
             </span>
           </div>
         ) : (
           <div className="outcome-me outcome-me-safe">
-            <span className="outcome-me-num">😎</span>
-            <span className="outcome-me-text">you're safe</span>
+            <span className="outcome-me-num">0</span>
+            <span className="outcome-me-text">
+              nothing
+              <br />
+              for you
+            </span>
           </div>
         )
       ) : (
-        <h2 className="fx-title">Bottoms up</h2>
+        <h2 className="fx-title">Who drinks</h2>
       )}
 
       {joined && (
         <p className="muted small">
-          🍻 you're in — that round ran without you, you play the next game
+          That round ran without you. You're in from the next game.
         </p>
       )}
 
@@ -579,7 +576,7 @@ function OutcomeView({ room }: { room: RoomData }) {
 
       <div className="outcome-list">
         {assignments.length === 0 && (
-          <p className="outcome-none">{outcome.note || 'No drinks this round 🎉'}</p>
+          <p className="outcome-none">{outcome.note || 'Nobody drinks. Enjoy it.'}</p>
         )}
         {assignments.map((a, i) => {
           const p = players.find((x) => x.uid === a.uid);
@@ -593,9 +590,7 @@ function OutcomeView({ room }: { room: RoomData }) {
               <span className="outcome-who">
                 {p.emoji} {p.name}
               </span>
-              <span className="outcome-sips">
-                {'🍺'.repeat(Math.min(a.sips, 3))} <b>×{a.sips}</b>
-              </span>
+              <span className="outcome-sips">{a.sips}</span>
               <span className="outcome-reason">{a.reason}</span>
             </div>
           );
@@ -605,10 +600,10 @@ function OutcomeView({ room }: { room: RoomData }) {
       {pacing === 'manual' ? (
         isAuthority ? (
           <Button variant="gold" size="lg" onClick={() => hostSkipRound()}>
-            Continue ▶
+            Next game
           </Button>
         ) : (
-          <p className="muted">⏸ paused — the host continues when everyone's ready</p>
+          <p className="muted">The host moves on when everyone's ready.</p>
         )
       ) : (
         <ReadyGate room={room} />
@@ -654,14 +649,14 @@ function ReadyGate({ room, intro = false }: { room: RoomData; intro?: boolean })
   const nameOf = (uid: string) => byUid.get(uid)?.name ?? '?';
   const copy = intro
     ? {
-        allReady: "everyone's ready — here we go 🍻",
-        readyAll: "EVERYONE'S READY — GO 🍻",
-        ready: 'READY TO PLAY 🍻',
+        allReady: 'Everyone is in. Here we go.',
+        readyAll: 'We get it, go',
+        ready: 'Got it',
       }
     : {
-        allReady: "everyone's ready — here comes the next game 🍻",
-        readyAll: "EVERYONE'S READY 🍻",
-        ready: 'READY — NEXT GAME 🍻',
+        allReady: 'Everyone is in. Next game coming.',
+        readyAll: 'Next game',
+        ready: 'Next game',
       };
 
   if (!gate) return null;
@@ -695,15 +690,14 @@ function ReadyGate({ room, intro = false }: { room: RoomData; intro?: boolean })
 
       {reconnecting.length > 0 && (
         <p className="muted small">
-          📶 {reconnecting.map((b) => nameOf(b.uid)).join(', ')}{' '}
-          {reconnecting.length === 1 ? 'is' : 'are'} reconnecting — the gate waits a moment rather
-          than taking a dropped socket for a yes
+          {reconnecting.map((b) => nameOf(b.uid)).join(', ')}{' '}
+          {reconnecting.length === 1 ? 'is' : 'are'} reconnecting. Giving them a moment.
         </p>
       )}
       {away.length > 0 && (
         <p className="muted small">
-          📴 {away.map((b) => nameOf(b.uid)).join(', ')}{' '}
-          {away.length === 1 ? 'has' : 'have'} been dark a while — no longer holding the table up
+          {away.map((b) => nameOf(b.uid)).join(', ')}{' '}
+          {away.length === 1 ? 'has' : 'have'} been gone a while. Not waiting on them.
         </p>
       )}
 
@@ -734,8 +728,8 @@ function ReadyGate({ room, intro = false }: { room: RoomData; intro?: boolean })
       {isAuthority && !allReady && (
         <Button variant="ghost" size="sm" onClick={() => hostSkipRound()}>
           {reconnecting.length > 0 || away.length > 0
-            ? 'continue without them ▶'
-            : 'start without them ▶'}
+            ? 'Go without them'
+            : 'Go without them'}
         </Button>
       )}
       {waiting.length > 0 && (
@@ -754,9 +748,9 @@ function ScoresModal({ onClose, players }: { onClose: () => void; players: Playe
   const { isAuthority, resetDrinks, endGame, leaveRoom } = useApp();
   const sorted = [...players].sort((a, b) => b.drinkCount - a.drinkCount);
   const most = Math.max(1, ...sorted.map((p) => p.drinkCount));
-  const medal = (i: number) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`);
+  const medal = (i: number) => `${i + 1}.`;
   return (
-    <Modal title="Who's drunk the most? 🏆" onClose={onClose}>
+    <Modal title="The tab" onClose={onClose}>
       <div className="scores-list">
         {sorted.map((p, i) => (
           <div
@@ -768,7 +762,7 @@ function ScoresModal({ onClose, players }: { onClose: () => void; players: Playe
             <span className="scores-name">
               {p.emoji} {p.name} {!p.connected && !p.local && <span className="muted">(away)</span>}
             </span>
-            <span className="scores-val">🍺 {p.drinkCount}</span>
+            <span className="scores-val">{p.drinkCount}</span>
           </div>
         ))}
       </div>

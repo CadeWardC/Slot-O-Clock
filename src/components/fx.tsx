@@ -1,22 +1,26 @@
 import { useMemo } from 'react';
 
+const PAPER = ['#f6b92b', '#ff5a45', '#f7efdc', '#ff7fa8', '#7be0a0'];
+
 /**
- * A one-shot shower of emoji over the whole screen. Mount it when something
+ * A one-shot shower of cut paper (or emoji) over the whole screen. Mount it when something
  * worth celebrating (or mourning) happens; it plays once and stays out of the
  * way of taps. Purely decorative, so the layout is random per mount — nothing
  * about the game depends on it.
  */
 export function Confetti({
-  emojis = ['🎉', '✨', '🍻', '🎊', '⭐'],
-  count = 26,
+  emojis,
+  count = 30,
 }: {
+  /** pass emoji for a themed shower; leave out for plain cut paper */
   emojis?: string[];
   count?: number;
 }) {
   const bits = useMemo(
     () =>
       Array.from({ length: count }, (_, i) => ({
-        emoji: emojis[i % emojis.length],
+        emoji: emojis ? emojis[i % emojis.length] : null,
+        color: PAPER[i % PAPER.length],
         left: Math.random() * 100,
         delay: Math.random() * 0.7,
         dur: 1.6 + Math.random() * 1.6,
@@ -25,17 +29,18 @@ export function Confetti({
         size: 1.1 + Math.random() * 1.1,
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [count, emojis.join('')],
+    [count, (emojis ?? []).join('')],
   );
   return (
     <div className="fx-confetti" aria-hidden="true">
       {bits.map((b, i) => (
         <span
           key={i}
-          className="fx-confetti-bit"
+          className={`fx-confetti-bit ${b.emoji ? '' : 'fx-confetti-paper'}`}
           style={{
+            background: b.emoji ? undefined : b.color,
             left: `${b.left}%`,
-            fontSize: `${b.size}rem`,
+            fontSize: b.emoji ? `${b.size}rem` : undefined,
             animationDelay: `${b.delay}s`,
             animationDuration: `${b.dur}s`,
             ['--fx-drift' as string]: b.drift,
@@ -55,34 +60,5 @@ export function BigCount({ n, hotAt = 3 }: { n: number; hotAt?: number }) {
     <span key={n} className={`fx-count ${n <= hotAt ? 'fx-count-hot' : ''}`}>
       {n}
     </span>
-  );
-}
-
-const BG_EMOJI = ['🍺', '🎰', '🍻', '🎲', '🍹', '⭐', '🍋', '🎉', '🥂', '🍒', '🃏', '🍸'];
-
-/**
- * The room's wallpaper: a few party emoji drifting up behind every screen.
- * Fixed, faint and untouchable — it never competes with a game for attention.
- */
-export function PartyBackdrop() {
-  return (
-    <div className="party-bg" aria-hidden="true">
-      <span className="party-blob party-blob-a" />
-      <span className="party-blob party-blob-b" />
-      {BG_EMOJI.map((e, i) => (
-        <span
-          key={i}
-          className="party-bit"
-          style={{
-            left: `${(i * 37 + 6) % 96}%`,
-            fontSize: `${1.3 + ((i * 7) % 5) * 0.28}rem`,
-            animationDuration: `${17 + ((i * 5) % 9) * 2}s`,
-            animationDelay: `${-((i * 11) % 23)}s`,
-          }}
-        >
-          {e}
-        </span>
-      ))}
-    </div>
   );
 }

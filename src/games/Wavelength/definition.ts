@@ -86,7 +86,7 @@ function reveal(state: WlState, ctx: GameContext): ReduceResult<WlState> {
 
   if (entries.length === 0) {
     for (const p of ctx.players) {
-      assignments.push({ uid: p.uid, sips: 1, reason: 'Nobody dialed 🎚️' });
+      assignments.push({ uid: p.uid, sips: 1, reason: 'Nobody guessed' });
     }
     return {
       state: {
@@ -95,7 +95,7 @@ function reveal(state: WlState, ctx: GameContext): ReduceResult<WlState> {
         assignments,
         closestUids: [],
         average: null,
-        note: 'Nobody dialed a guess — everyone drinks 1 🍺',
+        note: 'Nobody guessed. Everyone drinks 1.',
       },
       effects,
     };
@@ -110,7 +110,7 @@ function reveal(state: WlState, ctx: GameContext): ReduceResult<WlState> {
   if (soloDeadOn) {
     // one dial, dead on — the clue was too easy to be a fair round
     if (ctx.actorUid) {
-      assignments.push({ uid: ctx.actorUid, sips: EASY_SIPS, reason: 'Dead on — too easy 😏' });
+      assignments.push({ uid: ctx.actorUid, sips: EASY_SIPS, reason: 'Too easy' });
     }
   } else {
     const maxD = Math.max(...entries.map((e) => e.d));
@@ -118,7 +118,7 @@ function reveal(state: WlState, ctx: GameContext): ReduceResult<WlState> {
       assignments.push({
         uid: e.uid,
         sips: FAR_SIPS,
-        reason: `${Math.round(e.value)} — miles off ${target} 🎯`,
+        reason: `Guessed ${Math.round(e.value)}, it was ${target}`,
       });
     }
   }
@@ -127,14 +127,14 @@ function reveal(state: WlState, ctx: GameContext): ReduceResult<WlState> {
 
   const badClue = avgDist > BAD_CLUE_DISTANCE;
   if (badClue && ctx.actorUid) {
-    assignments.push({ uid: ctx.actorUid, sips: BAD_CLUE_SIPS, reason: 'That clue was useless 🗣️' });
+    assignments.push({ uid: ctx.actorUid, sips: BAD_CLUE_SIPS, reason: 'Useless clue' });
   }
 
   const verdict = badClue
-    ? 'the clue sent you all over the place 🗣️'
+    ? 'the clue did not help'
     : avgDist <= EASY_DISTANCE
-      ? 'dead on ✅'
-      : 'pretty close 👌';
+      ? 'dead on'
+      : 'close enough';
 
   return {
     state: {
@@ -143,7 +143,7 @@ function reveal(state: WlState, ctx: GameContext): ReduceResult<WlState> {
       assignments,
       closestUids: closest,
       average,
-      note: `🎯 "${state.left} ↔ ${state.right}" — the target was ${target}, you averaged ${Math.round(average)} (${verdict})`,
+      note: `It was ${target}. The table averaged ${Math.round(average)}, ${verdict}.`,
     },
     effects,
   };
@@ -154,7 +154,7 @@ export const definition: GameDefinition<WlState, WlInput> = {
   name: 'Wavelength',
   emoji: '🎚️',
   rules:
-    'One player sees a hidden target on the spectrum and says a clue out loud. Everyone else dials where they think it sits — furthest guess drinks 2, and if the group averages miles off, the clue-giver drinks 2 instead. Nothing is on a clock: the clue-giver taps ready when they have one, and the dials lock in whenever you like.',
+    'One player sees a hidden number on a scale and gives a clue out loud. Everyone else guesses where it sits. Furthest guess drinks 2, unless the whole table is miles off, in which case the clue-giver drinks 2. No timer.',
   minPlayers: 3,
   sharedInput: 'all',
 

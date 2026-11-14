@@ -20,7 +20,7 @@ function Bar({
       <div className="wl-bar">
         {target != null && (
           <span className="wl-target" style={{ left: `${target}%` }}>
-            <span className="wl-target-flag">🎯</span>
+            <span className="wl-target-flag">HERE</span>
           </span>
         )}
         {Object.entries(guesses).map(([uid, value]) => (
@@ -40,7 +40,7 @@ function Bar({
 function PassOn({ onClick }: { onClick: () => void }) {
   return (
     <Button variant="ghost" size="lg" full onClick={onClick}>
-      PASS IT ON ➡️
+      Pass it on
     </Button>
   );
 }
@@ -73,29 +73,28 @@ export function View({
     if (isActor) {
       return (
         <div className="gv">
-          <span className="pr-rule-badge">🗣️ YOU GIVE THE CLUE</span>
+          <span className="pr-rule-badge">Your clue</span>
           <Bar state={state} players={players} target={state.target} guesses={{}} />
           <div className="wl-mine">{state.target}</div>
-          <h2>Think up a clue for {state.target}/100 🤫</h2>
+          <h2>Give a clue that lands on {state.target}</h2>
           <p className="muted small">
-            no clock — take as long as you want, then hit ready and say it out loud
+            No timer. Say it out loud when you've got one.
           </p>
           <Button variant="gold" size="lg" full onClick={() => submitInput({ action: 'clue' })}>
-            READY — I'VE GOT A CLUE 🗣️
+            Got one
           </Button>
         </div>
       );
     }
     return (
       <div className="gv">
-        <span className="pr-rule-badge">🗣️ THE CLUE</span>
+        <span className="pr-rule-badge">The clue</span>
         <Bar state={state} players={players} target={null} guesses={{}} />
-        <div className="gate-emoji pulse">🤫</div>
-        <h2>{actor?.name ?? 'Someone'} is thinking of a clue…</h2>
+                <h2>{actor?.name ?? 'Someone'} is thinking of a clue</h2>
         {variant === 'shared' ? (
           <PassOn onClick={() => submitInput({ action: 'wait' })} />
         ) : (
-          <p className="muted">no clock — they'll say it out loud once they're ready</p>
+          <p className="muted">They'll say it out loud when they're ready.</p>
         )}
       </div>
     );
@@ -106,12 +105,12 @@ export function View({
     if (isActor) {
       return (
         <div className="gv">
-          <span className="pr-rule-badge">🎚️ THEY'RE DIALING</span>
+          <span className="pr-rule-badge">They're guessing</span>
           <Bar state={state} players={players} target={state.target} guesses={guesses} />
           <p className="muted">
-            your target: <b className="wl-key">{state.target}</b> — keep a straight face 🙃
+            Target is <b className="wl-key">{state.target}</b>. Keep a straight face.
           </p>
-          <p className="muted small">{done}/{guessers.length} locked in — whenever they're ready</p>
+          <p className="muted small">{done} of {guessers.length} locked in</p>
           {variant === 'shared' && <PassOn onClick={() => submitInput({ action: 'wait' })} />}
         </div>
       );
@@ -120,12 +119,11 @@ export function View({
     if (myGuess != null) {
       return (
         <div className="gv">
-          <span className="pr-rule-badge">🎚️ LOCKED IN</span>
+          <span className="pr-rule-badge">Locked in</span>
           <Bar state={state} players={players} target={null} guesses={{ [me.uid]: myGuess }} />
-          <div className="gate-emoji">🔒</div>
-          <h2>You dialed {myGuess}</h2>
+                    <h2>You dialed {myGuess}</h2>
           <p className="muted">
-            waiting for the rest ({done}/{guessers.length})
+            Waiting on the rest, {done} of {guessers.length} in.
           </p>
         </div>
       );
@@ -133,7 +131,7 @@ export function View({
 
     return (
       <div className="gv">
-        <span className="pr-rule-badge">🎚️ YOUR DIAL</span>
+        <span className="pr-rule-badge">Your guess</span>
         <Bar state={state} players={players} target={null} guesses={{ [me.uid]: dial }} />
         <div className="wl-mine">{dial}</div>
         <input
@@ -146,9 +144,9 @@ export function View({
           onChange={(e) => setDial(Number(e.target.value))}
         />
         <Button variant="gold" size="lg" full onClick={() => submitInput({ action: 'guess', value: dial })}>
-          LOCK IT IN 🎯
+          Lock in
         </Button>
-        <p className="muted small">{done}/{guessers.length} locked in — no clock, take your time</p>
+        <p className="muted small">{done} of {guessers.length} locked in. No timer.</p>
       </div>
     );
   }
@@ -161,9 +159,9 @@ export function View({
 
   return (
     <div className="gv">
-      <span className="pr-rule-badge">🎯 THE REVEAL</span>
+      <span className="pr-rule-badge">The target</span>
       <Bar state={state} players={players} target={state.target} guesses={guesses} />
-      <h2>{state.note}</h2>
+      <p className="wl-note">{state.note}</p>
       <div className="wl-rows">
         {rows.map((r) => {
           const player = players.find((p) => p.uid === r.uid);
@@ -180,7 +178,7 @@ export function View({
               <span className="wl-row-val">
                 {r.value} <span className="muted">({r.d < 1 ? 'dead on' : `${r.d} off`})</span>
               </span>
-              {drinks && <span className="wl-row-sips">🍺{drinks.sips}</span>}
+              {drinks && <span className="wl-row-sips">{drinks.sips}</span>}
             </div>
           );
         })}
