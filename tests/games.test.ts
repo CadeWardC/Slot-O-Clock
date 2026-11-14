@@ -151,7 +151,7 @@ test('Fake It: the final card-read tap at the deadline hands over a full gesture
   const gesture = h.timer!;
   assert.notEqual(gesture.id, briefTimer.id, 'a countdown of its own');
   assert.equal(gesture.durationMs, GESTURE_MS);
-  assert.equal(gesture.endsAt - h.clock.now, GESTURE_MS, 'the table gets all ten seconds');
+  assert.equal(gesture.endsAt - h.clock.now, GESTURE_MS, 'the table gets the whole countdown');
 
   // the private card's deadline expires; the gesture countdown is untouched
   h.clock.advance(1);

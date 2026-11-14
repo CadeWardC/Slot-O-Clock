@@ -85,7 +85,7 @@ const cleanBrief = render(base, cleanUid);
 const fakerBrief = render(base, faker);
 expect(cleanBrief.includes(prompt), 'brief: the clean card carries the prompt');
 expect(!fakerBrief.includes(prompt), 'brief: the faker card never carries the prompt');
-expect(/blend in/i.test(fakerBrief) && fakerBrief.includes('THE FAKER'), 'brief: the faker is told to blend in');
+expect(/blend in/i.test(fakerBrief) && /the faker/i.test(fakerBrief), 'brief: the faker is told to blend in');
 expect(
   ['🖐', '👉', '✋'].some((e) => fakerBrief.includes(e)),
   'brief: the faker is told which move the table is playing',
@@ -117,10 +117,10 @@ expect(vote.includes('PICK A SUSPECT'), 'vote: the lock-in button waits for a pi
 expect(vote.includes('Player0') && vote.includes('2/4 locked in'), 'vote: the table sees who has locked in');
 expect(!/you are the faker/i.test(vote), 'vote: nothing marks the faker on a clean phone');
 expect(!vote.includes('timerbar'), 'vote: there is no countdown on the ballot');
-expect(vote.includes('3 votes'), 'vote: a table of 4 is told it takes 3 votes');
+expect(vote.includes('3 votes convict'), 'vote: a table of 4 is told it takes 3 votes');
 const lockedHtml = render(voteState, otherUid);
-expect(lockedHtml.includes('locked in') && lockedHtml.includes('fk-locked'), 'vote: a locked ballot reads as locked');
-expect(!render(voteState, otherUid, 'shared').includes('fk-locked-name">🍺'), 'vote: a shared phone never shows a sealed ballot back');
+expect(lockedHtml.includes('LOCKED') && lockedHtml.includes('You named'), 'vote: a locked ballot reads as locked');
+expect(render(voteState, otherUid, 'shared').includes('Your ballot is sealed') && !render(voteState, otherUid, 'shared').includes('You named'), 'vote: a shared phone never shows a sealed ballot back');
 expect(render({ ...base, phase: 'vote' } as FkState, cleanUid).includes('0/4 locked in'), 'vote: an empty ballot box (dropped by RTDB) renders');
 
 /* ---- verdict: the result is said out loud ---- */
@@ -161,7 +161,7 @@ expect(render({ ...base, phase: 'unmask', history: undefined } as unknown as FkS
 /* ---- shared phone: nothing private leaks onto the pass-around screen ---- */
 const sharedBrief = render(base, cleanUid, 'shared');
 expect(!sharedBrief.includes(prompt), 'shared brief: the prompt stays behind the hold-to-peek gate');
-expect(sharedBrief.includes('hold to peek'), 'shared brief: the peek gate renders');
+expect(/hold to peek/i.test(sharedBrief), 'shared brief: the peek gate renders');
 expect(!render(gesture, cleanUid, 'shared').includes(prompt), 'shared countdown: still no prompt');
 
 /* ---- a room mid-round on an older build must not crash ---- */

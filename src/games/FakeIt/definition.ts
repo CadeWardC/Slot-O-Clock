@@ -85,21 +85,21 @@ export const MODES: Record<
     emoji: '🖐',
     how: 'everyone holds up fingers with their answer',
     move: 'hold up your fingers',
-    fakerHint: 'Pick a number that looks like a real answer — you have to defend it out loud.',
+    fakerHint: 'Pick a number that could be a real answer. You will have to defend it.',
   },
   point: {
     name: 'Point',
     emoji: '👉',
     how: 'everyone points at one player at the same time',
     move: 'point at one player',
-    fakerHint: 'Point at whoever you can justify — then justify it hard.',
+    fakerHint: 'Point at someone you can make a case for.',
   },
   raise: {
     name: 'Raise a Hand',
     emoji: '✋',
     how: 'everyone raises a hand if the statement is true for them',
     move: 'raise a hand if it is true for you',
-    fakerHint: "You don't know the statement — read the room and match the hands around you.",
+    fakerHint: 'Watch the hands around you and go with the room.',
   },
 };
 
@@ -288,14 +288,14 @@ function finish(state: FkState, ctx: GameContext): ReduceResult<FkState> {
 
   const assignments: DrinkAssignment[] = [];
   if (caught) {
-    assignments.push({ uid: state.fakerUid, sips: CAUGHT_SIPS, reason: 'Caught faking it 🕵️' });
+    assignments.push({ uid: state.fakerUid, sips: CAUGHT_SIPS, reason: 'Caught faking it' });
   }
   if (getaways > 0) {
     for (const p of clean) {
       assignments.push({
         uid: p.uid,
         sips: getaways * FOOLED_SIPS,
-        reason: getaways === 1 ? 'Faked out for a round 🎭' : `Faked out ${getaways}× 🎭`,
+        reason: getaways === 1 ? 'Fooled for a round' : `Fooled for ${getaways} rounds`,
       });
     }
   }
@@ -311,13 +311,13 @@ function finish(state: FkState, ctx: GameContext): ReduceResult<FkState> {
     type: 'END',
     assignments,
     note: caught
-      ? `${name} was the faker — caught in round ${rounds.length} 🕵️`
-      : `${name} was the faker all along — and nobody caught them 🎭`,
+      ? `${name} was the faker. Caught in round ${rounds.length}.`
+      : `${name} was the faker. Nobody caught them.`,
     recap: {
-      title: caught ? 'Caught!' : 'Clean getaway',
+      title: caught ? 'Caught' : 'Got away',
       groups: [
-        { label: caught ? '🕵️ The faker — caught' : '🎭 The faker — got away', tone: caught ? 'bad' : 'good', uids: [state.fakerUid] },
-        { label: caught ? '🔎 The detectives' : '🤡 Fooled', tone: caught ? 'good' : 'bad', uids: clean.map((p) => p.uid) },
+        { label: caught ? 'The faker, caught' : 'The faker, got away', tone: caught ? 'bad' : 'good', uids: [state.fakerUid] },
+        { label: caught ? 'Caught them' : 'Fooled', tone: caught ? 'good' : 'bad', uids: clean.map((p) => p.uid) },
       ],
     },
   });
@@ -330,7 +330,7 @@ export const definition: GameDefinition<FkState, FkInput> = {
   name: 'Fake It Till You Make It',
   emoji: '🕵️',
   rules:
-    'One player NEVER gets the prompt — they only know the move (fingers 🖐, a point 👉 or a raised hand ✋) and have to blend in. Everyone else reads the prompt, a 5-second countdown drops, and the whole table makes the move at once with their body. Then the prompt goes public and you argue it out. Vote: pick a suspect and LOCK IT IN — no clock. If everyone else names the same player (players minus one) they are convicted. Catch the faker and the game ends on the spot: the faker drinks 3. Miss, and the faker gets away with the round — everyone else owes a drink for each getaway. Up to 3 rounds.',
+    'One player never sees the prompt, only the move: fingers, a point or a raised hand. Everyone does the move on a 5-second count, then the prompt goes public and you argue. Vote and lock it in: if everyone else names the faker they drink 3 and the game ends, otherwise the faker gets away and everyone else owes 1 per round, up to 3 rounds.',
   minPlayers: 3,
 
   createInitialState(ctx: GameContext): FkState {

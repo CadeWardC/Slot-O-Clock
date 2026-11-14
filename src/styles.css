@@ -84,12 +84,10 @@ a { color: var(--cyan); }
 .btn-primary {
   background: var(--magenta);
   color: #fff;
-  box-shadow: 0 6px 22px rgba(255, 79, 163, 0.35);
 }
 .btn-gold {
   background: var(--gold);
   color: #3a2400;
-  box-shadow: 0 6px 24px rgba(255, 176, 32, 0.4);
 }
 .btn-ghost {
   background: transparent;
@@ -103,19 +101,14 @@ a { color: var(--cyan); }
   color: #3a2400;
   font-size: 1.5rem;
   padding: 26px 20px;
-  animation: claimPulse 1.4s ease-in-out infinite;
-  box-shadow: 0 0 40px rgba(255, 175, 60, 0.45);
-}
-@keyframes claimPulse {
-  0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(255, 175, 60, 0.35); }
-  50% { transform: scale(1.035); box-shadow: 0 0 60px rgba(255, 100, 170, 0.55); }
+ 
 }
 
 /* ---------- home / logo ---------- */
 
 .home { justify-content: center; }
 .logo-block { text-align: center; margin: 12px 0 6px; }
-.logo-emoji { font-size: 5rem; filter: drop-shadow(0 0 24px rgba(255, 201, 77, 0.55)); }
+.logo-emoji { font-size: 5rem; }
 .logo-title {
   font-size: 2.4rem;
   margin: 4px 0;
@@ -155,7 +148,7 @@ a { color: var(--cyan); }
   cursor: pointer;
   transition: border-color 0.15s, transform 0.1s;
 }
-.mode-card.on { border-color: var(--gold); box-shadow: 0 0 24px rgba(255, 201, 77, 0.25); }
+.mode-card.on { border-color: var(--gold); }
 .mode-emoji { font-size: 1.6rem; }
 .mode-name { font-weight: 800; }
 .mode-desc { font-size: 0.75rem; color: var(--muted); text-align: center; }
@@ -213,7 +206,7 @@ a { color: var(--cyan); }
   padding-left: 0.3em; /* balance letter-spacing */
   font-weight: 900;
   color: var(--gold);
-  text-shadow: 0 0 30px rgba(255, 201, 77, 0.45);
+ 
   cursor: pointer;
 }
 .lobby-code-actions { display: flex; gap: 8px; justify-content: center; }
@@ -403,7 +396,7 @@ a { color: var(--cyan); }
 
 /* intro */
 .intro { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; }
-.intro-emoji { font-size: 6rem; animation: bounceIn 0.5s ease; filter: drop-shadow(0 0 26px rgba(255, 201, 77, 0.5)); }
+.intro-emoji { font-size: 6rem; animation: bounceIn 0.5s ease; }
 .intro-name { margin: 0; font-size: 2rem; }
 .intro-rules { color: var(--muted); max-width: 320px; font-size: 1.02rem; line-height: 1.5; }
 
@@ -520,7 +513,6 @@ a { color: var(--cyan); }
 .modal-overlay {
   position: fixed; inset: 0;
   background: rgba(8, 5, 18, 0.75);
-  backdrop-filter: blur(4px);
   display: flex; align-items: center; justify-content: center;
   z-index: 50;
   padding: 20px;
@@ -758,11 +750,6 @@ a { color: var(--cyan); }
   transform: translateX(-50%);
   border-radius: 999px;
   background: var(--cyan);
-  animation: siSlotLock 2.3s ease forwards;
-}
-@keyframes siSlotLock {
-  0%, 86% { opacity: 0.45; }
-  100% { opacity: 1; box-shadow: 0 0 20px 4px rgba(79, 216, 255, 0.8); }
 }
 
 /* the ticker: starts on SOBER, ends parked on the slot */
@@ -777,7 +764,6 @@ a { color: var(--cyan); }
   border-radius: 999px;
   border: 2.5px solid #fff;
   background: var(--cyan);
-  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.6);
   animation: siSettle 2.3s forwards, siLock 0.45s ease 2.3s 1;
 }
 
@@ -792,11 +778,6 @@ a { color: var(--cyan); }
   91% { left: 40%; animation-timing-function: ease-in-out; }
   96% { left: 60%; animation-timing-function: ease-in-out; }
   100% { left: 50%; }
-}
-@keyframes siLock {
-  0% { box-shadow: 0 3px 12px rgba(0, 0, 0, 0.6); }
-  45% { box-shadow: 0 0 28px 8px rgba(79, 216, 255, 0.9); }
-  100% { box-shadow: 0 0 14px 3px rgba(79, 216, 255, 0.5); }
 }
 
 .si-ends {

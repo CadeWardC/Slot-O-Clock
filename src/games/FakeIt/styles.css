@@ -1,307 +1,278 @@
-/* --- Fake It Till You Make It 🕵️ --- */
-.fk { gap: 14px; justify-content: flex-start; padding-top: 4px; }
+/* --- Fake It Till You Make It --- */
+.gv.fk {
+  gap: 14px;
+  justify-content: flex-start;
+  align-items: stretch;
+  text-align: left;
+  padding-top: 2px;
+}
 
-/* round pips + the move in play */
-.fk-tag {
+/* which round, which move */
+.fk-head {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 12px 6px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1.5px solid var(--line);
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--line);
   font-weight: 800;
   font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
-.fk-pips { display: flex; gap: 5px; }
-.fk-pip {
-  width: 24px; height: 24px;
-  display: grid; place-items: center;
-  border-radius: 50%;
-  border: 1.5px solid var(--line);
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 900;
-}
-.fk-pip-now { border-color: var(--gold); color: #3a2400; background: var(--gold); box-shadow: 0 0 12px rgba(255, 201, 77, 0.6); }
-.fk-pip-done { border-color: transparent; background: var(--card2); font-size: 0.8rem; }
-.fk-tag-mode { color: var(--cyan); letter-spacing: 0.04em; }
+.fk-head-round { color: var(--text); }
+.fk-head-mode { margin-left: auto; color: var(--gold); }
+.fk-pips { display: flex; gap: 4px; }
+.fk-pip { width: 10px; height: 10px; border: 2px solid var(--muted); border-radius: 2px; }
+.fk-pip-now { background: var(--gold); border-color: var(--gold); }
+.fk-pip-done { background: var(--muted); }
 
-/* ---------- the private card ---------- */
+/* ---------- the dealt card ---------- */
 .fk-card {
-  position: relative;
-  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 26px 18px 20px;
-  border-radius: 24px;
-  border: 2px solid var(--line);
-  background:
-    radial-gradient(120% 80% at 50% 0%, rgba(79, 216, 255, 0.12), transparent 60%),
-    linear-gradient(180deg, var(--card2), var(--card));
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  animation: fkFlip 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+  margin: 6px 4px 4px;
+  padding: 14px 16px 16px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2.5px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--hard-lg);
+  transform: rotate(-1.2deg);
+  animation: fkDeal 0.35s cubic-bezier(0.2, 1.2, 0.4, 1) both;
 }
-.fk-card-clean { border-color: rgba(79, 216, 255, 0.55); }
-.fk-card-public {
-  border-color: var(--gold);
-  background:
-    radial-gradient(120% 80% at 50% 0%, rgba(255, 201, 77, 0.14), transparent 60%),
-    linear-gradient(180deg, var(--card2), var(--card));
+.fk-card-faker { background: var(--red); transform: rotate(1.2deg); }
+.fk-card-flat { transform: none; animation: none; margin: 0; }
+.fk-card-top {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 2px dashed currentColor;
 }
-.fk-card-faker {
-  border-color: var(--magenta);
-  background:
-    repeating-linear-gradient(-45deg, rgba(255, 79, 163, 0.07) 0 14px, transparent 14px 28px),
-    radial-gradient(120% 80% at 50% 0%, rgba(255, 79, 163, 0.22), transparent 65%),
-    linear-gradient(180deg, #33143f, #1e1030);
-  box-shadow: 0 0 40px rgba(255, 79, 163, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
-.fk-card-corner {
-  position: absolute;
-  top: -16px; right: 14px;
-  font-size: 2.2rem;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.5));
-}
+.fk-card-index { font-size: 0.68rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
 .fk-prompt {
   margin: 0;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 1.6rem;
-  line-height: 1.2;
-  letter-spacing: 0.01em;
+  font-size: 1.55rem;
+  line-height: 1.15;
+  text-transform: none;
 }
-.fk-faker-line { font-size: 2.1rem; }
-.fk-noprompt { margin: -4px 0 0; font-weight: 900; color: #ffb8da; letter-spacing: 0.04em; text-transform: uppercase; font-size: 0.85rem; }
+.gv .fk-prompt { text-transform: none; font-size: 1.55rem; }
+.gv .fk-faker-line { font-size: 2.1rem; line-height: 1; text-transform: uppercase; }
+.fk-noprompt { margin: -6px 0 0; font-weight: 800; font-size: 1rem; }
 .fk-move {
   display: flex;
   align-items: center;
   gap: 10px;
-  text-align: left;
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(0, 0, 0, 0.28);
+  padding: 9px 11px;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  background: var(--paper2);
   font-size: 0.92rem;
-  line-height: 1.35;
+  line-height: 1.3;
+  font-weight: 600;
 }
-.fk-move b { color: var(--cyan); }
-.fk-move-faker b { color: var(--magenta); }
-.fk-move-emoji { font-size: 1.9rem; flex: none; }
-.fk-card-hint { margin: 0; color: var(--muted); font-size: 0.86rem; line-height: 1.45; }
+.fk-card-faker .fk-move { background: var(--paper); }
+.fk-move-emoji { font-size: 1.8rem; line-height: 1; flex: none; }
+.fk-card-hint { margin: 0; font-size: 0.86rem; line-height: 1.4; font-weight: 600; }
 
-.fk-peek { width: 100%; user-select: none; -webkit-user-select: none; }
-.fk-peek-btn {
-  width: 100%;
-  min-height: 220px;
+.fk-peek { user-select: none; -webkit-user-select: none; }
+.fk-cardback {
+  min-height: 230px;
+  margin: 6px 4px 4px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  border-radius: 24px;
-  border: 2px dashed var(--line);
-  background: repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.03) 0 12px, transparent 12px 24px), var(--card);
-  color: var(--text);
+  gap: 6px;
+  border: 2.5px solid var(--ink);
+  border-radius: var(--radius);
+  outline: 6px solid var(--paper);
+  outline-offset: -11px;
+  background: repeating-linear-gradient(45deg, var(--red) 0 10px, #d94430 10px 20px);
+  box-shadow: var(--hard-lg);
+  color: var(--paper);
   font: inherit;
-  font-weight: 900;
-  font-size: 1.05rem;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
   touch-action: none;
 }
-.fk-peek-eye { font-size: 3rem; }
-.fk-peek-sub { font-size: 0.78rem; font-weight: 700; color: var(--muted); }
+.fk-cardback-title, .fk-cardback-sub { background: var(--ink); padding: 4px 10px; border-radius: 4px; }
+.fk-cardback-title { font-family: var(--font-display); font-size: 1.3rem; text-transform: uppercase; }
+.fk-cardback-sub { font-size: 0.8rem; font-weight: 700; }
 
-.fk-hidden { font-size: 4.4rem; line-height: 1; }
-.fk-help { margin: 0; color: var(--muted); font-size: 0.9rem; line-height: 1.45; max-width: 34ch; }
-.fk-call { margin: 0; font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 0.04em; color: var(--text); }
-.fk-freeze { font-size: 2.3rem; }
-.fk-freeze-row { display: flex; align-items: center; gap: 8px; }
-.fk-freeze-ico { font-size: 2rem; line-height: 1; }
-.fk-tip {
-  margin: 0;
-  width: 100%;
-  padding: 9px 12px;
-  border-radius: 12px;
-  border: 1.5px dashed rgba(255, 79, 163, 0.55);
-  background: rgba(255, 79, 163, 0.08);
-  color: #ffb8da;
-  font-size: 0.84rem;
-  line-height: 1.4;
-}
+.fk-help { margin: 0; color: var(--text); font-size: 0.95rem; line-height: 1.4; }
+.fk-help b { color: var(--gold); }
+.fk-foot { margin: 0; color: var(--muted); font-size: 0.82rem; font-weight: 600; }
+.fk-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fk-title-row .fx-title { font-size: 2.3rem; }
 
-.fk-role-badge {
-  padding: 5px 13px;
-  border-radius: 999px;
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-.fk-role-spy { background: rgba(255, 79, 163, 0.16); color: var(--magenta); border: 1.5px solid rgba(255, 79, 163, 0.6); }
-.fk-role-clean { background: rgba(70, 224, 139, 0.12); color: var(--green); border: 1.5px solid rgba(70, 224, 139, 0.45); }
-
-/* ---------- who's done ---------- */
-.fk-roster { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; width: 100%; }
+/* ---------- who's done: a plain list ---------- */
+.fk-roster { display: flex; flex-direction: column; border-top: 2px solid var(--line); }
 .fk-seat {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  border: 1.5px solid var(--line);
-  background: var(--card);
-  font-size: 0.82rem;
-  font-weight: 800;
-  transition: border-color 0.2s, background 0.2s, opacity 0.2s;
-}
-.fk-seat-wait { opacity: 0.6; }
-.fk-seat-ok { border-color: rgba(70, 224, 139, 0.6); background: rgba(70, 224, 139, 0.1); }
-.fk-seat-me { box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.14); }
-.fk-seat-mark { font-size: 0.8rem; }
-
-/* ---------- the blind move: nothing on screen but the clock and the move ---------- */
-.fk-gesture { justify-content: center; }
-.fk-count-ring {
-  width: 210px; height: 210px;
-  display: grid; place-items: center;
-  border-radius: 50%;
-  border: 4px solid rgba(255, 201, 77, 0.35);
-  background: radial-gradient(circle, rgba(255, 201, 77, 0.16), transparent 68%);
-  box-shadow: 0 0 60px rgba(255, 201, 77, 0.18), inset 0 0 40px rgba(0, 0, 0, 0.4);
-  animation: fkRing 1s ease-in-out infinite;
-}
-.fk-count-ring .fx-count { font-size: 8.5rem; }
-.fk-go-move { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-.fk-go-emoji { font-size: 3.4rem; line-height: 1; }
-.fk-go-move .fx-title { font-size: 1.5rem; max-width: 16ch; }
-
-/* ---------- the ballot ---------- */
-.fk-card-mini {
-  margin: 0;
-  width: 100%;
-  background: rgba(0, 0, 0, 0.25);
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
-  padding: 8px 12px;
-  font-size: 0.86rem;
-  line-height: 1.35;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 7px 2px;
+  border-bottom: 2px solid var(--line);
+  font-weight: 700;
+  font-size: 0.92rem;
   color: var(--muted);
 }
-.fk-people { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; }
-.fk-person {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: 14px 8px 12px;
-  border-radius: 18px;
-  border: 2px solid var(--line);
-  background: linear-gradient(180deg, var(--card2), var(--card));
-  color: var(--text);
-  font: inherit;
-  font-weight: 800;
-  cursor: pointer;
-  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
-}
-.fk-person:active { transform: scale(0.96); }
-.fk-person-emoji { font-size: 2.3rem; line-height: 1.1; }
-.fk-person-name { font-size: 1rem; }
-.fk-person-flag { font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--magenta); font-weight: 900; }
-.fk-person-on {
-  border-color: var(--magenta);
-  background: linear-gradient(180deg, rgba(255, 79, 163, 0.28), rgba(255, 79, 163, 0.08));
-  box-shadow: 0 0 26px rgba(255, 79, 163, 0.4);
-  transform: translateY(-2px) rotate(-1.5deg);
-}
-.fk-lock-btn:disabled { animation: none; }
-.fk-locked {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 18px 14px;
-  border-radius: 20px;
-  border: 2px solid var(--gold);
-  background: rgba(255, 201, 77, 0.08);
-  box-shadow: 0 0 30px rgba(255, 201, 77, 0.18);
-}
-.fk-locked-ico { font-size: 2.6rem; line-height: 1; }
-.fk-locked-name { margin: 0; font-family: var(--font-display); font-size: 1.5rem; }
+.fk-seat-ok { color: var(--text); }
+.fk-seat-mark { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.fk-seat-ok .fk-seat-mark { color: var(--green); }
 
-/* ---------- the flipped ballots ---------- */
-.fk-tally { width: 100%; display: flex; flex-direction: column; gap: 7px; }
-.fk-tally-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
+/* ---------- the blind move: a poster numeral and the move ---------- */
+.gv.fk-gesture { justify-content: center; }
+.fk-poster { align-self: center; line-height: 1; }
+.fk-poster .fx-count { font-size: 15rem; text-shadow: 9px 9px 0 var(--ink); }
+.fk-go {
+  align-self: center;
+  display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
-  border-radius: 14px;
-  border: 1.5px solid var(--line);
-  background: var(--card);
-  text-align: left;
-  font-weight: 800;
+  padding: 10px 16px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2.5px solid var(--ink);
+  border-radius: 8px;
+  box-shadow: var(--hard);
+  transform: rotate(-1.5deg);
 }
-.fk-tally-emoji { font-size: 1.25rem; }
-.fk-tally-voters { display: flex; gap: 2px; font-size: 1.1rem; }
-.fk-tally-n { font-family: var(--font-display); font-size: 1.1rem; color: var(--muted); min-width: 2.2em; text-align: right; }
-.fk-tally-hit { border-color: var(--red); background: rgba(255, 95, 110, 0.14); box-shadow: 0 0 22px rgba(255, 95, 110, 0.3); }
-.fk-tally-hit .fk-tally-n { color: var(--red); }
+.fk-go-emoji { font-size: 2.2rem; line-height: 1; }
+.fk-go-text { font-family: var(--font-display); font-size: 1.15rem; line-height: 1.1; text-transform: uppercase; }
+.fk-gesture .fk-help { text-align: center; }
 
-/* the stamp waits for the ballots to finish flipping */
-.fk-stamp-late { animation-delay: 1.1s; margin: 4px 0; }
-.fk-verdict-line { margin: 0; font-size: 1.02rem; line-height: 1.45; font-weight: 700; max-width: 32ch; }
-.fk-verdict-line b { color: var(--gold); }
-.fk-tab { font-size: 0.92rem; line-height: 1.45; font-weight: 700; }
-.fk-tab b { color: var(--gold); }
+/* ---------- the paper ballot ---------- */
+.fk-ballot { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+.fk-ballot-head, .fk-tally-head {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 2.5px solid var(--ink);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.gv .fk-ballot-q { margin: 2px 0 0; font-family: var(--font-display); font-weight: 400; font-size: 1.6rem; line-height: 1.05; }
+.fk-ballot-prompt { margin: 0; font-size: 0.86rem; font-weight: 600; color: #6b6452; }
+.fk-people { display: flex; flex-direction: column; margin-top: 2px; }
+.fk-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 6px;
+  border: none;
+  border-top: 2px dashed rgba(10, 20, 16, 0.35);
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.1rem;
+  text-align: left;
+  cursor: pointer;
+}
+.fk-person-emoji { font-size: 1.5rem; line-height: 1; }
+.fk-box {
+  position: relative;
+  flex: none;
+  width: 28px; height: 28px;
+  border: 2.5px solid var(--ink);
+  border-radius: 3px;
+  background: #fff;
+}
+.fk-person-on { background: var(--gold); }
+/* the tick is a pen cross, a bit off-square */
+.fk-person-on .fk-box::before,
+.fk-person-on .fk-box::after {
+  content: '';
+  position: absolute;
+  left: -4px; right: -4px; top: 50%;
+  height: 4px;
+  margin-top: -2px;
+  background: var(--ink);
+  border-radius: 2px;
+  transform: rotate(42deg);
+}
+.fk-person-on .fk-box::after { transform: rotate(-50deg); }
+.fk-locked { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; padding: 14px 4px 6px; }
+.fk-locked-name { margin: 0; font-weight: 800; font-size: 1.05rem; }
+.fx-stamp.fk-stamp-ink { color: var(--ink); }
 
+/* ---------- the count ---------- */
+.fk-tally { position: relative; padding: 12px 14px; display: flex; flex-direction: column; }
+.fk-tally-row {
+  display: grid;
+  grid-template-columns: 1fr auto 2ch;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-bottom: 2px dashed rgba(10, 20, 16, 0.35);
+  font-weight: 800;
+  font-size: 1.02rem;
+}
+.fk-tally-row:last-of-type { border-bottom: none; }
+.fk-tally-voters { display: flex; gap: 2px; font-size: 1.05rem; }
+.fk-tally-n { font-family: var(--font-display); font-size: 1.4rem; line-height: 1; text-align: right; }
+.fk-tally-hit { background: var(--red); margin: 0 -6px; padding: 8px 10px; border: 2.5px solid var(--ink); border-radius: 6px; }
+.fk-tally-empty { margin: 8px 0 0; font-weight: 600; }
+.fk-tally-stamp { display: flex; justify-content: flex-end; padding: 10px 0 4px; }
+.fk-tally-stamp .fx-stamp { font-size: 2rem; }
+/* the stamp comes down after the votes have been read out */
+.fk-stamp-late { animation-delay: 1.1s; }
+
+.fk-tab { display: flex; flex-direction: column; gap: 4px; font-size: 1.02rem; line-height: 1.35; font-weight: 600; }
+.fk-tab p { margin: 0; }
+.fk-tab b { color: var(--gold); font-weight: 800; }
+
+/* ---------- the mugshot ---------- */
 .fk-mug {
+  position: relative;
+  align-self: center;
+  width: 240px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 16px 30px 14px;
-  border-radius: 24px;
-  border: 3px solid var(--line);
-  background: repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.05) 0 2px, transparent 2px 22px), var(--card);
-  animation-delay: 0.5s;
+  margin: 6px 0 14px;
+  padding: 10px 14px 12px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2.5px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: var(--hard-lg);
+  transform: rotate(-2deg);
 }
-.fk-mug-caught { border-color: var(--red); box-shadow: 0 0 44px rgba(255, 95, 110, 0.4); }
-.fk-mug-free { border-color: var(--gold); box-shadow: 0 0 44px rgba(255, 201, 77, 0.35); }
-.fk-mug-emoji { font-size: 4.6rem; line-height: 1.05; }
-.fk-mug-name { font-family: var(--font-display); font-size: 2.1rem; line-height: 1.1; }
-
-.fk-rounds { width: 100%; display: flex; flex-direction: column; gap: 7px; }
-.fk-round {
-  border-radius: 14px;
-  border: 1.5px solid var(--line);
-  background: var(--card);
-  padding: 9px 12px;
+.fk-mug-label { align-self: stretch; padding-bottom: 6px; border-bottom: 2.5px solid var(--ink); font-size: 0.68rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+.fk-mug-emoji {
+  align-self: stretch;
   text-align: left;
-  font-size: 0.84rem;
-  line-height: 1.4;
+  padding-left: 10px;
+  font-size: 5.2rem;
+  line-height: 1.35;
+  /* height lines */
+  background: repeating-linear-gradient(0deg, rgba(10, 20, 16, 0.22) 0 2px, transparent 2px 20px);
 }
-.fk-round-head { font-weight: 900; letter-spacing: 0.08em; font-size: 0.72rem; }
-.fk-round-hit { border-color: rgba(255, 95, 110, 0.55); }
-.fk-round-hit .fk-round-head { color: var(--red); }
-.fk-round-miss .fk-round-head { color: var(--gold); }
+.fk-mug-name { margin-top: 6px; font-family: var(--font-display); font-size: 1.8rem; line-height: 1.1; text-transform: uppercase; }
+.fk-mug-stamp { position: absolute; right: -46px; top: 44px; }
+.fk-mug-stamp .fx-stamp { font-size: 1.7rem; background: var(--paper); }
+
+/* ---------- round by round ---------- */
+.fk-rounds { display: flex; flex-direction: column; border-top: 2px solid var(--line); }
+.fk-round { display: flex; gap: 10px; padding: 8px 2px; border-bottom: 2px solid var(--line); font-size: 0.86rem; line-height: 1.35; }
+.fk-round-no { flex: none; font-family: var(--font-display); font-size: 1.3rem; line-height: 1; color: var(--muted); width: 1.2ch; }
+.fk-round-hit { color: var(--red); }
 .fk-round-prompt { font-weight: 700; }
 .fk-round-acc { color: var(--muted); }
 
-@keyframes fkFlip {
-  0% { transform: perspective(700px) rotateY(80deg) scale(0.9); opacity: 0; }
-  100% { transform: perspective(700px) rotateY(0) scale(1); opacity: 1; }
-}
-@keyframes fkRing {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.04); }
+@keyframes fkDeal {
+  0% { transform: translateY(-40px) rotate(-9deg); opacity: 0; }
+  100% { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fk-card, .fk-count-ring { animation: none; }
+  .fk-card { animation: none; }
 }
