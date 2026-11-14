@@ -1,6 +1,6 @@
 /**
  * ============================================================
- *  FAKE IT TILL YOU MAKE IT — one liar, three blind moves
+ *  FAKE IT TILL YOU MAKE IT — one liar, up to three blind moves
  * ============================================================
  * ONE player is the faker for the WHOLE game, and they never get
  * the prompt. Each round opens on a private card: everybody else
@@ -8,30 +8,33 @@
  * playing (fingers 🖐 / point 👉 / raise ✋) and told to blend in.
  *
  * The move itself is made with the body, never in the app. The
- * phones show a 10-second countdown and nothing else, the whole
+ * phones show a 5-second countdown and nothing else, the whole
  * table moves together at zero, and only THEN does the prompt go
  * public — faker included — so the table can argue about the moves
  * it just watched.
  *
- * Then the group votes. Ballots are public and live: everyone sees
- * who named whom and can switch their own pick, and the ballot
- * locks once every player has voted (a short last-chance window,
- * then it settles). An accusation only lands when every CLEAN
- * ballot names the same player — the faker's own ballot is a decoy
- * that is never counted, so nobody is caught by paperwork and
- * nobody is saved by it either.
+ * Then the group votes, and nothing is on a clock: every player
+ * picks a suspect and LOCKS IT IN. Ballots stay sealed until the
+ * last one is locked, then they all flip at once. A player is
+ * convicted when EVERYONE ELSE named them — players minus one,
+ * because nobody can vote for themselves.
  *
- * What the app never says is whether the group was RIGHT. Nobody
- * can vote for themselves, so a unanimous accusation can only ever
- * land on the faker: print "unanimous" and the faker is public in
- * round one, which turns rounds 2 and 3 into a formality. So the
- * ballots are public and the verdict stays silent — no drinks
- * mid-game, no "you got them", and all three rounds (and the whole
- * tab) settle at the unmask.
+ *   - convicted the faker  → CAUGHT: the table is told on the spot,
+ *     the faker drinks, and the game ends right there.
+ *   - split ballot         → the faker got away with this round.
+ *   - convicted an innocent→ the table is told they were innocent,
+ *     and the faker got away with this round.
+ *
+ * A getaway never says WHO the faker is, so the drinks for it (one
+ * each for everybody who isn't the faker) can't be handed out
+ * mid-game without unmasking them: they ride on the tab and land
+ * with the outcome. Survive every round and the faker is unmasked
+ * as the one who got away.
  *
  * (The prompt rides along in the broadcast state like every other
  * secret in this codebase: the View hides it during the brief and
- * the countdown, devtools doesn't. Same contract as `fakerUid`.)
+ * the countdown, devtools doesn't. Same contract as `fakerUid` and
+ * the sealed `votes`.)
  */
 
 import pack from '../../content/fakeit.json';
@@ -50,24 +53,24 @@ export const ROUNDS_COUNT = 3;
 /** private card: read your prompt (or your cover story) and hide it */
 export const BRIEF_MS = 60_000;
 /** the blind move: countdown only, everybody moves with their body */
-export const GESTURE_MS = 10_000;
+export const GESTURE_MS = 5_000;
 /** prompt goes public — argue about the moves you just saw */
 export const REVEAL_MS = 120_000;
-/** public ballot; it locks as soon as every player has voted */
-export const VOTE_MS = 60_000;
-/** last-chance window once every ballot is in — you can still switch */
-export const LOCK_MS = 30_000;
-/** the silent round result */
-const VERDICT_MS = 10_000;
-/** the unmasking */
-const UNMASK_MS = 25_000;
-/** the faker drinks this for every round the table nailed them */
+/** the ballots flip and the round's verdict is read out */
+export const VERDICT_MS = 11_000;
+/** CAUGHT! — the table gets a moment to enjoy it before the drinks */
+export const CAUGHT_MS = 9_000;
+/** the unmasking of a faker nobody caught */
+export const UNMASK_MS = 14_000;
+/** the faker drinks this when the table catches them */
 export const CAUGHT_SIPS = 3;
 /** everyone else drinks this for every round the faker got away */
 export const FOOLED_SIPS = 1;
 
 export type FkMode = 'numbers' | 'point' | 'raise';
 export type FkPhase = 'brief' | 'gesture' | 'reveal' | 'vote' | 'verdict' | 'unmask' | 'done';
+/** how a round's ballot came out */
+export type FkResult = 'caught' | 'innocent' | 'split';
 
 type Pack = { name: string; emoji: string; prompts: string[] };
 const PACK = pack as Record<FkMode, Pack>;
@@ -100,16 +103,14 @@ export const MODES: Record<
   },
 };
 
-/** One round, fully resolved. Only the unmask screen ever renders the truth of it. */
+/** One round, fully resolved. */
 export interface FkRoundRecord {
   roundNo: number;
   prompt: string;
-  /** the player every clean ballot named (null = the ballot wasn't unanimous) */
+  /** the player everyone else named (null = no player got players−1 votes) */
   accusedUid: string | null;
-  unanimous: boolean;
-  /** true when that unanimous accusation actually landed on the faker */
-  hit: boolean;
-  /** voter uid → the player they named — the faker's decoy vote included */
+  result: FkResult;
+  /** voter uid → the player they named */
   votes: Record<string, string>;
 }
 
@@ -128,21 +129,42 @@ export interface FkState {
   seen: Record<string, boolean>;
   /** reveal: uid → has said their piece and is ready for the ballot */
   argued: Record<string, boolean>;
-  /** voter uid → the player they're naming (live and changeable until the ballot locks) */
+  /** voter uid → the player they LOCKED IN. Sealed on screen until the verdict. */
   votes: Record<string, string>;
-  /** vote: every ballot is in — the last-chance window is running */
-  allIn: boolean;
-  /** roundNo → the whole truth, rendered only on the unmask screen */
+  /** the last player to tap — on a shared phone they keep holding it through the hands-off screens */
+  lastUid?: string | null;
+  /** roundNo → how each round came out */
   history: Record<string, FkRoundRecord>;
 }
 
 export type FkInput =
   /** brief: I've read my card · reveal: we've said enough, open the ballot */
   | { action: 'ready' }
-  /** vote: name a player — re-sending switches your pick while the ballot is open */
-  | { action: 'vote'; value: string }
-  /** vote (shared phone): hand the phone round the table again */
-  | { action: 'recast' };
+  /** vote: lock in the player you're naming — final, there is no switching a locked ballot */
+  | { action: 'vote'; value: string };
+
+/** votes on one player that convict them: everybody but the accused */
+export function votesNeeded(playerCount: number): number {
+  return Math.max(1, playerCount - 1);
+}
+
+/**
+ * The table's decision: the player that everyone else named, or null.
+ * Players minus one — the accused can't vote for themselves, so that IS
+ * unanimous. At most one player can ever reach it.
+ */
+export function convictedUid(
+  votes: Record<string, string> | undefined,
+  uids: readonly string[],
+): string | null {
+  const need = votesNeeded(uids.length);
+  if (uids.length < 2) return null;
+  for (const target of uids) {
+    const n = uids.filter((voter) => voter !== target && (votes ?? {})[voter] === target).length;
+    if (n >= need) return target;
+  }
+  return null;
+}
 
 const PHASES: Record<FkPhase, true> = {
   brief: true,
@@ -161,7 +183,7 @@ const PHASES: Record<FkPhase, true> = {
  */
 function recover(state: FkState): ReduceResult<FkState> {
   return {
-    state: { ...state, phase: 'brief', seen: {}, argued: {}, votes: {}, allIn: false },
+    state: { ...state, phase: 'brief', seen: {}, argued: {}, votes: {} },
     effects: [{ type: 'CLEAR_INPUTS' }, { type: 'TIMER', ms: BRIEF_MS }],
   };
 }
@@ -172,31 +194,13 @@ function nextPrompt(state: FkState, ctx: GameContext): string {
   return pick(fresh.length > 0 ? fresh : prompts, ctx.rng);
 }
 
-function roundsOf(state: FkState): FkRoundRecord[] {
-  return Object.values(state.history ?? {}).sort((a, b) => a.roundNo - b.roundNo);
-}
-
-function cleanPlayers(state: FkState, ctx: GameContext) {
-  return ctx.players.filter((p) => p.uid !== state.fakerUid);
-}
-
-/**
- * The group's decision: the player every CLEAN ballot named, or null
- * when the ballot was split. The faker's own ballot is deliberately not
- * part of this — it can neither land an accusation nor break one.
- */
-function unanimousTarget(state: FkState, ctx: GameContext): string | null {
-  const votes = state.votes ?? {};
-  const clean = cleanPlayers(state, ctx);
-  const targets = clean.map((p) => votes[p.uid]).filter((t): t is string => typeof t === 'string');
-  if (clean.length === 0 || targets.length !== clean.length) return null;
-  return targets.every((t) => t === targets[0]) ? targets[0] : null;
+export function roundsOf(state: FkState): FkRoundRecord[] {
+  return Object.values(state.history ?? {})
+    .filter((r): r is FkRoundRecord => !!r)
+    .sort((a, b) => a.roundNo - b.roundNo);
 }
 
 function toGesture(state: FkState): ReduceResult<FkState> {
-  // no CLEAR_INPUTS: nobody taps during the countdown, and on a shared
-  // phone wiping the inputs would park a "pass the phone to…" gate in
-  // front of a countdown that is already running
   return {
     state: { ...state, phase: 'gesture' },
     effects: [{ type: 'TIMER', ms: GESTURE_MS }],
@@ -210,10 +214,11 @@ function toReveal(state: FkState): ReduceResult<FkState> {
   };
 }
 
+/** The ballot is deliberately NOT on a clock: it closes when the last player locks in. */
 function toVote(state: FkState): ReduceResult<FkState> {
   return {
-    state: { ...state, phase: 'vote', argued: {}, allIn: false },
-    effects: [{ type: 'CLEAR_INPUTS' }, { type: 'TIMER', ms: VOTE_MS }],
+    state: { ...state, phase: 'vote', argued: {}, votes: {} },
+    effects: [{ type: 'CLEAR_INPUTS' }],
   };
 }
 
@@ -237,80 +242,84 @@ function startRound(state: FkState, ctx: GameContext): ReduceResult<FkState> {
       seen: {},
       argued: {},
       votes: {},
-      allIn: false,
     },
     effects: [{ type: 'CLEAR_INPUTS' }, { type: 'TIMER', ms: BRIEF_MS }],
   };
 }
 
 /**
- * The round settles. Somebody is accused only when EVERY clean ballot
- * named them. The result is written to `history` for the unmask and is
- * deliberately rendered NOWHERE: the table must not learn whether their
- * accusation landed until all three rounds are done — and the round
- * always ends on the clock (or the moment every ballot is in), never on
- * unanimity, so the timing of the verdict can't give it away either.
+ * Every ballot is locked: flip them. A player is convicted when everyone
+ * else named them. Catching the faker is announced right here and ends the
+ * game; anything else is a getaway and the game goes on.
  */
 function resolveRound(state: FkState, ctx: GameContext): ReduceResult<FkState> {
-  const accusedUid = unanimousTarget(state, ctx);
+  const votes = state.votes ?? {};
+  const accusedUid = convictedUid(
+    votes,
+    ctx.players.map((p) => p.uid),
+  );
+  const result: FkResult =
+    accusedUid == null ? 'split' : accusedUid === state.fakerUid ? 'caught' : 'innocent';
   const record: FkRoundRecord = {
     roundNo: state.roundNo,
     prompt: state.prompt,
     accusedUid,
-    unanimous: accusedUid != null,
-    // nobody can name themselves, so a unanimous ballot can only ever
-    // land on the faker — the check stays explicit anyway
-    hit: accusedUid === state.fakerUid,
-    votes: state.votes ?? {},
+    result,
+    votes,
   };
 
   return {
     state: {
       ...state,
       phase: 'verdict',
-      allIn: false,
       history: { ...(state.history ?? {}), [state.roundNo]: record },
     },
-    effects: [{ type: 'TIMER', ms: VERDICT_MS }],
+    effects: [{ type: 'TIMER', ms: result === 'caught' ? CAUGHT_MS : VERDICT_MS }],
   };
 }
 
-/** The whole tab lands at once — the first time the truth is public. */
+/** The tab: the faker pays for being caught, the table pays for every getaway. */
 function finish(state: FkState, ctx: GameContext): ReduceResult<FkState> {
   const rounds = roundsOf(state);
-  const hits = rounds.filter((r) => r.hit).length;
-  const misses = rounds.length - hits;
+  const caught = rounds.some((r) => r.result === 'caught');
+  const getaways = rounds.filter((r) => r.result !== 'caught').length;
   const faker = ctx.players.find((p) => p.uid === state.fakerUid);
+  const clean = ctx.players.filter((p) => p.uid !== state.fakerUid);
 
   const assignments: DrinkAssignment[] = [];
-  if (hits > 0) {
-    assignments.push({
-      uid: state.fakerUid,
-      sips: hits * CAUGHT_SIPS,
-      reason: hits >= ROUNDS_COUNT ? 'Caught all three rounds 🕵️' : `Caught ${hits}× 🕵️`,
-    });
+  if (caught) {
+    assignments.push({ uid: state.fakerUid, sips: CAUGHT_SIPS, reason: 'Caught faking it 🕵️' });
   }
-  if (misses > 0) {
-    for (const p of ctx.players) {
-      if (p.uid === state.fakerUid) continue;
-      assignments.push({ uid: p.uid, sips: misses * FOOLED_SIPS, reason: `Faked you out ${misses}× 🎭` });
+  if (getaways > 0) {
+    for (const p of clean) {
+      assignments.push({
+        uid: p.uid,
+        sips: getaways * FOOLED_SIPS,
+        reason: getaways === 1 ? 'Faked out for a round 🎭' : `Faked out ${getaways}× 🎭`,
+      });
     }
   }
 
   const effects: Effect[] = [];
-  for (const r of rounds) {
-    if (r.hit) {
-      for (const p of ctx.players) {
-        if (p.uid !== state.fakerUid) effects.push({ type: 'SCORE', uid: p.uid, delta: 1 });
-      }
-    } else {
-      effects.push({ type: 'SCORE', uid: state.fakerUid, delta: 1 });
-    }
+  if (caught) {
+    for (const p of clean) effects.push({ type: 'SCORE', uid: p.uid, delta: 1 });
   }
+  for (let i = 0; i < getaways; i++) effects.push({ type: 'SCORE', uid: state.fakerUid, delta: 1 });
+
+  const name = faker?.name ?? 'The faker';
   effects.push({
     type: 'END',
     assignments,
-    note: `${faker?.name ?? 'The faker'} was the faker all game — caught ${hits}/${rounds.length} rounds`,
+    note: caught
+      ? `${name} was the faker — caught in round ${rounds.length} 🕵️`
+      : `${name} was the faker all along — and nobody caught them 🎭`,
+    recap: {
+      title: caught ? 'Caught!' : 'Clean getaway',
+      groups: [
+        { label: caught ? '🕵️ The faker — caught' : '🎭 The faker — got away', tone: caught ? 'bad' : 'good', uids: [state.fakerUid] },
+        { label: caught ? '🔎 The detectives' : '🤡 Fooled', tone: caught ? 'good' : 'bad', uids: clean.map((p) => p.uid) },
+      ],
+    },
   });
 
   return { state: { ...state, phase: 'done' }, effects };
@@ -321,7 +330,7 @@ export const definition: GameDefinition<FkState, FkInput> = {
   name: 'Fake It Till You Make It',
   emoji: '🕵️',
   rules:
-    'One player NEVER gets the prompt — they only get told the move (fingers 🖐, a point 👉 or a raised hand ✋) and have to blend in. Everyone else reads the prompt privately, a 10-second countdown drops, and the whole table makes the move at once with their body — nothing is tapped in the app. The prompt then goes public and you argue it out. Finally the group votes: ballots are public and live, and an accusation needs every vote to land on the same player (the faker\'s own ballot never counts). One doubter and the faker walks — and whether you were right stays secret until the final unmask.',
+    'One player NEVER gets the prompt — they only know the move (fingers 🖐, a point 👉 or a raised hand ✋) and have to blend in. Everyone else reads the prompt, a 5-second countdown drops, and the whole table makes the move at once with their body. Then the prompt goes public and you argue it out. Vote: pick a suspect and LOCK IT IN — no clock. If everyone else names the same player (players minus one) they are convicted. Catch the faker and the game ends on the spot: the faker drinks 3. Miss, and the faker gets away with the round — everyone else owes a drink for each getaway. Up to 3 rounds.',
   minPlayers: 3,
 
   createInitialState(ctx: GameContext): FkState {
@@ -336,7 +345,7 @@ export const definition: GameDefinition<FkState, FkInput> = {
       seen: {},
       argued: {},
       votes: {},
-      allIn: false,
+      lastUid: null,
       history: {},
     };
     const prompt = nextPrompt(base, ctx);
@@ -357,18 +366,18 @@ export const definition: GameDefinition<FkState, FkInput> = {
         if (state.phase === 'brief') {
           if ((state.seen ?? {})[event.uid]) return { state };
           const seen = { ...(state.seen ?? {}), [event.uid]: true };
-          const next = { ...state, seen };
-          return Object.keys(seen).length >= ctx.players.length ? toGesture(next) : { state: next };
+          const next = { ...state, seen, lastUid: event.uid };
+          return ctx.players.every((p) => seen[p.uid]) ? toGesture(next) : { state: next };
         }
 
         // the prompt is public and the clock is running: whoever is holding
         // the phone (shared) or the last player to tap (party) opens the ballot
         if (state.phase === 'reveal') {
-          if (ctx.settings.mode === 'shared') return toVote(state);
+          if (ctx.settings.mode === 'shared') return toVote({ ...state, lastUid: event.uid });
           if ((state.argued ?? {})[event.uid]) return { state };
           const argued = { ...(state.argued ?? {}), [event.uid]: true };
           const next = { ...state, argued };
-          return Object.keys(argued).length >= ctx.players.length ? toVote(next) : { state: next };
+          return ctx.players.every((p) => argued[p.uid]) ? toVote(next) : { state: next };
         }
 
         return { state };
@@ -379,23 +388,13 @@ export const definition: GameDefinition<FkState, FkInput> = {
         const target = input.value;
         if (typeof target !== 'string' || target === event.uid) return { state };
         if (!ctx.players.some((p) => p.uid === target)) return { state };
+        if (!ctx.players.some((p) => p.uid === event.uid)) return { state };
+        // locked means locked
+        if (typeof (state.votes ?? {})[event.uid] === 'string') return { state };
         const votes = { ...(state.votes ?? {}), [event.uid]: target };
-        const next = { ...state, votes };
-        const everyoneVoted = ctx.players.every((p) => typeof votes[p.uid] === 'string');
-        if (!everyoneVoted) return { state: { ...next, allIn: false } };
-        // every ballot is in: the table gets one last-chance window to switch
-        // before the round settles (switching inside it doesn't extend it)
-        if (state.allIn) return { state: { ...next, allIn: true } };
-        return { state: { ...next, allIn: true }, effects: [{ type: 'TIMER', ms: LOCK_MS }] };
-      }
-
-      if (input.action === 'recast') {
-        if (state.phase !== 'vote' || ctx.settings.mode !== 'shared') return { state };
-        if (!state.allIn) return { state };
-        return {
-          state: { ...state, allIn: false },
-          effects: [{ type: 'CLEAR_INPUTS' }, { type: 'TIMER', ms: VOTE_MS }],
-        };
+        const next = { ...state, votes, lastUid: event.uid };
+        const everyoneLocked = ctx.players.every((p) => typeof votes[p.uid] === 'string');
+        return everyoneLocked ? resolveRound(next, ctx) : { state: next };
       }
 
       return { state };
@@ -407,14 +406,35 @@ export const definition: GameDefinition<FkState, FkInput> = {
       if (state.phase === 'brief') return toGesture(state);
       if (state.phase === 'gesture') return toReveal(state);
       if (state.phase === 'reveal') return toVote(state);
-      if (state.phase === 'vote') return resolveRound(state, ctx);
+      // the ballot has no clock — a stray timeout here (a round carried over
+      // from an older build) must not close it early
+      if (state.phase === 'vote') return { state };
       if (state.phase === 'verdict') {
+        const last = roundsOf(state).at(-1);
+        if (last?.result === 'caught') return finish(state, ctx);
         return state.roundNo >= ROUNDS_COUNT ? toUnmask(state) : startRound(state, ctx);
       }
       if (state.phase === 'unmask') return finish(state, ctx);
     }
 
     return { state };
+  },
+
+  /**
+   * Shared phone: private cards and ballots go round the table one player at
+   * a time; the hands-off screens (countdown, argument, verdict) stay with
+   * whoever tapped last, so no "pass the phone" gate lands on top of a
+   * 5-second countdown.
+   */
+  sharedHolderUid(state, { players }) {
+    if (state.phase === 'brief') {
+      return players.find((p) => !(state.seen ?? {})[p.uid])?.uid ?? null;
+    }
+    if (state.phase === 'vote') {
+      return players.find((p) => typeof (state.votes ?? {})[p.uid] !== 'string')?.uid ?? null;
+    }
+    const last = state.lastUid;
+    return last && players.some((p) => p.uid === last) ? last : (players[0]?.uid ?? null);
   },
 
   View,
