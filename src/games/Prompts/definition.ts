@@ -4,6 +4,7 @@ import type {
   GameContext,
   GameDefinition,
   GameEvent,
+  Highlight,
   OutcomeRecap,
   OutcomeRecapGroup,
   PlayerInfo,
@@ -103,6 +104,18 @@ function reveal(state: PromptsState, ctx: GameContext): ReduceResult<PromptsStat
   };
 }
 
+/** A lone confessor, a lone saint, or a whole guilty table is worth a line. */
+function highlightsOf(state: PromptsState, ctx: GameContext): Highlight[] {
+  const votes = state.votes ?? {};
+  if (ctx.players.length < 3) return [];
+  const guilty = ctx.players.filter((p) => votes[p.uid] === true);
+  const innocent = ctx.players.filter((p) => votes[p.uid] !== true);
+  if (guilty.length === ctx.players.length) return [{ kind: 'nhie-all-guilty' }];
+  if (guilty.length === 1) return [{ kind: 'nhie-only-guilty', uid: guilty[0].uid }];
+  if (innocent.length === 1) return [{ kind: 'nhie-only-innocent', uid: innocent[0].uid }];
+  return [];
+}
+
 export const definition: GameDefinition<PromptsState, PromptsInput> = {
   id: 'prompts',
   name: 'Never Have I Ever',
@@ -150,6 +163,7 @@ export const definition: GameDefinition<PromptsState, PromptsInput> = {
               // the votes travel with the drinks so the outcome screen can
               // show who was guilty before anyone taps ready
               recap: state.recap ?? undefined,
+              highlights: highlightsOf(state, ctx),
             },
           ],
         };

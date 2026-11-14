@@ -38,6 +38,7 @@ import type {
   OutcomeRecapGroup,
   PlayerInfo,
   ReduceResult,
+  Highlight,
 } from '../../engine/types';
 import { resolveShot } from './physics';
 import { View } from './View';
@@ -250,6 +251,13 @@ function endOfRound(s: BcState, note: string): Effect[] {
     groups.push({ label: 'Caught', tone: 'bad', uids: caughtOrder });
   }
   if (catchers.length > 0) groups.push({ label: 'Catchers', tone: 'good', uids: catchers });
+  // the moments worth a line on the drinks screen (see engine/roast.ts)
+  const highlights: Highlight[] = [];
+  if (s.boomUid) highlights.push({ kind: 'boom-last-beer', uid: s.boomUid });
+  const counts = Object.entries(s.caught ?? {}).sort((a, b) => b[1] - a[1]);
+  if (counts.length > 0 && counts[0][1] >= 2 && (counts.length === 1 || counts[1][1] < counts[0][1])) {
+    highlights.push({ kind: 'boom-caught-most', uid: counts[0][0], n: counts[0][1] });
+  }
   // Every sip was already applied the moment it landed (the table drinks as
   // it plays), so this effect only closes the round and recaps it.
   return [
@@ -257,6 +265,7 @@ function endOfRound(s: BcState, note: string): Effect[] {
       type: 'END',
       assignments: [],
       note,
+      highlights,
       recap: groups.length > 0 ? { title: 'Who got caught', groups } : undefined,
     },
   ];
@@ -315,6 +324,7 @@ function passTo(
           uid: targetUid,
           sips: CATCH_SIPS,
           reason: byUid ? `Caught by ${nameOf(ctx.players, byUid)}` : 'Caught',
+          ...(byUid ? { fromUid: byUid } : {}),
         },
       ],
     });

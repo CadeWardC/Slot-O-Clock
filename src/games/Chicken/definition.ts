@@ -5,6 +5,7 @@ import type {
   GameEvent,
   OutcomeRecap,
   ReduceResult,
+  Highlight,
 } from '../../engine/types';
 import { View } from './View';
 
@@ -120,7 +121,7 @@ function finish(state: CkState, ctx: GameContext): ReduceResult<CkState> {
   }
   for (const [giver, give] of Object.entries(state.gifts ?? {})) {
     for (const [uid, n] of Object.entries(give ?? {})) {
-      if (n > 0) assignments.push({ uid, sips: n, reason: `From ${nameOf(ctx, giver)}` });
+      if (n > 0) assignments.push({ uid, sips: n, reason: `From ${nameOf(ctx, giver)}`, fromUid: giver });
     }
   }
 
@@ -142,7 +143,29 @@ function finish(state: CkState, ctx: GameContext): ReduceResult<CkState> {
     note = 'Everyone got out.';
   }
 
-  return { state, effects: [{ type: 'END', assignments, note, recap }] };
+  // the moments worth a line on the drinks screen (see engine/roast.ts)
+  const highlights: Highlight[] = [];
+  const order = ctx.players.map((p) => p.uid);
+  const firstBust = order.find((uid) => busted.includes(uid)) ?? busted[0];
+  if (firstBust) highlights.push({ kind: 'chicken-bust', uid: firstBust, n: Math.max(1, state.bustValue ?? 1) });
+  if (state.lastThumb) {
+    highlights.push({ kind: 'chicken-last', uid: state.lastThumb, n: banks[state.lastThumb] ?? 0 });
+  }
+  // how high the counter got in the end, whoever was still watching it
+  const peak =
+    busted.length > 0
+      ? (state.bustValue ?? 0)
+      : state.lastThumb
+        ? (banks[state.lastThumb] ?? 0) - LAST_THUMB_BONUS
+        : Math.max(0, ...Object.values(banks));
+  const earliest = order
+    .filter((uid) => uid !== state.lastThumb && banks[uid] != null)
+    .sort((a, b) => banks[a] - banks[b])[0];
+  if (earliest && banks[earliest] <= 1 && peak >= 5) {
+    highlights.push({ kind: 'chicken-early', uid: earliest, n: banks[earliest] });
+  }
+
+  return { state, effects: [{ type: 'END', assignments, note, recap, highlights }] };
 }
 
 /** the climb is over without a bust: hand-outs if anyone banked, else straight to the end */

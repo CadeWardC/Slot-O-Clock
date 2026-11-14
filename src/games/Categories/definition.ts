@@ -4,6 +4,7 @@ import type {
   GameContext,
   GameDefinition,
   GameEvent,
+  Highlight,
   ReduceResult,
 } from '../../engine/types';
 import { View } from './View';
@@ -81,9 +82,21 @@ function finish(
     : sips > 0
       ? `${actor.name} named ${TARGET} and drinks ${sips}.`
       : `${actor.name} named ${TARGET}. Nothing stacked.`;
+  // the category as it reads after "four": no leading "Name 4", lower case
+  const text = (state.category ?? '')
+    .replace(/^\s*name\s+(4|four)\s+/i, '')
+    .replace(/[.!?]+$/, '')
+    .toLowerCase();
+  const highlights: Highlight[] = gaveUp
+    ? [{ kind: 'cat-gave-up', uid: actor.uid, n: state.pool, text }]
+    : state.pool >= 3
+      ? [{ kind: 'cat-stacked', uid: actor.uid, n: state.pool }]
+      : state.pool === 0
+        ? [{ kind: 'cat-clean', uid: actor.uid, text }]
+        : [];
   return {
     state: { ...state, phase: 'done', gaveUp, resultLine },
-    effects: [{ type: 'END', assignments, note: resultLine }],
+    effects: [{ type: 'END', assignments, note: resultLine, highlights }],
   };
 }
 

@@ -25,6 +25,7 @@ import type {
   GameDefinition,
   GameEvent,
   ReduceResult,
+  Highlight,
 } from '../../engine/types';
 import { View } from './View';
 
@@ -246,7 +247,14 @@ function finish(state: CfState, ctx: GameContext): ReduceResult<CfState> {
   }
   const assignments: DrinkAssignment[] =
     winners.length === 1 && giftUid
-      ? [{ uid: giftUid, sips: GIFT_SIPS, reason: `${nameOf(winners[0])} drank least and picked you` }]
+      ? [
+          {
+            uid: giftUid,
+            sips: GIFT_SIPS,
+            reason: `${nameOf(winners[0])} drank least and picked you`,
+            fromUid: winners[0],
+          },
+        ]
       : [];
 
   const rounds = Object.entries(state.history ?? {}).sort((a, b) => Number(a[0]) - Number(b[0]));
@@ -264,6 +272,13 @@ function finish(state: CfState, ctx: GameContext): ReduceResult<CfState> {
   if (caughtUids.length > 0) groups.push({ label: 'Caught', tone: 'bad' as const, uids: caughtUids });
   if (freeUids.length > 0) groups.push({ label: 'Got away with it', tone: 'neutral' as const, uids: freeUids });
 
+  // the roast line is about the trial the table has just watched: the last one
+  const last = rounds.length > 0 ? rounds[rounds.length - 1][1] : null;
+  const highlights: Highlight[] =
+    last && last.authorUid
+      ? [{ kind: last.caught ? 'conf-caught' : 'conf-fooled', uid: last.authorUid }]
+      : [];
+
   const crown =
     winners.length === 0
       ? 'Everyone drank the same.'
@@ -271,7 +286,7 @@ function finish(state: CfState, ctx: GameContext): ReduceResult<CfState> {
   const note = `${crown} ${summaryNote(state, ctx)}`;
   return {
     state: { ...state, phase: 'done', giftUid, assignments, note },
-    effects: [{ type: 'END', assignments, note, recap: { title: 'How it went', groups } }],
+    effects: [{ type: 'END', assignments, note, highlights, recap: { title: 'How it went', groups } }],
   };
 }
 

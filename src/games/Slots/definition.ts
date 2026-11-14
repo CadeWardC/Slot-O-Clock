@@ -3,6 +3,7 @@ import type {
   GameContext,
   GameDefinition,
   GameEvent,
+  Highlight,
   ReduceResult,
 } from '../../engine/types';
 import { hashSeed, mulberry32 } from '../../engine/rng';
@@ -105,12 +106,24 @@ function toHold(state: SlotsState): ReduceResult<SlotsState> {
 function endRound(state: SlotsState, ctx: GameContext): ReduceResult<SlotsState> {
   const assignments: DrinkAssignment[] = [];
   for (const p of ctx.players) {
-    const spin = state.spins[p.uid];
+    const spin = (state.spins ?? {})[p.uid];
     if (spin && spin.sips > 0) {
       assignments.push({ uid: p.uid, sips: spin.sips, reason: spin.line });
     }
   }
-  const spun = Object.keys(state.spins).length;
+  const spins = state.spins ?? {};
+  const spun = Object.keys(spins).length;
+  // moments for the drinks screen: a triple skull, or the one machine that paid
+  const highlights: Highlight[] = [];
+  const skulls = ctx.players.find((p) => {
+    const reels = spins[p.uid]?.reels ?? [];
+    return (spins[p.uid]?.sips ?? 0) >= 5 && reels.some((r) => r === SKULL);
+  });
+  if (skulls) highlights.push({ kind: 'slots-skulls', uid: skulls.uid });
+  const safe = ctx.players.filter((p) => spins[p.uid] && spins[p.uid].sips === 0);
+  if (safe.length === 1 && assignments.length >= 2) {
+    highlights.push({ kind: 'slots-only-safe', uid: safe[0].uid });
+  }
   return {
     state,
     effects: [
@@ -118,6 +131,7 @@ function endRound(state: SlotsState, ctx: GameContext): ReduceResult<SlotsState>
         type: 'END',
         assignments,
         note: `${spun} of ${ctx.players.length} pulled the lever`,
+        highlights,
       },
     ],
   };

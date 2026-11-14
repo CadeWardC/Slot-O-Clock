@@ -21,6 +21,7 @@ import { gameById } from '../games';
 import { serverNow } from '../state/serverTime';
 import { Button, Modal, PlayerChip } from '../components/ui';
 import { Confetti } from '../components/fx';
+import { THROWABLES } from '../components/Reactions';
 import type { PlayerInfo } from '../engine/types';
 
 export function GameScreen() {
@@ -262,8 +263,27 @@ function IntroView({ room }: { room: RoomData }) {
   // Same pacing rule as the outcome screen: the splash parks on the ready
   // gate until the table says go (or the host runs the room themselves).
   const pacing = pacingOf(room.meta.settings);
+  const wild = engine?.wild ?? null;
+  const spot = engine?.spot ?? null;
+  const spotName = spot ? (room.players?.[spot.uid]?.name ?? 'Someone') : null;
   return (
     <div className="intro">
+      {wild && (
+        <div className="wild-card" key={wild.id}>
+          <span className="wild-card-kicker">Wild card</span>
+          <h2 className="wild-card-title">{wild.title}</h2>
+          <p className="wild-card-text">{wild.text}</p>
+        </div>
+      )}
+      {spot && (
+        <div className="spot-strip">
+          <span className="fx-tag fx-tag-red">On the spot</span>
+          <p>
+            <b>{spotName}</b> has had it easy
+            {spot.picked ? ' and picked this game' : ''}. Their drinks count double.
+          </p>
+        </div>
+      )}
       <div className="intro-card fx-paper" key={def.id}>
         <span className="fx-tag">Game {engine?.round ?? 1}</span>
         <div className="intro-emoji">{def.emoji}</div>
@@ -499,8 +519,10 @@ function SharedGate({
 /* ============ outcome ============ */
 
 function OutcomeView({ room }: { room: RoomData }) {
-  const { isAuthority, hostSkipRound, me } = useApp();
-  const outcome = engineOf(room)?.outcome;
+  const { isAuthority, hostSkipRound, me, throwAt, pickNextGame } = useApp();
+  const [aim, setAim] = useState<string | null>(null);
+  const engine = engineOf(room);
+  const outcome = engine?.outcome;
   // names for the drink list and the recap: every seat in the room, so a player
   // who walked off mid-round is still readable on the screen that names them
   const players = playerList(room);
@@ -547,6 +569,14 @@ function OutcomeView({ room }: { room: RoomData }) {
         <h2 className="fx-title">Who drinks</h2>
       )}
 
+      {outcome.roast && <p className="roast">{outcome.roast}</p>}
+      {outcome.wild && (
+        <p className="outcome-wild">
+          <span className="fx-tag">{outcome.wild.title}</span>
+          {outcome.wild.did && <span>{outcome.wild.did}</span>}
+        </p>
+      )}
+
       {joined && (
         <p className="muted small">
           That round ran without you. You're in from the next game.
@@ -581,14 +611,17 @@ function OutcomeView({ room }: { room: RoomData }) {
         {assignments.map((a, i) => {
           const p = players.find((x) => x.uid === a.uid);
           if (!p) return null;
+          const canThrow = personal && !!me && a.uid !== me.uid;
           return (
             <div
               key={`${a.uid}-${i}`}
-              className={`outcome-row ${me && a.uid === me.uid && personal ? 'outcome-row-me' : ''}`}
+              className={`outcome-row ${me && a.uid === me.uid && personal ? 'outcome-row-me' : ''} ${canThrow ? 'outcome-row-tap' : ''}`}
               style={{ animationDelay: `${0.15 + i * 0.12}s` }}
+              onClick={canThrow ? () => setAim(aim === a.uid ? null : a.uid) : undefined}
             >
               <span className="outcome-who">
                 {p.emoji} {p.name}
+                {outcome.spotUid === a.uid && <span className="outcome-x2">x2</span>}
               </span>
               <span className="outcome-sips">{a.sips}</span>
               <span className="outcome-reason">{a.reason}</span>
@@ -597,6 +630,20 @@ function OutcomeView({ room }: { room: RoomData }) {
         })}
       </div>
       {outcome.note && assignments.length > 0 && <p className="outcome-note">{outcome.note}</p>}
+
+      {personal && me && (
+        <ThrowBar
+          players={players.filter((p) => p.uid !== me.uid && p.left !== true)}
+          aim={aim}
+          onAim={setAim}
+          onThrow={(uid, kind) => {
+            void throwAt(uid, kind);
+            setAim(null);
+          }}
+        />
+      )}
+
+      <NextPick room={room} onPick={pickNextGame} />
       {pacing === 'manual' ? (
         isAuthority ? (
           <Button variant="gold" size="lg" onClick={() => hostSkipRound()}>
@@ -607,6 +654,107 @@ function OutcomeView({ room }: { room: RoomData }) {
         )
       ) : (
         <ReadyGate room={room} />
+      )}
+    </div>
+  );
+}
+
+/** Pick someone, pick something, throw it. It lands on their phone. */
+function ThrowBar({
+  players,
+  aim,
+  onAim,
+  onThrow,
+}: {
+  players: PlayerInfo[];
+  aim: string | null;
+  onAim: (uid: string | null) => void;
+  onThrow: (uid: string, kind: string) => void;
+}) {
+  if (players.length === 0) return null;
+  const target = players.find((p) => p.uid === aim) ?? null;
+  return (
+    <div className="throw">
+      <p className="fx-kicker">{target ? `Throw what at ${target.name}?` : 'Throw something at'}</p>
+      {target ? (
+        <div className="throw-row">
+          {THROWABLES.map((t) => (
+            <button key={t.kind} className="throw-thing" onClick={() => onThrow(target.uid, t.kind)}>
+              <span className="throw-thing-emoji">{t.emoji}</span>
+              <span>{t.label}</span>
+            </button>
+          ))}
+          <button className="throw-cancel" onClick={() => onAim(null)}>
+            never mind
+          </button>
+        </div>
+      ) : (
+        <div className="throw-row">
+          {players.map((p) => (
+            <button key={p.uid} className="throw-who" onClick={() => onAim(p.uid)}>
+              {p.emoji} {p.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The lightweight rule, on the drinks screen: whoever has had it easiest picks
+ * the next game and drinks double in it. Everyone sees who; only that player
+ * (or the one shared phone) gets the buttons. No pick by the time the table is
+ * ready just means the rotation carries on, with them still on the spot.
+ */
+function NextPick({
+  room,
+  onPick,
+}: {
+  room: RoomData;
+  onPick: (gameId: string, forUid?: string) => Promise<void>;
+}) {
+  const { me, isAuthority } = useApp();
+  const engine = engineOf(room);
+  const pickerUid = engine?.next?.pickerUid ?? null;
+  if (!pickerUid || !engine?.gate) return null;
+  const picker = room.players?.[pickerUid];
+  if (!picker) return null;
+  const shared = room.meta.mode === 'shared';
+  const mine = shared ? isAuthority : me?.uid === pickerUid;
+  const pick = room.social?.pick;
+  const chosen = pick && pick.uid === pickerUid && pick.gateId === engine.gate.id ? pick.gameId : null;
+  const table = livePlayers(room).length;
+  const enabled = room.meta.settings.enabledGames ?? [];
+  const options = enabled
+    .map((id) => gameById.get(id))
+    .filter((g): g is NonNullable<typeof g> => !!g && g.minPlayers <= table);
+  const chosenDef = chosen ? gameById.get(chosen) : null;
+
+  return (
+    <div className="nextpick">
+      <span className="fx-tag fx-tag-red">On the spot</span>
+      <p className="nextpick-line">
+        <b>{mine && !shared ? 'You have' : `${picker.name} has`}</b> had it easy.{' '}
+        {mine && !shared ? 'You pick' : `${picker.name} picks`} the next game and{' '}
+        {mine && !shared ? 'drink' : 'drinks'} double in it.
+      </p>
+      {mine ? (
+        <div className="nextpick-grid">
+          {options.map((g) => (
+            <button
+              key={g.id}
+              className={`nextpick-game ${chosen === g.id ? 'on' : ''}`}
+              onClick={() => void onPick(g.id, pickerUid)}
+            >
+              <span>{g.emoji}</span> {g.name}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="muted small">
+          {chosenDef ? `Picked: ${chosenDef.name}.` : `Waiting on ${picker.name} to choose.`}
+        </p>
       )}
     </div>
   );
@@ -745,7 +893,7 @@ function ReadyGate({ room, intro = false }: { room: RoomData; intro?: boolean })
 /* ============ scores ============ */
 
 function ScoresModal({ onClose, players }: { onClose: () => void; players: PlayerInfo[] }) {
-  const { isAuthority, resetDrinks, endGame, leaveRoom } = useApp();
+  const { isAuthority, resetDrinks, finishNight, leaveRoom } = useApp();
   const sorted = [...players].sort((a, b) => b.drinkCount - a.drinkCount);
   const most = Math.max(1, ...sorted.map((p) => p.drinkCount));
   const medal = (i: number) => `${i + 1}.`;
@@ -772,8 +920,15 @@ function ScoresModal({ onClose, players }: { onClose: () => void; players: Playe
             <Button variant="ghost" size="sm" onClick={() => resetDrinks()}>
               reset counts
             </Button>
-            <Button variant="danger" size="sm" onClick={() => endGame()}>
-              end game
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                finishNight();
+                onClose();
+              }}
+            >
+              end the night
             </Button>
           </>
         )}

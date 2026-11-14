@@ -28,6 +28,7 @@ import type {
   GameContext,
   GameDefinition,
   GameEvent,
+  Highlight,
   PlayerInfo,
   ReduceResult,
 } from '../../engine/types';
@@ -149,6 +150,8 @@ function reveal(state: PoisonState, ctx: GameContext): ReduceResult<PoisonState>
         hitters.length > 1
           ? `Cup ${pick + 1}, poisoned ${hitters.length} times by ${who}`
           : `Cup ${pick + 1}, poisoned by ${who}`,
+      // a lone poisoner is the one who handed this out
+      ...(hitters.length === 1 ? { fromUid: hitters[0] } : {}),
     });
     for (const uid of hitters) effects.push({ type: 'SCORE', uid, delta: 1 });
     note =
@@ -176,6 +179,22 @@ function reveal(state: PoisonState, ctx: GameContext): ReduceResult<PoisonState>
     state: { ...state, phase: 'reveal', pick, hover: null, revealAt: ctx.now, outcome, assignments, note },
     effects,
   };
+}
+
+/** How the cup turned out, for the line on the drinks screen. */
+function highlightsOf(state: PoisonState): Highlight[] {
+  const uid = state.drinkerUid;
+  if (!uid || state.pick == null) return [];
+  const poisons = state.poisons ?? {};
+  const pourers = Object.keys(poisons).length;
+  const doses = Object.values(poisons).filter((c) => c === state.pick).length;
+  if (state.outcome === 'antidote') return [{ kind: 'poison-antidote', uid }];
+  if (state.outcome === 'hit') {
+    return doses >= 2 ? [{ kind: 'poison-stacked', uid, n: doses }] : [{ kind: 'poison-hit', uid }];
+  }
+  // a clean cup only means something if somebody actually poured
+  if (state.outcome === 'clean' && pourers > 0) return [{ kind: 'poison-clean', uid }];
+  return [];
 }
 
 export const definition: GameDefinition<PoisonState, PoisonInput> = {
@@ -288,7 +307,14 @@ export const definition: GameDefinition<PoisonState, PoisonInput> = {
       if (state.phase !== 'reveal') return reveal(state, ctx);
       return {
         state,
-        effects: [{ type: 'END', assignments: state.assignments ?? [], note: state.note }],
+        effects: [
+          {
+            type: 'END',
+            assignments: state.assignments ?? [],
+            note: state.note,
+            highlights: highlightsOf(state),
+          },
+        ],
       };
     }
 

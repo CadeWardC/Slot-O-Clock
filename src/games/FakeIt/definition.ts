@@ -44,6 +44,7 @@ import type {
   GameContext,
   GameDefinition,
   GameEvent,
+  Highlight,
   ReduceResult,
 } from '../../engine/types';
 import { pick } from '../../engine/rng';
@@ -306,10 +307,27 @@ function finish(state: FkState, ctx: GameContext): ReduceResult<FkState> {
   }
   for (let i = 0; i < getaways; i++) effects.push({ type: 'SCORE', uid: state.fakerUid, delta: 1 });
 
+  // how the faker's night went, for the line on the drinks screen
+  const highlights: Highlight[] = [];
+  const last = rounds[rounds.length - 1];
+  if (caught) {
+    highlights.push(
+      rounds.length <= 1
+        ? { kind: 'fake-caught', uid: state.fakerUid }
+        : { kind: 'fake-caught-late', uid: state.fakerUid, n: rounds.length },
+    );
+  } else if (rounds.length >= ROUNDS_COUNT) {
+    highlights.push({ kind: 'fake-escaped', uid: state.fakerUid });
+  }
+  if (last && last.result === 'innocent' && last.accusedUid) {
+    highlights.push({ kind: 'fake-innocent', uid: last.accusedUid });
+  }
+
   const name = faker?.name ?? 'The faker';
   effects.push({
     type: 'END',
     assignments,
+    highlights,
     note: caught
       ? `${name} was the faker. Caught in round ${rounds.length}.`
       : `${name} was the faker. Nobody caught them.`,

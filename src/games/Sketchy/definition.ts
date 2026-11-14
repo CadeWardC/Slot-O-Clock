@@ -7,6 +7,7 @@ import type {
   GameEvent,
   OutcomeRecap,
   ReduceResult,
+  Highlight,
 } from '../../engine/types';
 import { View } from './View';
 
@@ -99,6 +100,24 @@ function toDraw(state: SkState, ctx: GameContext, index: number): ReduceResult<S
   };
 }
 
+/** The moments worth a line on the drinks screen (see engine/roast.ts). */
+function highlightsOf(state: SkState, ctx: GameContext): Highlight[] {
+  if (!state.word || !ctx.actorUid) return [];
+  // quoted, so the line reads right whether the word is "shark" or "spaghetti"
+  const text = `"${state.word}"`;
+  const got = state.got ?? [];
+  if (ctx.settings.mode === 'shared') {
+    return state.verdict === 'got' ? [] : [{ kind: 'sketch-nobody', uid: ctx.actorUid, text }];
+  }
+  if (got.length === 0) return [{ kind: 'sketch-nobody', uid: ctx.actorUid, text }];
+  const all = guessers(ctx);
+  if (all.length < 3) return [];
+  const missed = all.filter((p) => !got.includes(p.uid));
+  if (missed.length === 0) return [{ kind: 'sketch-everyone', uid: ctx.actorUid, text }];
+  if (missed.length === 1) return [{ kind: 'sketch-one-missed', uid: missed[0].uid, text }];
+  return [];
+}
+
 function toReveal(
   state: SkState,
   ctx: GameContext,
@@ -179,7 +198,13 @@ export const definition: GameDefinition<SkState, SkInput> = {
       return {
         state,
         effects: [
-          { type: 'END', assignments: state.assignments ?? [], note: state.note, recap: recapOf(state, ctx) },
+          {
+            type: 'END',
+            assignments: state.assignments ?? [],
+            note: state.note,
+            recap: recapOf(state, ctx),
+            highlights: highlightsOf(state, ctx),
+          },
         ],
       };
     }

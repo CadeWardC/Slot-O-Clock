@@ -128,6 +128,17 @@ const refused = await runTransaction(ref(clients.get('host').db, 'rooms/TEST/eng
 } : cur);
 assert.equal(refused.committed, true, 'engine transaction that rejects an input succeeds');
 checks++;
+// the social node: the one place players write freely, and only as themselves
+await allow('member throws a tomato', 'guest', 'rooms/TEST/social/fx/a', 'PUT', { from: 'guest', to: 'host', kind: 'tomato', at: now });
+await deny('forged thrower', 'guest', 'rooms/TEST/social/fx/b', 'PUT', { from: 'host', to: 'guest', kind: 'tomato', at: now });
+await deny('outsider throws', 'intruder', 'rooms/TEST/social/fx/c', 'PUT', { from: 'intruder', to: 'host', kind: 'tomato', at: now });
+await deny('oversized throw', 'guest', 'rooms/TEST/social/fx/d', 'PUT', { from: 'guest', to: 'host', kind: 'x'.repeat(40), at: now });
+await deny('rewrite a throw', 'guest', 'rooms/TEST/social/fx/a', 'PUT', { from: 'guest', to: 'guest', kind: 'egg', at: now });
+await allow('thrower cleans up', 'guest', 'rooms/TEST/social/fx/a', 'PUT', null);
+await allow('own next-game pick', 'guest', 'rooms/TEST/social/pick', 'PUT', { uid: 'guest', gateId: 'gate', gameId: 'slots' });
+await deny('pick for someone else', 'guest', 'rooms/TEST/social/pick', 'PUT', { uid: 'host', gateId: 'gate', gameId: 'slots' });
+await deny('outsider pick', 'intruder', 'rooms/TEST/social/pick', 'PUT', { uid: 'intruder', gateId: 'gate', gameId: 'slots' });
+await deny('unknown social node', 'guest', 'rooms/TEST/social/other', 'PUT', true);
 await allow('age lease fixture', 'admin', 'rooms/TEST/engine/lease/renewedAt', 'PUT', now - 60000);
 await deny('outsider takeover', 'intruder', 'rooms/TEST/engine/lease', 'PUT', { uid: 'intruder', instanceId: 'evil', generation: 2, renewedAt: now });
 await allow('member takeover after timeout', 'guest', 'rooms/TEST/engine/lease', 'PUT', { uid: 'guest', instanceId: 'guest-tab', generation: 2, renewedAt: now });

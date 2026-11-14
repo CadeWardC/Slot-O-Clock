@@ -121,6 +121,14 @@ export interface AppStateValue {
   endGame: () => Promise<void>;
   resetDrinks: () => Promise<void>;
   takeOverHost: () => Promise<void>;
+  /** throw something at another player; it lands on their phone */
+  throwAt: (toUid: string, kind: string) => Promise<void>;
+  /** the lightweight's choice of next game (the engine checks it is theirs to make) */
+  pickNextGame: (gameId: string, forUid?: string) => Promise<void>;
+  /** end the night: everyone sees the awards */
+  finishNight: () => void;
+  /** from the awards back to the lobby */
+  reopenRoom: () => void;
 }
 
 export const AppStateContext = createContext<AppStateValue | null>(null);
@@ -555,6 +563,47 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     engineCommand({ type: 'skip' });
   }, [engineCommand]);
 
+  // Things players throw at each other. Not authoritative, not part of the
+  // engine: one small node per throw, removed again a few seconds later by the
+  // phone that threw it. A failed write (rules not published yet) is silent.
+  const lastThrow = useRef(0);
+  const throwAt = useCallback(
+    async (toUid: string, kind: string) => {
+      if (!db || !session || !room) return;
+      const now = Date.now();
+      if (now - lastThrow.current < 1200) return;
+      lastThrow.current = now;
+      const id = shortId();
+      const path = rpath(`social/fx/${id}`);
+      try {
+        await set(ref(db, path), { from: session.uid, to: toUid, kind, at: serverNow() });
+        window.setTimeout(() => void remove(ref(db!, path)).catch(() => {}), 6000);
+      } catch {
+        /* nothing to do: a thrown tomato is not worth an error */
+      }
+    },
+    [db, session, room],
+  );
+
+  const pickNextGame = useCallback(
+    async (gameId: string, forUid?: string) => {
+      if (!db || !session || !room) return;
+      const gateId = engineOf(room)?.gate?.id ?? null;
+      if (!gateId) return;
+      await set(ref(db, rpath('social/pick')), { uid: forUid ?? session.uid, gateId, gameId }).catch(
+        () => notify('Could not save that pick'),
+      );
+    },
+    [db, session, room, notify],
+  );
+
+  const finishNight = useCallback(() => {
+    engineCommand({ type: 'finish' });
+  }, [engineCommand]);
+  const reopenRoom = useCallback(() => {
+    engineCommand({ type: 'reopen' });
+  }, [engineCommand]);
+
   const endGame = useCallback(async () => {
     if (!db || !session) return;
     await remove(ref(db, `rooms/${session.code}`)).catch(() => {});
@@ -656,6 +705,10 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     endGame,
     resetDrinks,
     takeOverHost,
+    throwAt,
+    pickNextGame,
+    finishNight,
+    reopenRoom,
   };
 
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

@@ -288,6 +288,48 @@
           ".write": false,
           ".validate": false
         },
+        "social": {
+          "fx": {
+            "$id": {
+              ".write": "auth != null && root.child('rooms/' + $room + '/players/' + auth.uid).exists() && root.child('rooms/' + $room + '/meta/expiresAt').val() > now && ((!data.exists() && newData.exists() && newData.child('from').val() === auth.uid) || (data.exists() && !newData.exists() && (data.child('from').val() === auth.uid || root.child('rooms/' + $room + '/engine/lease/uid').val() === auth.uid)))",
+              ".validate": "$id.length <= 64 && newData.hasChildren(['from', 'to', 'kind', 'at'])",
+              "from": {
+                ".validate": "newData.isString() && newData.val().length <= 128"
+              },
+              "to": {
+                ".validate": "newData.isString() && newData.val().length <= 128"
+              },
+              "kind": {
+                ".validate": "newData.isString() && newData.val().length <= 16"
+              },
+              "at": {
+                ".validate": "newData.isNumber()"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "pick": {
+            ".write": "auth != null && root.child('rooms/' + $room + '/players/' + auth.uid).exists() && root.child('rooms/' + $room + '/meta/expiresAt').val() > now && (!newData.exists() || newData.child('uid').val() === auth.uid || root.child('rooms/' + $room + '/engine/lease/uid').val() === auth.uid)",
+            ".validate": "newData.hasChildren(['uid', 'gateId', 'gameId'])",
+            "uid": {
+              ".validate": "newData.isString() && newData.val().length <= 128"
+            },
+            "gateId": {
+              ".validate": "newData.isString() && newData.val().length <= 64"
+            },
+            "gameId": {
+              ".validate": "newData.isString() && newData.val().length <= 64"
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
         ".validate": "$room.matches(/^[A-Z0-9]{4}$/) && newData.hasChildren(['meta', 'engine'])",
         "$other": {
           ".validate": false

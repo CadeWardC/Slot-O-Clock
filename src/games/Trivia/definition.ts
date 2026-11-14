@@ -4,6 +4,7 @@ import type {
   GameContext,
   GameDefinition,
   GameEvent,
+  Highlight,
   ReduceResult,
 } from '../../engine/types';
 import { View } from './View';
@@ -130,7 +131,13 @@ function final(state: TriviaState, ctx: GameContext): ReduceResult<TriviaState> 
     sips = Math.max(MIN_SIPS, Math.min(MAX_SIPS, top - bottom));
     const from = winners.map(nameOf).join(' & ');
     for (const uid of losers) {
-      assignments.push({ uid, sips, reason: `Fewest right, ${bottom} of ${total(state)}. From ${from}.` });
+      assignments.push({
+        uid,
+        sips,
+        reason: `Fewest right, ${bottom} of ${total(state)}. From ${from}.`,
+        // one clear winner is the one handing these out
+        ...(winners.length === 1 ? { fromUid: winners[0] } : {}),
+      });
     }
     note = `${from} got ${top} of ${total(state)} and hand${winners.length === 1 ? 's' : ''} out ${sips}.`;
   }
@@ -200,6 +207,15 @@ export const definition: GameDefinition<TriviaState, TriviaInput> = {
       if (state.phase === 'final') {
         const winners = state.winners ?? [];
         const losers = state.losers ?? [];
+        // a lone blank sheet or a lone full house is worth a line
+        const highlights: Highlight[] = [];
+        if (ctx.players.length >= 2) {
+          const scores = state.scores ?? {};
+          const zero = ctx.players.filter((p) => (scores[p.uid] ?? 0) === 0);
+          const sweep = ctx.players.filter((p) => (scores[p.uid] ?? 0) >= total(state));
+          if (zero.length === 1) highlights.push({ kind: 'trivia-zero', uid: zero[0].uid });
+          if (sweep.length === 1) highlights.push({ kind: 'trivia-sweep', uid: sweep[0].uid });
+        }
         return {
           state,
           effects: [
@@ -207,6 +223,7 @@ export const definition: GameDefinition<TriviaState, TriviaInput> = {
               type: 'END',
               assignments: state.assignments ?? [],
               note: state.note,
+              highlights,
               recap:
                 winners.length > 0
                   ? {

@@ -29,6 +29,16 @@ A multiplayer **drinking-minigame party game** for phones. One player creates a 
 | Chicken | 🐔 | Everyone holds a thumb on the button while a drink counter climbs from 0 to 10. Let go and you bank what it says, to hand out to anyone you like. It busts at a random moment, and whoever is still holding drinks the counter. If you are the last thumb left, you win the counter plus 2. Shared phone: the turn player plays alone. |
 | Sketchy | ✏️ | One player picks one of three words and draws it with a finger. Everyone else types guesses, and the wrong ones show up for the whole table to see. Miss it and you drink 1. If nobody gets it, the artist drinks 2. On a shared phone the table shouts its guesses and the artist says whether anyone got it. |
 
+## Between the games
+
+- **The line on the drinks screen.** Every game ends with one dry sentence about what just happened ("Sam put 6 on Pony Danza. Pony Danza did not share the confidence."). Games report their own moments as `highlights` on the `END` effect; [`engine/roast.ts`](./src/engine/roast.ts) owns the wording and falls back to streaks and the shape of the round.
+- **Wild cards.** Every third game a card is turned before the rules: double or nothing, happy hour, a drinking buddy, Robin Hood, a night off for the tab leader, a round on the house, or a table rule the players police themselves (wrong hand, no names).
+- **On the spot.** When one player is clearly behind on the tab, they pick the next game and drink double in it.
+- **Throwing things.** On the drinks screen, tap a player and throw a tomato, an egg, a slow clap or a rose. It lands on their phone.
+- **Last orders.** "End the night" in the scores sheet sends every phone to the awards (the sponge, designated driver, worst single game, nemesis, and so on), worked out from the stats the engine keeps as the games go by. The host can go again from there or close the room.
+
+Throwing and the game pick are the only things players write outside the engine, under `rooms/{code}/social`. **Re-publish [`database.rules.json`](./database.rules.json) after pulling this**, or those two features fail quietly (everything else keeps working).
+
 ## Setup (one-time, ~5 minutes)
 
 The app is static (GitHub Pages) but syncs through Firebase RTDB:
@@ -128,7 +138,7 @@ phones ⇄ WebSocket ⇄ Firebase RTDB (rooms/{CODE}) ⇄ WebSocket ⇄ phones
   `players/{uid}` (seat + one `connections/{instanceId}` per open tab),
   `engine/*` (everything the host owns: `phase`, `roundId`, `phaseId`, `rev`,
   `gate`, `ready`, `claims`, `game/{state,timer,inputs}`, `awards`, `recovery`,
-  `fault`, `log`).
+  `fault`, `log`, plus the party layer: `wild`, `spot`, `next`, `stats`), and `social/*` (throws and the lightweight's game pick: written by players, never trusted).
 - **Seats: who's in, who's around, who plays this round** — three different questions, three answers:
   - **In the room** (`activePlayers`) — everyone who hasn't *left*. A phone whose screen went dark keeps its seat; only closing the site (`pagehide` → `players/{uid}/left`, see `state/AppState.tsx`) or tapping *leave room* hands it back. A returning phone clears the flag on its first heartbeat.
   - **Around right now** (`livePlayers`) — presence is derived from the per-tab `connections` children, so a second tab closing (or a browser unloading one page to reclaim memory) can never mark a player who is still there as gone.

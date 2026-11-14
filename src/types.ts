@@ -22,6 +22,12 @@ export interface OutcomeInfo {
   recap?: OutcomeRecap | null;
   /** the engine event that produced this outcome (traceability, never private data) */
   eventId?: string;
+  /** one dry line about what just happened (engine/roast.ts) */
+  roast?: string | null;
+  /** the wild card that was in play, and what it did to the tab */
+  wild?: { title: string; did: string | null } | null;
+  /** the player who was on the spot this game (drinks counted double) */
+  spotUid?: string | null;
 }
 
 /**
@@ -184,6 +190,8 @@ export interface EngineNode {
   spot?: SpotInfo | null;
   /** decided when a round ends: who (if anyone) gets to pick the next game */
   next?: NextUp | null;
+  /** drinks handed out mid-game this round (Boom Cup's catches), kept for the stats */
+  roundTab?: { uid: string; sips: number; fromUid?: string }[] | null;
   /** the night so far: streaks, biggest hits, who gave whom — feeds the awards */
   stats?: PartyStats | null;
 }

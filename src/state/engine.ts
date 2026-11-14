@@ -1,5 +1,16 @@
 import { hashSeed, mulberry32, shuffled } from '../engine/rng';
+import {
+  applySpot,
+  applyWild,
+  dealWild,
+  lightweightFor,
+  statsOf,
+  updateStats,
+  type SpotInfo,
+} from '../engine/party';
+import { roastFor } from '../engine/roast';
 import type {
+  DrinkAssignment,
   Effect,
   GameContext,
   GameDefinition,
@@ -84,6 +95,10 @@ export type EngineCommand =
   | { type: 'resume' }
   | { type: 'retry' }
   | { type: 'reset-awards' }
+  /** end the night: every phone goes to the awards screen */
+  | { type: 'finish' }
+  /** from the awards screen back to the lobby, with a clean tab */
+  | { type: 'reopen' }
   | { type: 'sync' };
 
 export interface EngineWorkerStatus {
@@ -1155,7 +1170,54 @@ export class EngineWorker {
     }
     const order = turnOrderForRoom(room);
     const round = (engine.round ?? 0) + 1;
-    const actor = actorFromOrder(order, present.length > 0 ? present : roster, round);
+    const table = present.length > 0 ? present : roster;
+
+    // ---- the lightweight rule: whoever has had it easiest picks the game and
+    // drinks double in it. The pick lives outside the engine subtree (a player
+    // writes it), so it is checked here like any other claim: right player,
+    // this gate, a game that is enabled and fits the table.
+    const pickerUid = engine.next?.pickerUid ?? null;
+    let spot: SpotInfo | null = null;
+    if (pickerUid && table.some((p) => p.uid === pickerUid)) {
+      const pick = room.social?.pick;
+      const picked =
+        !!pick &&
+        pick.uid === pickerUid &&
+        pick.gateId === engine.gate?.id &&
+        pool.includes(pick.gameId) &&
+        (this.games.byId.get(pick.gameId)?.minPlayers ?? 99) <= players;
+      if (picked && pick) {
+        // slot the choice in as the next game; the rotation carries on after it
+        const at = Math.min((engine.gameIndex ?? 0) + 1, rotation.length);
+        nextRotation = [...rotation.slice(0, at), pick.gameId, ...rotation.slice(at)];
+        gameIndex = at;
+      }
+      spot = { uid: pickerUid, picked };
+    }
+
+    // ---- every third game a wild card is turned before the rules
+    const stats = statsOf(engine.stats);
+    const totals = engine.awards?.drinks ?? {};
+    const nameOf = (uid: string) => room.players?.[uid]?.name ?? 'Someone';
+    const wild = dealWild({
+      round,
+      uids: table.map((p) => p.uid),
+      totals,
+      nameOf,
+      lastWild: stats.lastWild,
+      rng: mulberry32(hashSeed(`${this.code}:wild:${round}`)),
+    });
+    const mult = settings.pointsMode ? 1 : (settings.sipMultiplier ?? 1);
+    const tax =
+      wild?.effect === 'tax'
+        ? table.map((p) => ({
+            uid: p.uid,
+            sips: Math.max(1, Math.round(mult)),
+            reason: 'Round on the house',
+          }))
+        : undefined;
+
+    const actor = actorFromOrder(order, table, round);
     const gate: ReadyGate = {
       id: this.newIdFn(),
       kind: 'outcome',
@@ -1167,13 +1229,26 @@ export class EngineWorker {
     return this.simplePlan({
       kind: 'next-round',
       expect: { rev },
-      log: { kind: 'next-round', detail: `round ${round} · ${nextRotation[gameIndex] ?? '?'}` },
+      log: {
+        kind: 'next-round',
+        detail: `round ${round} · ${nextRotation[gameIndex] ?? '?'}${wild ? ` · wild ${wild.id}` : ''}${spot ? ' · spot' : ''}`,
+      },
       now,
       parts: {
         roundId,
         phaseId,
         game: null,
+        drinks: tax,
         fields: {
+          wild,
+          spot,
+          next: null,
+          roundTab: null,
+          stats: {
+            ...stats,
+            lastWild: wild ? wild.id : stats.lastWild,
+            lastSpotRound: spot ? round : stats.lastSpotRound,
+          },
           phase: 'intro' as RoomPhase,
           round,
           rotation: nextRotation,
@@ -1233,6 +1308,56 @@ export class EngineWorker {
               ready: {},
               claims: {},
               forceNext: false,
+              wild: null,
+              spot: null,
+              next: null,
+              stats: null,
+            },
+          },
+        });
+      }
+
+      case 'finish': {
+        if (engine.phase === 'lobby' || engine.phase === 'ended') return null;
+        return this.simplePlan({
+          kind: 'finish',
+          expect: { rev },
+          log: { kind: 'finish', detail: `night ended after ${engine.stats?.rounds ?? 0} games` },
+          now,
+          parts: {
+            game: null,
+            fields: {
+              phase: 'ended' as RoomPhase,
+              gate: null,
+              ready: {},
+              outcome: null,
+              forceNext: false,
+              wild: null,
+              spot: null,
+              next: null,
+            },
+          },
+        });
+      }
+
+      case 'reopen': {
+        if (engine.phase !== 'ended') return null;
+        return this.simplePlan({
+          kind: 'reopen',
+          expect: { rev },
+          log: { kind: 'reopen', detail: 'back to the lobby' },
+          now,
+          parts: {
+            game: null,
+            fields: {
+              phase: 'lobby' as RoomPhase,
+              round: 0,
+              turnOrder: [],
+              actorUid: null,
+              roundUids: null,
+              claims: {},
+              awards: { scores: {}, drinks: {} },
+              stats: null,
             },
           },
         });
@@ -1352,7 +1477,7 @@ export class EngineWorker {
           expect: { rev },
           log: { kind: 'reset-awards', detail: 'ledger cleared' },
           now,
-          parts: { fields: { awards: { scores: {}, drinks: {} } } },
+          parts: { fields: { awards: { scores: {}, drinks: {} }, stats: null } },
         });
 
       default:
@@ -1398,16 +1523,25 @@ export class EngineWorker {
     // Drinks come from mid-game DRINKS effects *and* from the END effect's
     // assignments: both land in the ledger that this same commit writes, so an
     // interruption can never leave the round finished with drinks unawarded.
-    const awards = effects.flatMap((fx) =>
-      fx.type === 'DRINKS'
-        ? fx.assignments
-        : fx.type === 'END'
-          ? (fx.assignments ?? [])
-          : [],
-    );
-    const drinks = awards
-      .map((a) => ({ uid: a.uid, sips: Math.max(1, Math.round(a.sips * mult)), reason: a.reason }))
-      .filter((a) => a.sips > 0);
+    const scaled = (list: DrinkAssignment[]): DrinkAssignment[] =>
+      list
+        .map((a) => ({ ...a, sips: Math.max(1, Math.round(a.sips * mult)) }))
+        .filter((a) => a.sips > 0);
+    const midGame = scaled(effects.flatMap((fx) => (fx.type === 'DRINKS' ? fx.assignments : [])));
+    // The round's own drinks are what the table rules bend: the player on the
+    // spot drinks double, then the wild card has its say. What comes out is
+    // both what the drinks screen shows and what the ledger is charged.
+    const nameOf = (uid: string) => o.room.players?.[uid]?.name ?? 'Someone';
+    const roundUids = engine.roundUids ?? (o.fields?.roundUids as string[] | null | undefined) ?? [];
+    let final: DrinkAssignment[] = [];
+    let wildDid: string | null = null;
+    if (end && end.type === 'END') {
+      const spotted = applySpot(engine.spot?.uid, scaled(end.assignments ?? []));
+      const bent = applyWild(engine.wild, spotted, roundUids, nameOf);
+      final = bent.assignments;
+      wildDid = bent.did;
+    }
+    const drinks = [...midGame, ...final];
     const scores = effects.flatMap((fx) =>
       fx.type === 'SCORE' ? [{ uid: fx.uid, delta: fx.delta }] : [],
     );
@@ -1430,6 +1564,15 @@ export class EngineWorker {
           : undefined;
 
     const fields: Partial<Omit<EngineNode, 'game'>> = { ...o.fields };
+    // Drinks that land mid-game never reach an END effect, so they are noted
+    // as they happen: the night's stats count them when the round closes.
+    const tabSoFar = engine.roundTab ?? [];
+    if (midGame.length > 0 && !end) {
+      fields.roundTab = [
+        ...tabSoFar,
+        ...midGame.map((a) => (a.fromUid ? { uid: a.uid, sips: a.sips, fromUid: a.fromUid } : { uid: a.uid, sips: a.sips })),
+      ].slice(-80);
+    }
     if (end && end.type === 'END') {
       const present = livePlayers(o.room);
       const gate: ReadyGate = {
@@ -1438,14 +1581,51 @@ export class EngineWorker {
         uids: present.map((p) => p.uid),
         openedAt: o.now,
       };
+      // ---- the night so far, and the one line about this game
+      const totalsBefore = engine.awards?.drinks ?? {};
+      const totalsAfter: Record<string, number> = { ...totalsBefore };
+      for (const d of drinks) totalsAfter[d.uid] = (totalsAfter[d.uid] ?? 0) + d.sips;
+      const statsBefore = statsOf(engine.stats);
+      const everything: DrinkAssignment[] = [
+        ...tabSoFar.map((a) => ({ ...a, reason: '' })),
+        ...midGame,
+        ...final,
+      ];
+      const roast = roastFor({
+        assignments: everything,
+        highlights: end.highlights ?? [],
+        roundUids,
+        nameOf,
+        totalsBefore,
+        totalsAfter,
+        statsBefore,
+        spotUid: engine.spot?.uid ?? null,
+        spotPicked: engine.spot?.picked === true,
+        rng: mulberry32(hashSeed(`${this.code}:roast:${roundId}`)),
+      });
+      const stats = updateStats(statsBefore, {
+        gameName: o.def.name,
+        assignments: everything,
+        roundUids,
+      });
+      const seated = activePlayers(o.room).map((p) => p.uid);
+      const pickerUid = lightweightFor({
+        stats,
+        totals: totalsAfter,
+        uids: seated,
+        nextRound: (engine.round ?? 0) + 1,
+      });
       const outcome: OutcomeInfo = {
         gameId: o.def.id,
         gameName: o.def.name,
         gameEmoji: o.def.emoji,
-        assignments: end.assignments ?? [],
+        assignments: final,
         note: end.note ?? null,
         recap: end.recap ?? null,
         eventId: o.ack?.eventId,
+        roast,
+        wild: engine.wild ? { title: engine.wild.title, did: wildDid } : null,
+        spotUid: engine.spot?.uid ?? null,
       };
       Object.assign(fields, {
         phase: 'outcome' as RoomPhase,
@@ -1453,6 +1633,11 @@ export class EngineWorker {
         gate,
         ready: {},
         forceNext: false,
+        wild: null,
+        spot: null,
+        roundTab: null,
+        stats,
+        next: { pickerUid },
       });
     }
 

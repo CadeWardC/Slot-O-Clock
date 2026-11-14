@@ -4,6 +4,7 @@ import type {
   GameContext,
   GameDefinition,
   GameEvent,
+  Highlight,
   ReduceResult,
 } from '../../engine/types';
 import { View } from './View';
@@ -110,6 +111,26 @@ function finish(state: RxState, ctx: GameContext): ReduceResult<RxState> {
   };
 }
 
+/** The moments worth a line on the drinks screen, read off the finished round. */
+function highlightsOf(state: RxState, ctx: GameContext): Highlight[] {
+  const taps = state.taps ?? {};
+  const drinks = state.assignments ?? [];
+  const out: Highlight[] = [];
+  const inRound = ctx.players.filter((p) => taps[p.uid]);
+  const dq = inRound.find((p) => taps[p.uid].early);
+  if (dq) out.push({ kind: 'react-dq', uid: dq.uid });
+  const asleep = inRound.find(
+    (p) => !taps[p.uid].early && taps[p.uid].ms == null && drinks.some((a) => a.uid === p.uid),
+  );
+  if (asleep) out.push({ kind: 'react-asleep', uid: asleep.uid });
+  const slow = drinks.find((a) => a.reason === 'Slowest finger');
+  const ms = slow ? taps[slow.uid]?.ms : null;
+  if (slow && ms != null && ms >= 500) {
+    out.push({ kind: 'react-slow', uid: slow.uid, n: Math.round(ms) });
+  }
+  return out;
+}
+
 export const definition: GameDefinition<RxState, RxInput> = {
   id: 'reaction',
   name: 'Reaction Duel',
@@ -174,7 +195,17 @@ export const definition: GameDefinition<RxState, RxInput> = {
         return finish(state, ctx); // stragglers never tapped
       }
       if (state.phase === 'done') {
-        return { state, effects: [{ type: 'END', assignments: state.assignments, note: state.note }] };
+        return {
+          state,
+          effects: [
+            {
+              type: 'END',
+              assignments: state.assignments,
+              note: state.note,
+              highlights: highlightsOf(state, ctx),
+            },
+          ],
+        };
       }
     }
 

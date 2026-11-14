@@ -14,6 +14,8 @@ import { AppStateContext, type AppStateValue } from '../src/state/AppState';
 import { Home } from '../src/screens/Home';
 import { Lobby } from '../src/screens/Lobby';
 import { GameScreen } from '../src/screens/GameScreen';
+import { Awards } from '../src/screens/Awards';
+import { Reactions } from '../src/components/Reactions';
 import { SlotIntro } from '../src/components/SlotIntro';
 import { allGames } from '../src/games';
 import type { PlayerInfo, RoomMode } from '../src/engine/types';
@@ -48,7 +50,14 @@ const players: Record<string, PlayerInfo> = Object.fromEntries(
 );
 const uids = Object.keys(players);
 const meUid = isHost ? 'p0' : 'p1';
-const phase = screen === 'lobby' || screen === 'home' ? 'lobby' : (screen as 'claim' | 'intro' | 'outcome');
+const phase =
+  screen === 'lobby' || screen === 'home'
+    ? 'lobby'
+    : screen === 'awards'
+      ? 'ended'
+      : (screen as 'claim' | 'intro' | 'outcome');
+/** &party=1 turns on the between-games extras: wild card, the spot, a throw */
+const party = q.get('party') === '1' || screen === 'awards';
 const game = allGames.find((g) => g.id === (q.get('game') ?? 'horse-race')) ?? allGames[0];
 
 const room: RoomData = {
@@ -94,6 +103,9 @@ const room: RoomData = {
               { uid: 'p1', sips: 1, reason: 'a gift from Cade' },
             ],
             note: 'Thunderbolt won by a nose',
+            roast: 'Sam put 3 on Pony Danza. Pony Danza did not share the confidence.',
+            wild: party ? { title: 'Double or nothing', did: 'Everything doubled.' } : null,
+            spotUid: party ? 'p2' : null,
             recap: {
               title: 'Who backed what',
               groups: [
@@ -117,7 +129,30 @@ const room: RoomData = {
     recovery: null,
     fault: null,
     log: [],
+    wild:
+      party && phase === 'intro'
+        ? { id: 'robin', title: 'Robin Hood', effect: 'robin', uid: 'p2', toUid: 'p3', text: "Sam has drunk the most, Jordan the least. This game, Sam's drinks go to Jordan." }
+        : null,
+    spot: party && phase === 'intro' ? { uid: 'p3', picked: true } : null,
+    next: party && phase === 'outcome' ? { pickerUid: isHost ? 'p0' : 'p3' } : null,
+    stats: {
+      rounds: 9,
+      lastSpotRound: 0,
+      lastWild: null,
+      players: {
+        p0: { rounds: 9, drankRounds: 5, drinkRun: 0, bestDrinkRun: 2, safeRun: 2, bestSafeRun: 3, biggest: 3, biggestGame: 'Slot Machine', given: 9 },
+        p1: { rounds: 9, drankRounds: 2, drinkRun: 0, bestDrinkRun: 1, safeRun: 4, bestSafeRun: 5, biggest: 2, biggestGame: 'Trivia', given: 1 },
+        p2: { rounds: 9, drankRounds: 7, drinkRun: 4, bestDrinkRun: 4, safeRun: 0, bestSafeRun: 1, biggest: 6, biggestGame: 'Horse Race', given: 2 },
+        p3: { rounds: 9, drankRounds: 0, drinkRun: 0, bestDrinkRun: 0, safeRun: 9, bestSafeRun: 9, biggest: 0, biggestGame: '', given: 0 },
+        p4: { rounds: 9, drankRounds: 3, drinkRun: 1, bestDrinkRun: 2, safeRun: 0, bestSafeRun: 3, biggest: 3, biggestGame: 'Chicken', given: 0 },
+      },
+      pairs: { p0: { p2: 7, p4: 2 }, p2: { p0: 2 }, p1: { p2: 1 } },
+    },
   },
+  social:
+    party && phase === 'outcome'
+      ? { fx: { a: { from: 'p2', to: meUid, kind: 'tomato', at: now }, b: { from: 'p4', to: 'p3', kind: 'clap', at: now } } }
+      : null,
 };
 
 const noop = async () => {};
@@ -149,6 +184,10 @@ const value: AppStateValue = {
   endGame: noop,
   resetDrinks: noop,
   takeOverHost: noop,
+  throwAt: noop,
+  pickNextGame: noop,
+  finishNight: () => {},
+  reopenRoom: () => {},
 };
 
 createRoot(document.getElementById('root')!).render(
@@ -160,9 +199,12 @@ createRoot(document.getElementById('root')!).render(
         <Home />
       ) : screen === 'lobby' ? (
         <Lobby />
+      ) : screen === 'awards' ? (
+        <Awards />
       ) : (
         <GameScreen />
       )}
+      <Reactions />
     </AppStateContext.Provider>
   </StrictMode>,
 );

@@ -6,6 +6,8 @@ import { phaseOf } from './types';
 import { Home } from './screens/Home';
 import { Lobby } from './screens/Lobby';
 import { GameScreen } from './screens/GameScreen';
+import { Awards } from './screens/Awards';
+import { Reactions } from './components/Reactions';
 import { RoomGone, SetupScreen, Splash, VersionMismatch } from './screens/SetupScreen';
 import { Button, Toast } from './components/ui';
 import { SlotIntro } from './components/SlotIntro';
@@ -71,6 +73,7 @@ function Root() {
   else if (wrongProtocol) screen = <VersionMismatch onHome={() => st.leaveRoom()} />;
   else if (!st.session || !st.room) screen = <Home />;
   else if (phase === 'lobby') screen = <Lobby />;
+  else if (phase === 'ended') screen = <Awards />;
   else screen = <GameScreen />;
 
   return (
@@ -79,6 +82,7 @@ function Root() {
       {st.isAuthority && localFault && !st.room?.engine?.fault && (
         <EngineFaultBanner message={localFault} />
       )}
+      <Reactions />
       <Toast text={st.notice} />
     </>
   );

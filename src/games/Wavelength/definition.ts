@@ -30,6 +30,7 @@ import type {
   GameDefinition,
   GameEvent,
   ReduceResult,
+  Highlight,
 } from '../../engine/types';
 import { View } from './View';
 
@@ -72,6 +73,28 @@ function toGuessing(state: WlState): ReduceResult<WlState> {
     effects: [{ type: 'CLEAR_INPUTS' }],
   };
 }
+
+/** The moments worth a line on the drinks screen (see engine/roast.ts). */
+function highlightsOf(state: WlState, ctx: GameContext): Highlight[] {
+  const entries = Object.entries(state.guesses ?? {})
+    .map(([uid, value]) => ({ uid, d: Math.abs(value - state.target) }))
+    .sort((a, b) => a.d - b.d);
+  const out: Highlight[] = [];
+  if (entries.length === 0) return out;
+  const closest = entries[0];
+  const furthest = entries[entries.length - 1];
+  if (closest.d <= 2) out.push({ kind: 'wave-dead-on', uid: closest.uid });
+  if (furthest.d >= 40 && furthest.uid !== closest.uid) {
+    out.push({ kind: 'wave-miles-off', uid: furthest.uid, n: Math.round(furthest.d) });
+  }
+  const badClue = (state.assignments ?? []).some(
+    (a) => a.uid === ctx.actorUid && a.reason === BAD_CLUE_REASON,
+  );
+  if (badClue && ctx.actorUid) out.push({ kind: 'wave-bad-clue', uid: ctx.actorUid });
+  return out;
+}
+
+const BAD_CLUE_REASON = 'Useless clue';
 
 function reveal(state: WlState, ctx: GameContext): ReduceResult<WlState> {
   const target = Math.round(state.target);
@@ -127,7 +150,7 @@ function reveal(state: WlState, ctx: GameContext): ReduceResult<WlState> {
 
   const badClue = avgDist > BAD_CLUE_DISTANCE;
   if (badClue && ctx.actorUid) {
-    assignments.push({ uid: ctx.actorUid, sips: BAD_CLUE_SIPS, reason: 'Useless clue' });
+    assignments.push({ uid: ctx.actorUid, sips: BAD_CLUE_SIPS, reason: BAD_CLUE_REASON });
   }
 
   const verdict = badClue
@@ -213,7 +236,14 @@ export const definition: GameDefinition<WlState, WlInput> = {
       if (state.phase === 'reveal') {
         return {
           state,
-          effects: [{ type: 'END', assignments: state.assignments ?? [], note: state.note }],
+          effects: [
+            {
+              type: 'END',
+              assignments: state.assignments ?? [],
+              note: state.note,
+              highlights: highlightsOf(state, ctx),
+            },
+          ],
         };
       }
     }

@@ -31,6 +31,7 @@ import type {
   GameDefinition,
   GameEvent,
   ReduceResult,
+  Highlight,
 } from '../../engine/types';
 import { View } from './View';
 
@@ -390,6 +391,7 @@ function toResult(state: HrState, ctx: GameContext): ReduceResult<HrState> {
         uid: targetUid,
         sips,
         reason: `From ${giver?.name ?? 'a winner'}'s winnings`,
+        fromUid: giverUid,
       });
     }
   }
@@ -397,6 +399,32 @@ function toResult(state: HrState, ctx: GameContext): ReduceResult<HrState> {
     state: { ...state, phase: 'result', assignments },
     effects: [{ type: 'TIMER', ms: RESULT_MS }],
   };
+}
+
+/** The moments worth a line on the drinks screen (see engine/roast.ts). */
+function highlightsOf(state: HrState): Highlight[] {
+  const bets = state.bets ?? {};
+  const horses = state.horses ?? [];
+  const winnerId = state.winnerHorseId ?? null;
+  const nameOfHorse = (id: string | null | undefined) => horses.find((h) => h.id === id)?.name ?? '?';
+  const out: Highlight[] = [];
+  // the biggest stake on each side; the first in join order wins a tie
+  let lost: { uid: string; n: number } | null = null;
+  let won: { uid: string; n: number } | null = null;
+  for (const [uid, horseId] of Object.entries(bets)) {
+    const n = stakeOf(state.stakes, uid);
+    if (horseId === winnerId) {
+      if (!won || n > won.n) won = { uid, n };
+    } else if (!lost || n > lost.n) lost = { uid, n };
+  }
+  if (lost && lost.n >= 4) {
+    out.push({ kind: 'horse-lost-big', uid: lost.uid, n: lost.n, text: nameOfHorse(bets[lost.uid]) });
+  }
+  if (won && won.n >= 4) {
+    out.push({ kind: 'horse-won-big', uid: won.uid, n: won.n, text: nameOfHorse(winnerId) });
+  }
+  if (winnerId && !won) out.push({ kind: 'horse-nobody-won', text: nameOfHorse(winnerId) });
+  return out;
 }
 
 function resolve(state: HrState): ReduceResult<HrState> {
@@ -554,6 +582,7 @@ export const definition: GameDefinition<HrState, HrInput> = {
               type: 'END',
               assignments: state.assignments ?? [],
               note: state.note,
+              highlights: highlightsOf(state),
               recap: {
                 title: 'How the money went',
                 groups: [
