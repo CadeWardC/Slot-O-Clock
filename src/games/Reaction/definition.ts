@@ -59,36 +59,49 @@ export interface RxInput {
   at?: number;
 }
 
+/** what a disqualification costs — more than merely being slow */
+export const DQ_SIPS = 3;
+export const SLOW_SIPS = 2;
+/** how long the results ladder stays up before the round closes */
+export const RESULTS_MS = 6000;
+
 function finish(state: RxState, ctx: GameContext): ReduceResult<RxState> {
-  const taps: Record<string, Tap> = { ...state.taps };
+  const taps: Record<string, Tap> = { ...(state.taps ?? {}) };
   for (const p of ctx.players) {
     if (!taps[p.uid]) taps[p.uid] = { ms: null, early: false };
   }
 
   const assignments: DrinkAssignment[] = [];
-  const earlyUids = Object.entries(taps)
-    .filter(([, t]) => t.early)
-    .map(([uid]) => uid);
-  const valid = Object.entries(taps).filter(([, t]) => !t.early && t.ms != null);
+  const inRound = Object.entries(taps).filter(([uid]) => ctx.players.some((p) => p.uid === uid));
+  const dq = inRound.filter(([, t]) => t.early).map(([uid]) => uid);
+  const valid = inRound.filter(([, t]) => !t.early && t.ms != null);
+  const asleep = inRound.filter(([, t]) => !t.early && t.ms == null).map(([uid]) => uid);
 
-  for (const uid of earlyUids) {
-    assignments.push({ uid, sips: 2, reason: 'Jumped the gun 🚨' });
-  }
-
-  if (valid.length >= 2) {
+  if (dq.length > 0) {
+    // A false start IS the loss: whoever jumped takes the loser's drinks, and
+    // the slowest honest finger walks away clean.
+    for (const uid of dq) {
+      assignments.push({ uid, sips: DQ_SIPS, reason: 'DQ’d — tapped before green 🚨' });
+    }
+  } else if (asleep.length > 0 && valid.length > 0) {
+    // nobody cheated, but somebody never tapped at all: slower than slow
+    for (const uid of asleep) {
+      assignments.push({ uid, sips: SLOW_SIPS, reason: 'Never tapped 😴' });
+    }
+  } else if (valid.length >= 2) {
     const slowest = valid.reduce((a, b) => ((b[1].ms as number) > (a[1].ms as number) ? b : a));
-    assignments.push({ uid: slowest[0], sips: 2, reason: 'Slowest finger 🐌' });
+    assignments.push({ uid: slowest[0], sips: SLOW_SIPS, reason: 'Slowest finger 🐌' });
   }
 
-  const effects: Effect[] = [{ type: 'TIMER', ms: 2600 }];
+  const effects: Effect[] = [{ type: 'TIMER', ms: RESULTS_MS }];
   let note: string | null = null;
   if (valid.length > 0) {
     const fastest = valid.reduce((a, b) => ((b[1].ms as number) < (a[1].ms as number) ? b : a));
     const who = ctx.players.find((p) => p.uid === fastest[0]);
-    note = `⚡ Fastest: ${who?.name ?? '?'} — ${((fastest[1].ms as number) / 1000).toFixed(2)}s`;
+    note = `⚡ Fastest: ${who?.name ?? '?'} — ${Math.round(fastest[1].ms as number)} ms`;
     effects.push({ type: 'SCORE', uid: fastest[0], delta: 1 });
   } else {
-    note = earlyUids.length > 0 ? 'Everyone jumped the gun 🚨' : 'Nobody tapped 🤷';
+    note = dq.length > 0 ? 'Everyone jumped the gun 🚨' : 'Nobody tapped 🤷';
   }
 
   return {
@@ -102,7 +115,7 @@ export const definition: GameDefinition<RxState, RxInput> = {
   name: 'Reaction Duel',
   emoji: '⚡',
   rules:
-    'Wait for GREEN, then tap as fast as you can — your own phone holds the stopwatch, so lag and slow Wi-Fi can\'t cost you time. Tap early and you drink 2. When everyone plays, the slowest finger drinks 2.',
+    'Wait for GREEN, then tap as fast as you can — your own phone holds the stopwatch, so lag can’t cost you time. Tap before green and you’re DQ’d on the spot: you lose and drink 3. If nobody false-starts, the slowest finger drinks 2.',
   minPlayers: 2,
 
   createInitialState(): RxState {
@@ -125,6 +138,8 @@ export const definition: GameDefinition<RxState, RxInput> = {
 
     if (event.type === 'INPUT') {
       if (state.phase === 'done') return { state };
+      // one tap per player, and a disqualification is final
+      if ((state.taps ?? {})[event.uid]) return { state };
       const input = event.input ?? {};
       let tap: Tap;
       if (input.reactionMs != null) {
@@ -138,7 +153,7 @@ export const definition: GameDefinition<RxState, RxInput> = {
         const early = !!input.early || state.phase === 'ready';
         tap = { ms: early ? null : Math.max(0, (input.at ?? ctx.now) - (state.goAt ?? ctx.now)), early };
       }
-      const taps = { ...state.taps, [event.uid]: tap };
+      const taps = { ...(state.taps ?? {}), [event.uid]: tap };
       const next: RxState = { ...state, taps };
       if (Object.keys(taps).length >= ctx.players.length) return finish(next, ctx);
       return { state: next };

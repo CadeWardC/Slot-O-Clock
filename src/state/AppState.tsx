@@ -89,7 +89,7 @@ function newPlayer(
  * state/room.ts for why it is born with a lease, a revision and identities.
  */
 
-interface AppStateValue {
+export interface AppStateValue {
   uid: string | null;
   authReady: boolean;
   room: RoomData | null;
@@ -123,7 +123,7 @@ interface AppStateValue {
   takeOverHost: () => Promise<void>;
 }
 
-const AppStateContext = createContext<AppStateValue | null>(null);
+export const AppStateContext = createContext<AppStateValue | null>(null);
 
 export function AppStateProvider({ children }: { children: ReactNode }) {
   const [uid, setUid] = useState<string | null>(null);

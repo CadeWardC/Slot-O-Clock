@@ -1,0 +1,112 @@
+/* --- trivia --- */
+.tr { gap: 12px; justify-content: flex-start; padding-top: 6px; }
+
+.tr-head { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 40px; }
+.tr-dots { display: flex; gap: 5px; flex: 1; }
+.tr-dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--line); }
+.tr-dots .tr-dot-done { background: var(--gold); }
+.tr-dots .tr-dot-now { background: var(--magenta); box-shadow: 0 0 10px var(--magenta); transform: scale(1.25); }
+.tr-clock {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--card2);
+  border: 2px solid var(--gold);
+  color: var(--gold);
+}
+.tr-clock-hot { border-color: var(--red); color: var(--red); animation: fxPulse 0.5s ease-in-out infinite; }
+
+.tr-card { padding: 20px 16px; border-color: var(--purple); }
+.tr-question { margin: 0; font-size: 1.25rem; line-height: 1.35; font-weight: 900; }
+
+.tr-options { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; width: 100%; }
+.tr-opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 68px;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-bottom-width: 5px;
+  color: var(--text);
+  border-radius: 16px;
+  padding: 10px 10px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.08s, border-color 0.15s, opacity 0.2s;
+}
+.tr-opt-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.tr-letter {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  color: #14092e;
+}
+.tr-opt-0 { border-color: rgba(255, 79, 163, 0.55); } .tr-opt-0 .tr-letter { background: var(--magenta); }
+.tr-opt-1 { border-color: rgba(79, 216, 255, 0.55); } .tr-opt-1 .tr-letter { background: var(--cyan); }
+.tr-opt-2 { border-color: rgba(255, 201, 77, 0.55); } .tr-opt-2 .tr-letter { background: var(--gold); }
+.tr-opt-3 { border-color: rgba(160, 107, 255, 0.6); } .tr-opt-3 .tr-letter { background: var(--purple); }
+.tr-opt:disabled { cursor: default; }
+.tr-opt:not(:disabled):active { transform: translateY(3px); border-bottom-width: 2px; }
+.tr-mine { background: var(--card2); box-shadow: 0 0 0 2px #fff, 0 0 22px rgba(255, 255, 255, 0.25); }
+.tr-correct { border-color: var(--green); background: rgba(70, 224, 139, 0.2); box-shadow: 0 0 24px rgba(70, 224, 139, 0.45); }
+.tr-wrong { border-color: var(--red); background: rgba(255, 95, 110, 0.2); box-shadow: none; }
+.tr-dim { opacity: 0.4; }
+.tr-mark { font-size: 1.2rem; font-weight: 900; }
+.tr-correct .tr-mark { color: var(--green); }
+.tr-wrong .tr-mark { color: var(--red); }
+
+.tr-verdict { margin: 0; font-family: var(--font-display); font-size: 1.5rem; }
+.tr-verdict-ok { color: var(--green); }
+.tr-verdict-bad { color: var(--red); }
+
+/* scoreboard */
+.tr-board { width: 100%; display: flex; flex-direction: column; gap: 5px; }
+.tr-score {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  padding: 7px 12px;
+  font-weight: 800;
+  font-size: 0.92rem;
+}
+.tr-score > * { position: relative; }
+.tr-score .tr-score-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, rgba(255, 201, 77, 0.32), rgba(255, 79, 163, 0.18));
+  transition: width 0.6s cubic-bezier(0.2, 1.2, 0.4, 1);
+}
+.tr-score-me { border-color: var(--cyan); }
+.tr-score-rank { color: var(--muted); width: 14px; }
+.tr-score-who { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tr-score-n { font-family: var(--font-display); font-size: 1.15rem; color: var(--gold); }
+.tr-plus { color: var(--green); font-weight: 900; }
+
+/* the podium: who hands out, who takes */
+.tr-deal { text-align: center; border-color: var(--gold); display: flex; flex-direction: column; gap: 4px; }
+.tr-deal-line { margin: 0; font-weight: 900; font-size: 1.05rem; }
+.tr-deal-give { color: var(--gold); }
+.tr-deal-take { color: var(--red); }
+.tr-deal-sips { margin: 0; font-size: 1.6rem; letter-spacing: 0.1em; animation: fxFloat 2s ease-in-out infinite; }
+.tr-deal-you { margin: 4px 0 0; font-size: 0.85rem; color: var(--muted); font-weight: 800; }
+.tr-note { margin: 0; color: var(--cyan); font-weight: 800; }

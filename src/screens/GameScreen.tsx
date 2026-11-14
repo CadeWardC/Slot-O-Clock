@@ -20,6 +20,7 @@ import {
 import { gameById } from '../games';
 import { serverNow } from '../state/serverTime';
 import { Button, Modal, PlayerChip } from '../components/ui';
+import { Confetti } from '../components/fx';
 import type { PlayerInfo } from '../engine/types';
 
 export function GameScreen() {
@@ -58,9 +59,21 @@ export function GameScreen() {
       <header className="game-head">
         <span className="round-chip">{phase === 'claim' ? 'ORDER' : `R${engine?.round ?? 0}`}</span>
         <span className="game-title">
-          {phase === 'playing' || phase === 'outcome'
-            ? (gameById.get(engine?.game?.type ?? '')?.name ?? '…')
-            : (gameById.get(engine?.rotation?.[engine.gameIndex] ?? '')?.name ?? '…')}
+          {(() => {
+            const def =
+              phase === 'playing'
+                ? gameById.get(engine?.game?.type ?? '')
+                : phase === 'outcome'
+                  ? gameById.get(engine?.outcome?.gameId ?? engine?.game?.type ?? '')
+                  : gameById.get(engine?.rotation?.[engine.gameIndex] ?? '');
+            return def ? (
+              <>
+                <span className="game-title-emoji">{def.emoji}</span> {def.name}
+              </>
+            ) : (
+              '…'
+            );
+          })()}
         </span>
         {hostGone && (
           <button
@@ -73,7 +86,7 @@ export function GameScreen() {
           </button>
         )}
         <button className="head-btn" onClick={() => setScoresOpen(true)} aria-label="scores">
-          📊
+          🏆
         </button>
       </header>
 
@@ -199,7 +212,7 @@ function ClaimView({ room }: { room: RoomData }) {
           {nextDef?.emoji} {nextDef?.name}
         </span>
       </p>
-      <h2>{isFirstSlot ? "Who's kicking things off?" : "Who's next in the order?"}</h2>
+      <h2 className="fx-title">{isFirstSlot ? "Who's kicking things off?" : "Who's next?"}</h2>
 
       <div className="claim-order">
         {ordered.map((p, i) => (
@@ -253,9 +266,16 @@ function IntroView({ room }: { room: RoomData }) {
   const pacing = pacingOf(room.meta.settings);
   return (
     <div className="intro">
-      <div className="intro-emoji">{def.emoji}</div>
-      <h1 className="intro-name">{def.name}</h1>
-      <p className="intro-rules">{def.rules}</p>
+      <p className="fx-kicker intro-kicker">Game {engine?.round ?? 1} · up next</p>
+      <div className="intro-badge">
+        <span className="intro-rays" aria-hidden="true" />
+        <div className="intro-emoji">{def.emoji}</div>
+      </div>
+      <h1 className="intro-name fx-title">{def.name}</h1>
+      <div className="intro-rules fx-panel">
+        <p className="fx-kicker">how it works</p>
+        <p>{def.rules}</p>
+      </div>
       {pacing === 'manual' ? (
         isAuthority ? (
           <Button variant="gold" size="lg" onClick={() => hostSkipRound()}>
@@ -471,7 +491,7 @@ function SharedGate({
         <p className="gate-progress">
           {answeredCount}/{total} done
         </p>
-        <div className="gate-emoji">{player.emoji}</div>
+        <div className="gate-emoji fx-wiggle">{player.emoji}</div>
         <h2>Pass the phone to</h2>
         <h1>{player.name}</h1>
         <Button variant="gold" size="lg" full onClick={() => setUnlocked(player.uid)}>
@@ -498,10 +518,37 @@ function OutcomeView({ room }: { room: RoomData }) {
   // walked in halfway through: this round wasn't theirs, the next one is
   const joined = !!me && me.left !== true && !inCurrentRound(room, me.uid);
 
+  // the one line every phone looks for first: what do *I* owe?
+  const mine = me && !joined ? assignments.filter((a) => a.uid === me.uid) : [];
+  const mySips = mine.reduce((sum, a) => sum + (a.sips ?? 0), 0);
+  const personal = room.meta.mode === 'party' && !!me && !joined;
+  const unit = room.meta.settings.pointsMode ? 'point' : 'sip';
+
   return (
     <div className="outcome">
-      <div className="outcome-emoji">{outcome.gameEmoji}</div>
-      <h2>{outcome.gameName}</h2>
+      {personal && mySips === 0 && <Confetti />}
+      {personal && mySips > 0 && <Confetti emojis={['🍺', '🍻', '💧']} count={14} />}
+      <p className="fx-kicker">
+        {outcome.gameEmoji} {outcome.gameName} · the damage
+      </p>
+      {personal ? (
+        mySips > 0 ? (
+          <div className="outcome-me outcome-me-drink">
+            <span className="outcome-me-num">{mySips}</span>
+            <span className="outcome-me-text">
+              {unit}
+              {mySips === 1 ? '' : 's'} for you {room.meta.settings.pointsMode ? '🎯' : '🍺'}
+            </span>
+          </div>
+        ) : (
+          <div className="outcome-me outcome-me-safe">
+            <span className="outcome-me-num">😎</span>
+            <span className="outcome-me-text">you're safe</span>
+          </div>
+        )
+      ) : (
+        <h2 className="fx-title">Bottoms up</h2>
+      )}
 
       {joined && (
         <p className="muted small">
@@ -538,11 +585,17 @@ function OutcomeView({ room }: { room: RoomData }) {
           const p = players.find((x) => x.uid === a.uid);
           if (!p) return null;
           return (
-            <div key={`${a.uid}-${i}`} className="outcome-row">
+            <div
+              key={`${a.uid}-${i}`}
+              className={`outcome-row ${me && a.uid === me.uid && personal ? 'outcome-row-me' : ''}`}
+              style={{ animationDelay: `${0.15 + i * 0.12}s` }}
+            >
               <span className="outcome-who">
                 {p.emoji} {p.name}
               </span>
-              <span className="outcome-sips">{'🍺'.repeat(Math.min(a.sips, 5))} ×{a.sips}</span>
+              <span className="outcome-sips">
+                {'🍺'.repeat(Math.min(a.sips, 3))} <b>×{a.sips}</b>
+              </span>
               <span className="outcome-reason">{a.reason}</span>
             </div>
           );
@@ -608,7 +661,7 @@ function ReadyGate({ room, intro = false }: { room: RoomData; intro?: boolean })
     : {
         allReady: "everyone's ready — here comes the next game 🍻",
         readyAll: "EVERYONE'S READY 🍻",
-        ready: 'READY FOR THE NEXT GAME 🍻',
+        ready: 'READY — NEXT GAME 🍻',
       };
 
   if (!gate) return null;
@@ -700,12 +753,18 @@ function ReadyGate({ room, intro = false }: { room: RoomData; intro?: boolean })
 function ScoresModal({ onClose, players }: { onClose: () => void; players: PlayerInfo[] }) {
   const { isAuthority, resetDrinks, endGame, leaveRoom } = useApp();
   const sorted = [...players].sort((a, b) => b.drinkCount - a.drinkCount);
+  const most = Math.max(1, ...sorted.map((p) => p.drinkCount));
+  const medal = (i: number) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`);
   return (
-    <Modal title="Scoreboard 🏆" onClose={onClose}>
+    <Modal title="Who's drunk the most? 🏆" onClose={onClose}>
       <div className="scores-list">
         {sorted.map((p, i) => (
-          <div key={p.uid} className={`scores-row ${i === 0 ? 'scores-lead' : ''}`}>
-            <span className="scores-place">#{i + 1}</span>
+          <div
+            key={p.uid}
+            className={`scores-row ${i === 0 && p.drinkCount > 0 ? 'scores-lead' : ''}`}
+            style={{ ['--fill' as string]: `${(p.drinkCount / most) * 100}%`, animationDelay: `${i * 0.06}s` }}
+          >
+            <span className="scores-place">{medal(i)}</span>
             <span className="scores-name">
               {p.emoji} {p.name} {!p.connected && !p.local && <span className="muted">(away)</span>}
             </span>

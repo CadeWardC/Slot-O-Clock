@@ -9,6 +9,7 @@ import { GameScreen } from './screens/GameScreen';
 import { RoomGone, SetupScreen, Splash, VersionMismatch } from './screens/SetupScreen';
 import { Button, Toast } from './components/ui';
 import { SlotIntro } from './components/SlotIntro';
+import { PartyBackdrop } from './components/fx';
 import { Component, useCallback, useState, type ReactNode } from 'react';
 
 /** A crashing game must never blank the whole app. */
@@ -75,6 +76,7 @@ function Root() {
 
   return (
     <>
+      <PartyBackdrop />
       <ErrorBoundary>{screen}</ErrorBoundary>
       {st.isAuthority && localFault && !st.room?.engine?.fault && (
         <EngineFaultBanner message={localFault} />

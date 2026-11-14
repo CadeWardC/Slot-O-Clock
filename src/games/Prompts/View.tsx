@@ -23,7 +23,7 @@ export function View({
     <div className="gv">
       <span className="pr-rule-badge">{RULE_LABEL[state.rule]}</span>
 
-      <div className="pr-card">
+      <div className="pr-card" key={state.prompt}>
         <p className="pr-prefix">Never have I ever…</p>
         <h2 className="pr-prompt">{state.prompt.replace(/^…\s*/, '')}</h2>
       </div>
@@ -32,24 +32,31 @@ export function View({
         <>
           <div className="pr-votes">
             <button
-              className="pr-vote pr-vote-guilty"
+              className={`pr-vote pr-vote-guilty ${myInput?.vote === true ? 'pr-vote-mine' : ''}`}
               disabled={myInput != null}
               onClick={() => submitInput({ vote: true })}
             >
-              🙋 Guilty!
+              <span className="pr-vote-emoji">🙋</span> Guilty!
             </button>
             <button
-              className="pr-vote pr-vote-innocent"
+              className={`pr-vote pr-vote-innocent ${myInput?.vote === false ? 'pr-vote-mine' : ''}`}
               disabled={myInput != null}
               onClick={() => submitInput({ vote: false })}
             >
-              🙅 Not me
+              <span className="pr-vote-emoji">🙅</span> Not me
             </button>
           </div>
+          <div className="pr-dots" aria-hidden="true">
+            {players.map((p) => (
+              <span key={p.uid} className={`pr-dot ${answeredUids.includes(p.uid) ? 'pr-dot-on' : ''}`}>
+                {p.emoji}
+              </span>
+            ))}
+          </div>
           <p className="muted">
-            {myInput
-              ? 'Vote locked in…'
-              : `${answeredUids.length}/${players.length} voted${left != null ? ` · ${Math.ceil(left / 1000)}s` : ''}`}
+            {myInput ? '🔒 Vote locked in · ' : ''}
+            {answeredUids.length}/{players.length} voted
+            {left != null ? ` · ${Math.ceil(left / 1000)}s` : ''}
           </p>
         </>
       ) : (

@@ -1,0 +1,467 @@
+/* --- Horse Race 🏇 --- */
+
+/* racing silks: one colour per runner, worn everywhere the runner appears */
+.hr-silk {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.82);
+  color: #1a1030;
+  font-size: 0.78rem;
+  font-weight: 900;
+  /* jersey stripes and a gloss, layered over the runner's own colour */
+  background-image:
+    radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.6), transparent 58%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.32) 0 2px, transparent 2px 7px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+.hr-silk-sm { width: 21px; height: 21px; font-size: 0.68rem; border-width: 1.5px; }
+
+/* the silk-coloured rail each card and row wears down its left edge */
+.hr-rail { position: absolute; left: 0; top: 0; bottom: 0; width: 5px; }
+
+/* ---------- the card: back a runner ---------- */
+.hr-field { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.hr-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  overflow: hidden;
+  background: linear-gradient(100deg, var(--card2), var(--card));
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 8px 12px 8px 16px;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  animation: hrIn 0.34s ease backwards;
+  transition: transform 0.12s ease, border-color 0.15s ease, box-shadow 0.15s ease,
+    opacity 0.2s ease, filter 0.2s ease;
+}
+.hr-card:not(:disabled):active { transform: scale(0.985); border-color: var(--gold); }
+.hr-card:disabled { cursor: default; }
+.hr-card-mine { border-color: var(--gold); box-shadow: 0 0 22px rgba(255, 201, 77, 0.22); }
+/* once your money is down, the runners you didn't back step out of the way */
+.hr-card-dim { opacity: 0.42; filter: saturate(0.5); }
+.hr-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hr-backers { margin-left: auto; font-size: 0.95rem; letter-spacing: 1px; }
+.hr-pick {
+  flex: 0 0 auto;
+  background: var(--gold);
+  color: #3a2400;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.hr-hint { display: flex; flex-direction: column; gap: 7px; width: 100%; }
+.hr-hint p { margin: 0; }
+.hr-progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.hr-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--magenta), var(--gold));
+  transition: width 0.25s ease;
+}
+
+@keyframes hrIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+/* ---------- the card: extras ---------- */
+.hr { gap: 12px; justify-content: flex-start; padding-top: 4px; }
+.hr-head { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.hr-card-text { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.hr-quirk {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.hr-card .hr-silk { width: 34px; height: 34px; font-size: 0.95rem; font-family: var(--font-display); font-weight: 400; }
+.hr-card-mine { animation: hrIn 0.34s ease backwards, hrMine 1.6s ease-in-out infinite; }
+@keyframes hrMine {
+  0%, 100% { box-shadow: 0 0 18px rgba(255, 201, 77, 0.2); }
+  50% { box-shadow: 0 0 34px rgba(255, 201, 77, 0.5); }
+}
+.hr-stakes { display: flex; gap: 6px; width: 100%; }
+.hr-stake {
+  flex: 1;
+  border-radius: 12px;
+  padding: 6px 4px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.25;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+}
+.hr-stake b { display: block; font-family: var(--font-display); font-weight: 400; font-size: 0.95rem; color: var(--text); }
+.hr-stake-good { border-color: rgba(70, 224, 139, 0.45); }
+.hr-stake-good b { color: var(--green); }
+.hr-stake-bad { border-color: rgba(255, 95, 110, 0.45); }
+.hr-stake-bad b { color: var(--red); }
+
+/* ---------- the race: one lap of the oval ---------- */
+.hr-race { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+
+/* your horse, and where it is right now */
+.hr-mine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border-radius: 14px;
+  border: 1.5px solid var(--line);
+  background: linear-gradient(100deg, var(--card2), var(--card));
+  padding: 7px 12px;
+  text-align: left;
+}
+.hr-mine-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.hr-mine-name { font-weight: 900; font-size: 0.95rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.hr-mine-place {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  line-height: 1;
+  color: var(--gold);
+  text-shadow: 0 0 18px rgba(255, 201, 77, 0.45);
+}
+.hr-mine-lead { border-color: var(--gold); box-shadow: 0 0 22px rgba(255, 201, 77, 0.3); }
+.hr-mine-last .hr-mine-place { color: var(--red); text-shadow: 0 0 18px rgba(255, 95, 110, 0.5); }
+.hr-mine-move { font-size: 0.8rem; font-weight: 900; width: 18px; }
+.hr-mine-up { color: var(--green); }
+.hr-mine-down { color: var(--red); }
+
+.hr-oval {
+  position: relative;
+  width: 100%;
+  border-radius: 20px;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(79, 216, 255, 0.08), transparent 60%),
+    linear-gradient(180deg, #14102c, #0e0a20);
+  border: 1.5px solid var(--line);
+  padding: 6px;
+  overflow: hidden;
+}
+.hr-oval svg { display: block; width: 100%; height: auto; overflow: visible; }
+.hr-turf { fill: #1d6b3f; }
+.hr-dirt { fill: #8a5a34; stroke: rgba(255, 255, 255, 0.85); stroke-width: 2; }
+.hr-dirt-grain { fill: none; stroke: rgba(0, 0, 0, 0.16); stroke-width: 1; stroke-dasharray: 2 9; }
+.hr-infield { fill: #175a35; stroke: rgba(255, 255, 255, 0.85); stroke-width: 2; }
+.hr-infield-stripe { fill: rgba(255, 255, 255, 0.045); }
+.hr-line-post { stroke: #fff; stroke-width: 5; stroke-dasharray: 5 5; }
+.hr-line-post2 { stroke: #111; stroke-width: 5; stroke-dasharray: 5 5; stroke-dashoffset: 5; }
+.hr-line-flag { font-size: 13px; }
+.hr-trail { fill: none; stroke-width: 5; stroke-linecap: round; opacity: 0.5; }
+.hr-dot-ring { fill: none; stroke: #fff; stroke-width: 2; animation: hrRing 0.9s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+.hr-dot { stroke: rgba(255, 255, 255, 0.9); stroke-width: 1.6; filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.55)); }
+.hr-dot-n { font: 900 10px var(--font-body); fill: #1a1030; text-anchor: middle; dominant-baseline: central; }
+.hr-dot-crown { font-size: 12px; text-anchor: middle; animation: hrCrown 0.7s ease-in-out infinite alternate; }
+@keyframes hrRing {
+  from { transform: scale(0.9); opacity: 1; }
+  to { transform: scale(1.9); opacity: 0; }
+}
+@keyframes hrCrown {
+  from { transform: translateY(0); }
+  to { transform: translateY(-2px); }
+}
+
+/* the race caller, standing in the infield */
+.hr-caller {
+  position: absolute;
+  left: 21%;
+  right: 21%;
+  top: 31%;
+  bottom: 31%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  pointer-events: none;
+  text-align: center;
+}
+.hr-caller-kick { font-size: 0.6rem; font-weight: 900; letter-spacing: 0.16em; text-transform: uppercase; color: rgba(255, 255, 255, 0.7); }
+.hr-caller-line {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  line-height: 1.08;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.45);
+}
+.hr-caller-hot { color: var(--gold); animation: hrCall 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.hr-caller-big { font-size: 2.3rem; color: var(--gold); animation: hrCall 0.4s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+.hr-caller-go { color: var(--green); font-size: 3rem; }
+@keyframes hrCall {
+  from { transform: scale(1.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+/* down the home straight: the whole oval holds its breath */
+.hr-oval-final { animation: hrTense 0.42s ease-in-out infinite; border-color: var(--red); }
+@keyframes hrTense {
+  0%, 100% { transform: translate(0, 0); box-shadow: 0 0 0 0 rgba(255, 95, 110, 0.5); }
+  25% { transform: translate(-1.2px, 0.8px); }
+  50% { transform: translate(0.8px, -0.8px); box-shadow: 0 0 26px 2px rgba(255, 95, 110, 0.5); }
+  75% { transform: translate(1.2px, 0.6px); }
+}
+.hr-oval-done { border-color: var(--gold); box-shadow: 0 0 30px rgba(255, 201, 77, 0.35); }
+.hr-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  pointer-events: none;
+  animation: hrFlash 0.7s ease-out both;
+}
+@keyframes hrFlash {
+  0% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+.hr-photo {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-3deg);
+  background: var(--gold);
+  color: #3a2400;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  border-radius: 10px;
+  padding: 3px 12px;
+  white-space: nowrap;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
+  animation: fxPop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+/* the duel at the front, in lengths */
+.hr-duel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  min-height: 24px;
+}
+.hr-duel-gap {
+  font-family: var(--font-display);
+  color: var(--gold);
+  font-size: 0.95rem;
+  padding: 0 4px;
+}
+.hr-duel-tight .hr-duel-gap { color: var(--red); animation: fxPulse 0.5s ease-in-out infinite; }
+
+/* the running order: rows slide to their new place as the order changes */
+.hr-board { position: relative; width: 100%; }
+.hr-brow {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px 0 6px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+  font-weight: 800;
+  transition: transform 0.38s cubic-bezier(0.3, 1.3, 0.5, 1), background 0.3s ease, border-color 0.3s ease;
+  will-change: transform;
+}
+.hr-brow-place { width: 20px; font-family: var(--font-display); font-size: 0.95rem; color: var(--muted); text-align: center; }
+.hr-brow-name { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: left; }
+.hr-brow-backers { letter-spacing: 1px; font-size: 0.85rem; }
+.hr-brow-gap { margin-left: auto; font-size: 0.7rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hr-brow-lead { border-color: var(--gold); background: linear-gradient(100deg, rgba(255, 201, 77, 0.24), var(--card)); }
+.hr-brow-lead .hr-brow-place, .hr-brow-lead .hr-brow-gap { color: var(--gold); }
+.hr-brow-mine { border-color: var(--cyan); box-shadow: inset 0 0 0 1px var(--cyan); }
+.hr-brow-mine.hr-brow-lead { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold), 0 0 16px rgba(255, 201, 77, 0.35); }
+
+.hr-note { margin: 0; }
+
+/* the galloping horse (see HorseIcon in View.tsx), painted in `currentColor` */
+.hr-gallop { flex: 0 0 auto; width: 58px; height: 40px; }
+.hr-horse {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  will-change: transform;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.6));
+  transform-origin: 50% 60%;
+  animation: hrGallop var(--hr-stride, 0.5s) ease-in-out infinite;
+  animation-delay: var(--hr-stride-delay, 0s);
+}
+/* legs, tail and mane are strokes; the barrel is the one filled shape */
+.hr-horse path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.hr-horse .hr-horse-body { fill: currentColor; stroke: none; }
+/* mane and tail read as hair rather than as more horse */
+.hr-horse .hr-horse-hair { opacity: 0.72; }
+/* the stride: each pair swings from its own joint, hind legs out of phase */
+.hr-horse .hr-horse-fore,
+.hr-horse .hr-horse-hind {
+  transform-box: fill-box;
+  transform-origin: 50% 6%;
+  animation: hrStride var(--hr-stride, 0.5s) ease-in-out infinite;
+  animation-delay: var(--hr-stride-delay, 0s);
+}
+.hr-horse .hr-horse-hind { animation-direction: reverse; }
+@keyframes hrGallop {
+  0%, 100% { transform: translateY(-1.2px) rotate(-1.6deg); }
+  50% { transform: translateY(1.4px) rotate(1.6deg); }
+}
+/* one stride: a pair of legs swinging about the joint it hangs from */
+@keyframes hrStride {
+  0%, 100% { transform: rotate(-11deg); }
+  50% { transform: rotate(11deg); }
+}
+
+/* ---------- the payout: the winning horse ---------- */
+.hr-winner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: 2px solid var(--gold);
+  border-radius: 18px;
+  padding: 10px 14px;
+  box-shadow: 0 0 30px rgba(255, 201, 77, 0.18);
+  background-image:
+    radial-gradient(circle at 12% 28%, rgba(255, 201, 77, 0.5) 0 2px, transparent 3px),
+    radial-gradient(circle at 74% 72%, rgba(255, 79, 163, 0.45) 0 2px, transparent 3px),
+    radial-gradient(circle at 42% 86%, rgba(79, 216, 255, 0.4) 0 2px, transparent 3px),
+    linear-gradient(100deg, rgba(255, 201, 77, 0.2), var(--card));
+  animation: hrIn 0.4s ease;
+}
+.hr-winner .hr-silk { width: 44px; height: 44px; font-size: 1.15rem; border-width: 2.5px; }
+.hr-winner-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; }
+.hr-winner-name { font-weight: 900; font-size: 1.05rem; }
+.hr-winner-sub { font-size: 0.78rem; color: var(--muted); }
+
+/* ---------- the result ---------- */
+.hr-results { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.hr-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  overflow: hidden;
+  background: linear-gradient(100deg, var(--card2), var(--card));
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 8px 12px 8px 16px;
+  animation: hrIn 0.34s ease backwards;
+}
+.hr-row-win {
+  border-color: var(--gold);
+  background-image: linear-gradient(100deg, rgba(255, 201, 77, 0.22), var(--card));
+  box-shadow: 0 0 26px rgba(255, 201, 77, 0.2);
+}
+.hr-row-second { border-color: rgba(226, 226, 240, 0.5); }
+.hr-row-third { border-color: rgba(255, 160, 90, 0.5); }
+.hr-row-lose {
+  border-color: rgba(255, 95, 110, 0.55);
+  background-image: linear-gradient(100deg, rgba(255, 95, 110, 0.15), var(--card));
+}
+.hr-row-place { flex: 0 0 auto; width: 30px; font-weight: 900; font-size: 0.95rem; }
+.hr-row-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  text-align: left;
+  font-weight: 700;
+}
+.hr-row-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hr-row-backers { font-size: 0.88rem; letter-spacing: 1px; }
+.hr-row-chip {
+  flex: 0 0 auto;
+  border: 1px solid rgba(255, 201, 77, 0.5);
+  border-radius: 999px;
+  padding: 1px 6px;
+  color: var(--gold);
+  font-size: 0.56rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.hr-row-sips {
+  flex: 0 0 auto;
+  background: rgba(255, 95, 110, 0.16);
+  border: 1px solid rgba(255, 95, 110, 0.4);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--red);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+.hr-row-time { flex: 0 0 auto; color: var(--muted); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
+.hr-drinks { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.hr-drink {
+  margin: 0;
+  padding: 8px 12px;
+  text-align: left;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  animation: hrIn 0.3s ease backwards;
+}
+/* the drink that lands on you */
+.hr-drink-me {
+  border-color: rgba(255, 79, 163, 0.55);
+  background-image: linear-gradient(100deg, rgba(255, 79, 163, 0.14), var(--card));
+}
+
+
+/* ---------- the result: extras ---------- */
+.hr-verdict { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px 0 2px; }
+.hr-result-note { margin: 0; font-size: 0.82rem; font-weight: 700; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hr-card, .hr-row, .hr-drink, .hr-winner, .hr-caller-hot, .hr-caller-big,
+  .hr-oval-final, .hr-dot-ring, .hr-dot-crown, .hr-card-mine, .hr-flash,
+  .hr-horse,
+  /* the stride rule is two classes deep, so this has to match its weight */
+  .hr-horse .hr-horse-fore,
+  .hr-horse .hr-horse-hind { animation: none; }
+  .hr-brow { transition: none; }
+}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useApp } from '../state/AppState';
 import { Button, PlayerForm } from '../components/ui';
 import type { RoomMode } from '../engine/types';
+import { allGames } from '../games';
 
 export function Home() {
   const { profile, createRoom, joinRoom } = useApp();
@@ -26,8 +27,16 @@ export function Home() {
   return (
     <div className="screen home">
       <div className="logo-block">
-        <div className="logo-emoji">🎰</div>
-        <h1 className="logo-title">Slot-O-Clock</h1>
+        <div className="logo-reels" aria-hidden="true">
+          <span className="logo-reel">🍺</span>
+          <span className="logo-reel">🎰</span>
+          <span className="logo-reel">🍻</span>
+        </div>
+        <div className="logo-sign">
+          <h1 className="logo-title">
+            Slot<span className="logo-o">-O-</span>Clock
+          </h1>
+        </div>
         <p className="logo-tag">drinking minigames · one room · everyone's phone</p>
       </div>
 
@@ -41,6 +50,18 @@ export function Home() {
           <Button variant="primary" size="lg" full onClick={() => setView('join')}>
             Join a room 📱
           </Button>
+          <div className="home-games">
+            <p className="fx-kicker">{allGames.length} games in the rotation</p>
+            <div className="home-ticker" aria-hidden="true">
+              <div className="home-ticker-track">
+                {[...allGames, ...allGames].map((g, i) => (
+                  <span key={i} className="home-ticker-item">
+                    <span className="home-ticker-emoji">{g.emoji}</span> {g.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

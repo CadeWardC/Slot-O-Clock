@@ -5,6 +5,7 @@ import type {
   GameEvent,
   ReduceResult,
 } from '../../engine/types';
+import { hashSeed, mulberry32 } from '../../engine/rng';
 import { View } from './View';
 
 /** The 8-symbol reel, exported so the View can render the spinning strip. */
@@ -26,6 +27,21 @@ export interface SpinResult {
   reels: number[];
   line: string;
   sips: number;
+  /** server-time the lever was pulled — every phone animates the reels off it */
+  spunAt?: number;
+}
+
+/**
+ * How long after the pull each reel lands (ms). The view-side animation, kept
+ * here so the hold comfortably outlasts it. The last reel hangs on longer when
+ * the first two already match — that is the whole point of a slot machine.
+ */
+export const REEL_STOP_MS = [900, 1500, 2100] as const;
+export const REEL_TEASE_MS = 3200;
+
+/** true when the first two reels already make a pair (a wild counts) */
+export function isTease(reels: readonly number[]): boolean {
+  return reels[0] === reels[1] || reels[0] === 6 || reels[1] === 6;
 }
 
 export interface SlotsState {
@@ -112,7 +128,7 @@ export const definition: GameDefinition<SlotsState, SlotsInput> = {
   name: 'Slot Machine',
   emoji: '🎰',
   rules:
-    'Everyone spins their own machine at the same time. 💀💀💀 and you finish your drink, a pair costs 2, no match costs 1 — any other triple keeps you safe. 🎰 is wild.',
+    'Everyone pulls their own lever and gets their own reels — no two machines roll the same. 💀💀💀 and you finish your drink, a pair costs 2, no match costs 1 — any other triple keeps you safe. 🎰 is wild.',
   minPlayers: 1,
   sharedInput: 'actor', // shared phone: only the actor spins
 
@@ -132,7 +148,11 @@ export const definition: GameDefinition<SlotsState, SlotsInput> = {
       if (spins[event.uid]) return { state }; // one spin per player
       // shared phone: only the actor plays
       if (ctx.settings.mode === 'shared' && event.uid !== ctx.actorUid) return { state };
-      const next = { ...spins, [event.uid]: spinFor(ctx.rng) };
+      // Every player rolls on their OWN stream. `ctx.rng` is re-seeded from the
+      // round id on every reducer call, so drawing from it here handed the whole
+      // table the identical three reels.
+      const own = mulberry32(hashSeed(`${ctx.roundId ?? ''}:${event.uid}:${ctx.rng()}`));
+      const next = { ...spins, [event.uid]: { ...spinFor(own), spunAt: ctx.now } };
       const nextState: SlotsState = { ...state, spins: next };
       if (Object.keys(next).length >= ctx.players.length) {
         return toHold(nextState); // everyone's in — hold the reels before closing

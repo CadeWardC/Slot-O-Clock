@@ -63,6 +63,15 @@ npm run build
 > it needs **Node 22.18+ / 24** — no build step, no test framework, no
 > devDependency. CI runs it before every deploy.
 
+### Look at a screen without a room
+
+Two dev-only pages run under `npm run dev` with no Firebase behind them (they are not part of the production build):
+
+- **`/Slot-O-Clock/dev/preview.html?game=slots&n=4`** — runs one game's real reducer in memory and renders its real View once per player, side by side. `mode=shared`, `me=<index>` and `seed=<n>` are also understood; `window.pv` (`input(uid, input)`, `timeUp()`, `state()`, `restart()`) drives the round from the console or a script.
+- **`/Slot-O-Clock/dev/shell.html?screen=home|lobby|claim|intro|outcome`** — the screens around the games, against a mocked room (`host=0` for a guest's phone).
+
+Each game keeps its stylesheet next to its View (`src/games/<Name>/styles.css`, loaded automatically); `src/styles.css` holds the shell and the shared "fun kit" (`.fx-title`, `.fx-panel`, `.fx-count`, `.fx-stamp`, the one-shot animations, plus `Confetti` / `BigCount` in `components/fx.tsx`).
+
 ## Deploy to GitHub Pages
 
 1. Push this repo to GitHub as **`Slot-O-Clock`** (the Vite `base` in `vite.config.ts` matches the repo name — change both if you rename).

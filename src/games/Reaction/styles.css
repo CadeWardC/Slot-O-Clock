@@ -1,0 +1,150 @@
+/* --- reaction duel --- */
+.rx { gap: 12px; }
+
+/* the pad: the whole upper screen is the target, and its colour is the game */
+.rx-pad {
+  width: 100%;
+  min-height: min(52vh, 400px);
+  border: none;
+  border-radius: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: inherit;
+  color: #fff;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+.rx-pad:disabled { cursor: default; }
+.rx-pad-wait {
+  background: radial-gradient(120% 100% at 50% 0%, #ff8a94, var(--red) 45%, #8f1d2c);
+  box-shadow: 0 0 50px rgba(255, 95, 110, 0.45), inset 0 -10px 0 rgba(0, 0, 0, 0.22);
+  animation: rxDread 1.1s ease-in-out infinite;
+}
+.rx-pad-go {
+  background: radial-gradient(120% 100% at 50% 0%, #b6ffd6, var(--green) 45%, #128a4b);
+  box-shadow: 0 0 90px rgba(70, 224, 139, 0.85), inset 0 -10px 0 rgba(0, 0, 0, 0.18);
+  color: #06250f;
+  animation: rxGo 0.28s ease-in-out infinite;
+}
+.rx-pad-in {
+  background: linear-gradient(180deg, var(--card2), var(--card));
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 40px rgba(79, 216, 255, 0.3);
+}
+.rx-pad-dq {
+  background:
+    repeating-linear-gradient(-45deg, rgba(255, 95, 110, 0.16) 0 18px, transparent 18px 36px),
+    linear-gradient(180deg, #3a0f1a, #1a0710);
+  border: 3px solid var(--red);
+  box-shadow: 0 0 60px rgba(255, 95, 110, 0.5);
+  cursor: default;
+  gap: 16px;
+  padding: 20px;
+}
+@keyframes rxDread {
+  0%, 100% { transform: scale(1); filter: brightness(0.92); }
+  50% { transform: scale(1.012); filter: brightness(1.06); }
+}
+@keyframes rxGo {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.025); }
+}
+
+/* start lights */
+.rx-lights {
+  display: flex;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 9px 14px;
+  border-radius: 999px;
+}
+.rx-lights i {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+}
+.rx-lights .on-red { background: #ff3b4e; box-shadow: 0 0 16px #ff3b4e; }
+.rx-lights .on-green { background: #5dffa5; box-shadow: 0 0 18px #5dffa5; }
+
+.rx-pad-huge {
+  font-family: var(--font-display);
+  font-size: 4.6rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-shadow: 0 5px 0 rgba(0, 0, 0, 0.25);
+}
+.rx-hold { animation: fxWiggle 0.5s ease-in-out infinite; }
+.rx-pad-ms {
+  font-family: var(--font-display);
+  font-size: 5rem;
+  line-height: 1;
+  color: var(--cyan);
+  text-shadow: 0 0 30px rgba(79, 216, 255, 0.6);
+}
+.rx-pad-big { margin: 0; font-weight: 900; font-size: 1.2rem; }
+.rx-pad-sub { margin: 0; font-weight: 700; font-size: 0.9rem; opacity: 0.85; }
+
+/* who's in, who's out */
+.rx-table { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.rx-seat {
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  padding: 4px 11px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+.rx-seat-in { border-color: var(--cyan); color: var(--text); }
+.rx-seat-dq { border-color: var(--red); color: var(--red); }
+
+/* results ladder */
+.rx-ladder { display: flex; flex-direction: column; gap: 7px; width: 100%; }
+.rx-row {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 11px 14px;
+  font-weight: 800;
+}
+.rx-row > * { position: relative; }
+.rx-row .rx-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, rgba(79, 216, 255, 0.28), rgba(79, 216, 255, 0.06));
+  transform-origin: left;
+  animation: rxBar 0.7s ease-out both;
+}
+@keyframes rxBar {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.rx-rank { font-size: 1.25rem; width: 28px; text-align: center; }
+.rx-who { flex: 1; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rx-time { font-family: var(--font-display); font-size: 1.1rem; color: var(--cyan); white-space: nowrap; }
+.rx-owes { color: var(--gold); font-size: 0.85rem; white-space: nowrap; }
+.rx-row-top { border-color: var(--gold); box-shadow: 0 0 22px rgba(255, 201, 77, 0.3); }
+.rx-row-bad { border-color: var(--red); }
+.rx-row-bad .rx-bar { background: linear-gradient(90deg, rgba(255, 95, 110, 0.3), rgba(255, 95, 110, 0.06)); }
+.rx-row-dq { background: rgba(255, 95, 110, 0.12); }
+.rx-row-dq .rx-time { color: var(--red); }
+.rx-note { color: var(--cyan); font-weight: 800; margin: 4px 0 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rx-pad-wait, .rx-pad-go, .rx-hold, .rx-row .rx-bar { animation: none; }
+}

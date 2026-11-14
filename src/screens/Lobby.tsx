@@ -81,9 +81,17 @@ export function Lobby() {
   return (
     <div className="screen lobby">
       <div className="lobby-code-block">
-        <p className="muted">room code</p>
-        <h1 className="lobby-code" onClick={() => { navigator.clipboard?.writeText(meta.code); notify('Code copied!'); }}>
-          {meta.code}
+        <p className="fx-kicker">room code</p>
+        <h1
+          className="lobby-code"
+          aria-label={`room code ${meta.code}`}
+          onClick={() => { navigator.clipboard?.writeText(meta.code); notify('Code copied!'); }}
+        >
+          {meta.code.split('').map((ch, i) => (
+            <span key={i} className="lobby-code-tile" style={{ animationDelay: `${i * 0.09}s` }}>
+              {ch}
+            </span>
+          ))}
         </h1>
         <div className="lobby-code-actions">
           <Button variant="ghost" size="sm" onClick={() => { navigator.clipboard?.writeText(meta.code); notify('Code copied!'); }}>
@@ -169,7 +177,9 @@ export function Lobby() {
 
       {isAuthority && (
         <section className="lobby-settings">
-          <h3>Games</h3>
+          <h3>
+            Games <span className="lobby-count">{eligible.length}/{allGames.length} on</span>
+          </h3>
           <div className="game-toggles">
             {allGames.map((g) => (
               <button
@@ -179,7 +189,8 @@ export function Lobby() {
               >
                 <span className="game-toggle-emoji">{g.emoji}</span>
                 <span className="game-toggle-name">{g.name}</span>
-                <span className="game-toggle-min">{g.minPlayers}+</span>
+                <span className="game-toggle-min">{g.minPlayers}+ 👤</span>
+                <span className="game-toggle-check">{enabled.has(g.id) ? '✔' : ''}</span>
               </button>
             ))}
           </div>
@@ -247,7 +258,9 @@ export function Lobby() {
                 : `Need ${need} players — ${active.length} connected`}
           </Button>
         ) : (
-          <p className="muted">Waiting for the host to start…</p>
+          <p className="lobby-waiting">
+            <span className="fx-wiggle lobby-waiting-emoji">🍻</span> Waiting for the host to start…
+          </p>
         )}
         {canStart && sittingOut.length > 0 && (
           <p className="muted">

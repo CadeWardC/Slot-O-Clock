@@ -8,13 +8,36 @@ import type {
 } from '../../engine/types';
 import { View } from './View';
 
-const QUESTION_MS = 12000;
-const REVEAL_MS = 4500;
+/** questions in one game of trivia */
+export const ROUNDS = 5;
+export const QUESTION_MS = 12000;
+/** a shared phone has to travel round the whole table for every question */
+const SHARED_QUESTION_MS_EACH = 12000;
+export const REVEAL_MS = 5000;
+/** the podium, before the drinks screen */
+export const FINAL_MS = 7000;
+/** the loser drinks the gap between top and bottom, kept inside these */
+const MIN_SIPS = 1;
+const MAX_SIPS = 5;
 
 export interface TriviaState {
+  /** the question on screen (kept as its own field so older views still read it) */
   q: Question;
-  phase: 'question' | 'reveal';
+  /** this game's questions, in order */
+  questions: Question[];
+  /** index of the question on screen */
+  idx: number;
+  phase: 'question' | 'reveal' | 'final';
+  /** answers to the question on screen (RTDB drops the empty map — read with ?? {}) */
   answers: Record<string, { choice: number; at: number }>;
+  /** correct answers so far, per uid (absent = 0) */
+  scores: Record<string, number>;
+  /** fastest correct answer on the question just revealed */
+  fastestUid: string | null;
+  /** final standings: most right hand out, fewest right drink */
+  winners: string[];
+  losers: string[];
+  sips: number;
   assignments: DrinkAssignment[];
   note: string | null;
 }
@@ -52,36 +75,69 @@ export function questionsForTopics(enabled: string[] | null | undefined): Questi
   return pool.flatMap((id) => TOPIC_PACK[id].questions);
 }
 
+function questionMs(ctx: GameContext): number {
+  return ctx.settings.mode === 'shared'
+    ? SHARED_QUESTION_MS_EACH * Math.max(1, ctx.players.length)
+    : QUESTION_MS;
+}
+
+function total(state: TriviaState): number {
+  return state.questions?.length ?? 1;
+}
+
+/** Mark the question on screen and put the running scoreboard up. */
 function reveal(state: TriviaState, ctx: GameContext): ReduceResult<TriviaState> {
   const question = state.q;
-  const entries = Object.entries(state.answers ?? {}).sort((x, y) => x[1].at - y[1].at);
-  const wrong = entries.filter(([, ans]) => ans.choice !== question.c);
-  const right = entries.filter(([, ans]) => ans.choice === question.c);
+  const right = Object.entries(state.answers ?? {})
+    .filter(([uid, ans]) => ans.choice === question.c && ctx.players.some((p) => p.uid === uid))
+    .sort((x, y) => x[1].at - y[1].at);
 
-  const assignments: DrinkAssignment[] = wrong.map(([uid]) => ({
-    uid,
-    sips: 1,
-    reason: 'Wrong answer ❌',
-  }));
+  const scores = { ...(state.scores ?? {}) };
+  for (const [uid] of right) scores[uid] = (scores[uid] ?? 0) + 1;
+  const fastestUid = right.length > 0 ? right[0][0] : null;
 
+  return {
+    state: { ...state, phase: 'reveal', scores, fastestUid },
+    effects: [
+      { type: 'TIMER', ms: REVEAL_MS },
+      ...(fastestUid ? [{ type: 'SCORE', uid: fastestUid, delta: 1 } as const] : []),
+    ],
+  };
+}
+
+/** After the last question: most right hands the drinks out, fewest right takes them. */
+function final(state: TriviaState, ctx: GameContext): ReduceResult<TriviaState> {
+  const scores = state.scores ?? {};
+  const of = (uid: string) => scores[uid] ?? 0;
+  const top = Math.max(...ctx.players.map((p) => of(p.uid)));
+  const bottom = Math.min(...ctx.players.map((p) => of(p.uid)));
+  const nameOf = (uid: string) => ctx.players.find((p) => p.uid === uid)?.name ?? '?';
+
+  let winners: string[] = [];
+  let losers: string[] = [];
+  let sips = 0;
   let note: string;
-  if (right.length === 0) {
-    note = 'Nobody got it! 🤯';
-  } else if (wrong.length === 0 && right.length >= ctx.players.length) {
-    note = 'Everyone got it — nobody drinks! 🎓';
-    assignments.length = 0;
+  const assignments: DrinkAssignment[] = [];
+
+  if (ctx.players.length < 2) {
+    note = `🧠 ${top}/${total(state)} right`;
+  } else if (top === bottom) {
+    // a dead heat has no top and no bottom: nobody hands out, nobody takes
+    note = top === 0 ? 'Nobody got a single one 🤯 — no drinks' : `Dead heat at ${top}/${total(state)} — no drinks 🎓`;
   } else {
-    const fastestUid = right[0][0];
-    const who = ctx.players.find((p) => p.uid === fastestUid);
-    note = `🎓 Fastest correct: ${who?.name ?? '?'}`;
+    winners = ctx.players.filter((p) => of(p.uid) === top).map((p) => p.uid);
+    losers = ctx.players.filter((p) => of(p.uid) === bottom).map((p) => p.uid);
+    sips = Math.max(MIN_SIPS, Math.min(MAX_SIPS, top - bottom));
+    const from = winners.map(nameOf).join(' & ');
+    for (const uid of losers) {
+      assignments.push({ uid, sips, reason: `Fewest right (${bottom}/${total(state)}) — from ${from} 🧠` });
+    }
+    note = `🏆 ${from} (${top}/${total(state)}) hand${winners.length === 1 ? 's' : ''} out ${sips}`;
   }
 
   return {
-    state: { ...state, phase: 'reveal', assignments, note },
-    effects: [
-      { type: 'TIMER', ms: REVEAL_MS },
-      ...(right.length > 0 ? [{ type: 'SCORE', uid: right[0][0], delta: 1 } as const] : []),
-    ],
+    state: { ...state, phase: 'final', winners, losers, sips, assignments, note },
+    effects: [{ type: 'TIMER', ms: FINAL_MS }],
   };
 }
 
@@ -89,15 +145,27 @@ export const definition: GameDefinition<TriviaState, TriviaInput> = {
   id: 'trivia',
   name: 'Trivia',
   emoji: '🧠',
-  rules: 'A question appears — everyone answers on their phone. Wrong answers drink 1. Fastest correct answer scores.',
+  rules: `${ROUNDS} questions, everyone answers on their own phone, scoreboard after each. Whoever gets the MOST right hands out drinks — whoever gets the FEWEST takes them, one sip per question they trailed by. Ties share; a dead heat drinks nothing.`,
   minPlayers: 1,
 
   createInitialState(ctx: GameContext): TriviaState {
-    const questions = questionsForTopics(ctx.settings.triviaTopics);
+    // draw this game's questions without repeats
+    const pool = [...questionsForTopics(ctx.settings.triviaTopics)];
+    const questions: Question[] = [];
+    while (questions.length < ROUNDS && pool.length > 0) {
+      questions.push(pool.splice(Math.floor(ctx.rng() * pool.length), 1)[0]);
+    }
     return {
-      q: questions[Math.floor(ctx.rng() * questions.length)],
+      q: questions[0],
+      questions,
+      idx: 0,
       phase: 'question',
       answers: {},
+      scores: {},
+      fastestUid: null,
+      winners: [],
+      losers: [],
+      sips: 0,
       assignments: [],
       note: null,
     };
@@ -105,16 +173,15 @@ export const definition: GameDefinition<TriviaState, TriviaInput> = {
 
   reduce(state, event: GameEvent<TriviaInput>, ctx: GameContext): ReduceResult<TriviaState> {
     if (event.type === 'BEGIN') {
-      return { state, effects: [{ type: 'TIMER', ms: QUESTION_MS }] };
+      return { state, effects: [{ type: 'TIMER', ms: questionMs(ctx) }] };
     }
 
     if (event.type === 'INPUT') {
       if (state.phase !== 'question' || event.input == null) return { state };
       if ((state.answers ?? {})[event.uid]) return { state }; // one answer per player
-      const answers = {
-        ...(state.answers ?? {}),
-        [event.uid]: { choice: event.input.choice, at: ctx.now },
-      };
+      const choice = Number(event.input.choice);
+      if (!Number.isInteger(choice) || choice < 0 || choice >= state.q.a.length) return { state };
+      const answers = { ...(state.answers ?? {}), [event.uid]: { choice, at: ctx.now } };
       const next: TriviaState = { ...state, answers };
       if (Object.keys(answers).length >= ctx.players.length) return reveal(next, ctx);
       return { state: next };
@@ -123,7 +190,36 @@ export const definition: GameDefinition<TriviaState, TriviaInput> = {
     if (event.type === 'TIME_UP') {
       if (state.phase === 'question') return reveal(state, ctx);
       if (state.phase === 'reveal') {
-        return { state, effects: [{ type: 'END', assignments: state.assignments, note: state.note }] };
+        const idx = (state.idx ?? 0) + 1;
+        if (idx >= total(state)) return final(state, ctx);
+        return {
+          state: { ...state, phase: 'question', idx, q: state.questions[idx], answers: {}, fastestUid: null },
+          effects: [{ type: 'TIMER', ms: questionMs(ctx) }],
+        };
+      }
+      if (state.phase === 'final') {
+        const winners = state.winners ?? [];
+        const losers = state.losers ?? [];
+        return {
+          state,
+          effects: [
+            {
+              type: 'END',
+              assignments: state.assignments ?? [],
+              note: state.note,
+              recap:
+                winners.length > 0
+                  ? {
+                      title: 'Trivia standings',
+                      groups: [
+                        { label: '🏆 Most right — hands out', tone: 'good', uids: winners },
+                        { label: `🍺 Fewest right — drinks ${state.sips}`, tone: 'bad', uids: losers },
+                      ],
+                    }
+                  : undefined,
+            },
+          ],
+        };
       }
     }
 
