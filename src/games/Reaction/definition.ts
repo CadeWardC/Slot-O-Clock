@@ -131,12 +131,28 @@ function highlightsOf(state: RxState, ctx: GameContext): Highlight[] {
   return out;
 }
 
+/** the fastest honest finger hands out this many */
+export const FASTEST_GIVES = 2;
+
+/**
+ * The fastest honest finger deals drinks: never a disqualified player, and
+ * only when there was a race to win (two honest taps, or somebody drinking).
+ */
+function giversOf(state: RxState, ctx: GameContext): { uid: string; sips: number; why: string }[] | undefined {
+  const taps = state.taps ?? {};
+  const honest = ctx.players.filter((p) => taps[p.uid] && !taps[p.uid].early && taps[p.uid].ms != null);
+  if (honest.length === 0) return undefined;
+  if (honest.length < 2 && (state.assignments ?? []).length === 0) return undefined;
+  const fastest = honest.reduce((a, b) => ((taps[b.uid].ms as number) < (taps[a.uid].ms as number) ? b : a));
+  return [{ uid: fastest.uid, sips: FASTEST_GIVES, why: 'Fastest finger' }];
+}
+
 export const definition: GameDefinition<RxState, RxInput> = {
   id: 'reaction',
   name: 'Reaction Duel',
   emoji: '⚡',
   rules:
-    'Wait for green, then tap as fast as you can. Tap before green and you are disqualified and drink 3. If nobody jumps, the slowest finger drinks 2.',
+    'Wait for green, then tap as fast as you can. Tap before green and you are disqualified and drink 3. If nobody jumps, the slowest finger drinks 2. The fastest finger hands out 2.',
   minPlayers: 2,
 
   createInitialState(): RxState {
@@ -203,6 +219,7 @@ export const definition: GameDefinition<RxState, RxInput> = {
               assignments: state.assignments,
               note: state.note,
               highlights: highlightsOf(state, ctx),
+              givers: giversOf(state, ctx),
             },
           ],
         };

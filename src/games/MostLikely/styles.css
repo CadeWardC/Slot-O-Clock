@@ -1,0 +1,105 @@
+/* --- Most Likely To: a prompt card and a paper ballot --- */
+.gv.ml { gap: 14px; justify-content: flex-start; align-items: stretch; text-align: left; padding-top: 6px; }
+
+.ml .ml-card {
+  position: relative;
+  padding: 14px 16px 18px;
+  transform: rotate(-1deg);
+  animation: mlDeal 0.35s cubic-bezier(0.2, 1.3, 0.4, 1) both;
+}
+.ml-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  border-bottom: 3px solid var(--ink);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+.ml-no { font-family: var(--font-display); font-size: 1.8rem; line-height: 1; }
+.ml-no small {
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-left: 8px;
+}
+.ml .ml-stamp { font-size: 1.15rem; padding: 6px 10px 4px; border-width: 4px; max-width: 62%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ml-lead {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #a3341f;
+}
+.ml-prompt { margin: 0; font-weight: 800; font-size: 1.45rem; line-height: 1.2; }
+@keyframes mlDeal {
+  from { transform: translateY(-26px) rotate(6deg); opacity: 0; }
+  to { transform: translateY(0) rotate(-1deg); opacity: 1; }
+}
+
+/* the ballot: one name per line, a box to cross */
+.ml-ballot { display: flex; flex-direction: column; gap: 8px; }
+.ml-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2.5px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: var(--hard);
+  padding: 6px 12px 6px 8px;
+  font-family: inherit;
+  font-weight: 800;
+  font-size: 1.05rem;
+  text-align: left;
+  cursor: pointer;
+}
+.ml-pick:not(:disabled):active { transform: translateY(4px); box-shadow: none; }
+.ml-pick:disabled { cursor: default; box-shadow: none; opacity: 0.45; }
+.ml-pick.ml-pick-mine { background: var(--gold); opacity: 1; box-shadow: var(--hard); }
+.ml-box {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 2.5px solid var(--ink);
+  border-radius: 6px;
+  background: #fffaf0;
+  font-family: var(--font-display);
+  font-size: 1.3rem;
+  line-height: 1;
+}
+.ml-pick-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ml-pick-name small, .ml-row-who small { font-weight: 600; font-size: 0.8rem; }
+
+/* the votes, turned over */
+.ml .ml-tally { padding: 4px 14px; }
+.ml-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 2px dashed #c9bd9f;
+  animation: fxRise 0.3s ease-out both;
+}
+.ml-row:last-child { border-bottom: none; }
+.ml-row-who { font-weight: 800; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ml-row-won .ml-row-who { background: var(--red); padding: 0 5px; margin-left: -5px; border-radius: 3px; }
+.ml-row-none { color: #8a826c; }
+.ml-voters { flex: 1; display: flex; flex-wrap: wrap; gap: 2px; font-size: 1.05rem; min-width: 0; }
+.ml-count { font-family: var(--font-display); font-size: 1.3rem; line-height: 1; min-width: 16px; text-align: right; }
+.ml-drinks { flex: none; font-size: 0.7rem; }
+
+.ml-line { margin: 0; font-weight: 800; font-size: 1.15rem; padding-left: 12px; border-left: 5px solid var(--gold); }
+.ml-line-me { border-left-color: var(--red); }
+.ml-status { margin: 0; font-weight: 700; font-size: 0.92rem; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ml .ml-card, .ml-row { animation: none; }
+}

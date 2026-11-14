@@ -22,6 +22,8 @@ import { serverNow } from '../state/serverTime';
 import { Button, Modal, PlayerChip } from '../components/ui';
 import { Confetti } from '../components/fx';
 import { THROWABLES } from '../components/Reactions';
+import { GiftStageView } from '../components/GiftStage';
+import { giftStageOf, giftersWaiting } from '../engine/gifts';
 import type { PlayerInfo } from '../engine/types';
 
 export function GameScreen() {
@@ -344,6 +346,52 @@ function PlayingView({ room }: { room: RoomData }) {
         </div>
       </div>
     );
+  }
+
+  // The hand-out stage belongs to the shell, not the game: whoever did best
+  // is dealing drinks, and every game gets the same screen for it.
+  const gift = giftStageOf(game?.state);
+  if (gift) {
+    const skip = isAuthority && (
+      <Button variant="ghost" size="sm" onClick={() => hostSkipRound()}>
+        skip this game
+      </Button>
+    );
+    if (variant === 'shared') {
+      const nextGiver = giftersWaiting(gift)[0];
+      const holder = players.find((p) => p.uid === nextGiver?.uid) ?? players[0];
+      return (
+        <div className="playing-wrap">
+          <SharedGate player={nextGiver ? holder : null} answeredCount={gift.givers.length - giftersWaiting(gift).length} total={gift.givers.length}>
+            {() => (
+              <GiftStageView
+                stage={gift}
+                me={holder}
+                players={players}
+                timerEndsAt={timerEndsAt}
+                submitInput={(input) => submitInput(input, holder.uid)}
+              />
+            )}
+          </SharedGate>
+          {skip}
+        </div>
+      );
+    }
+    if (me) {
+      return (
+        <div className="playing-wrap">
+          <SendState status={inputStatus(stageKey, me.uid)} />
+          <GiftStageView
+            stage={gift}
+            me={me}
+            players={players}
+            timerEndsAt={timerEndsAt}
+            submitInput={(input) => submitInput(input)}
+          />
+          {skip}
+        </div>
+      );
+    }
   }
 
   // actor-only games in shared mode: the phone goes straight to the actor

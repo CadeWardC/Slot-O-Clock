@@ -124,6 +124,13 @@ function endRound(state: SlotsState, ctx: GameContext): ReduceResult<SlotsState>
   if (safe.length === 1 && assignments.length >= 2) {
     highlights.push({ kind: 'slots-only-safe', uid: safe[0].uid });
   }
+  // a safe triple pays out: 2 to hand out, 4 for three 🎰
+  const givers = ctx.players
+    .filter((p) => spins[p.uid] && spins[p.uid].sips === 0)
+    .map((p) => {
+      const jackpot = (spins[p.uid].reels ?? []).every((r) => r === WILD);
+      return { uid: p.uid, sips: jackpot ? 4 : 2, why: jackpot ? 'Jackpot' : 'Triple' };
+    });
   return {
     state,
     effects: [
@@ -132,6 +139,7 @@ function endRound(state: SlotsState, ctx: GameContext): ReduceResult<SlotsState>
         assignments,
         note: `${spun} of ${ctx.players.length} pulled the lever`,
         highlights,
+        givers: givers.length > 0 ? givers : undefined,
       },
     ],
   };
@@ -142,7 +150,7 @@ export const definition: GameDefinition<SlotsState, SlotsInput> = {
   name: 'Slot Machine',
   emoji: '🎰',
   rules:
-    'Everyone pulls their own lever and gets their own reels. Three skulls and you finish your drink, a pair costs 2, no match costs 1. Any other triple is safe, and 🎰 is wild.',
+    'Everyone pulls their own lever and gets their own reels. Three skulls and you finish your drink, a pair costs 2, no match costs 1. Any other triple is safe and hands out 2, three 🎰 hands out 4.',
   minPlayers: 1,
   sharedInput: 'actor', // shared phone: only the actor spins
 

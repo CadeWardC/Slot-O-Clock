@@ -1604,3 +1604,24 @@ a { color: var(--gold); }
 @media (prefers-reduced-motion: reduce) {
   .wild-card, .award, .rx-splat, .rx-note { animation: none; }
 }
+
+/* the hand-out stage every game shares */
+.gift { align-items: stretch; text-align: left; justify-content: flex-start; padding-top: 8px; gap: 12px; }
+.gift .fx-tag { align-self: flex-start; }
+.gift-line { margin: 0; font-weight: 700; }
+.gift-people { display: flex; flex-wrap: wrap; gap: 8px; }
+.gift-people .pick-person:disabled { opacity: 0.55; box-shadow: none; }
+.gift-count {
+  font-family: var(--font-display);
+  font-weight: 400;
+  background: var(--ink);
+  color: var(--gold);
+  border-radius: 4px;
+  padding: 1px 6px 0;
+  margin-left: 4px;
+}
+.gift-actions { display: flex; gap: 8px; align-items: stretch; }
+.gift-waiting { display: flex; flex-direction: column; }
+.gift-waiting-row { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 2px dashed var(--line); font-weight: 700; }
+.gift-waiting-what { color: var(--gold); font-size: 0.85rem; }
+.gift-waiting-row.done .gift-waiting-what { color: var(--muted); }

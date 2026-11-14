@@ -182,6 +182,14 @@ export type Effect =
       recap?: OutcomeRecap;
       /** moments the drinks screen can make a joke about — see `Highlight` */
       highlights?: Highlight[];
+      /**
+       * Whoever did best gets to hand drinks out. Name them here with how many
+       * and the engine runs the hand-out itself before the drinks screen: each
+       * giver taps names, the choices are added to `assignments` with
+       * `fromUid` set, and anything not dealt in time goes to nobody. A game
+       * never has to build this stage. See engine/gifts.ts.
+       */
+      givers?: { uid: string; sips: number; why?: string }[];
     };
 
 export interface ReduceResult<S> {

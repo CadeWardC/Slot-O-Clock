@@ -22,134 +22,191 @@ type Line = string;
 const BY_KIND: Record<string, Line[]> = {
   // Slots
   'slots-skulls': [
-    'Three skulls for {name}. The machine has made its feelings clear.',
-    '{name} pulled three skulls. Finish it. The whole thing.',
+    'Three skulls. {name}, the machine would like a word with your family.',
+    '{name} hit three skulls. Finish the drink. The machine does not negotiate.',
+    'Three skulls for {name}. Statistically impressive. Medically unwise.',
   ],
   'slots-only-safe': [
-    '{name} was the only one the machine liked.',
-    'Everyone drinks except {name}, who will be insufferable about it.',
+    'The machine spared {name} and only {name}. It has always had favourites.',
+    'Everyone drinks except {name}, who is already composing the speech.',
   ],
 
   // Reaction Duel
   'react-dq': [
-    '{name} tapped before green. There is one rule.',
-    '{name} went early. It is a game about waiting.',
+    '{name} tapped before green. It is a one-rule game and {name} found the rule.',
+    'The game is called wait for green. {name} got as far as wait.',
+    '{name} went early. Somewhere a driving instructor just felt a chill.',
   ],
   'react-slow': [
-    '{name} took {n}ms. Things have been built faster.',
-    '{name}, {n}ms. Were you reading something?',
+    '{name}: {n}ms. Continents have moved faster.',
+    '{n}ms from {name}. The green light has since retired.',
+    '{name} took {n}ms. Were you waiting for a second opinion?',
   ],
-  'react-asleep': ['{name} never tapped at all. Someone check for a pulse.'],
+  'react-asleep': [
+    '{name} never tapped. Blink twice if you are still with us.',
+    '{name} watched the light go green and chose peace.',
+  ],
 
   // Trivia
   'trivia-zero': [
-    '{name} got none right. None.',
-    'Five questions, and {name} knew none of them. A clean sheet, in a way.',
+    '{name}: nought from five. A monkey with a dartboard gets one.',
+    '{name} got none right. Guessing would have been an improvement.',
+    'Five questions, five swings, no contact. {name}.',
   ],
   'trivia-sweep': [
-    '{name} got all five and would like it known that they were easy.',
-    'Five from five for {name}. Nobody likes a show-off.',
+    '{name} got all five and is waiting to be asked how.',
+    'Five from five. {name} has clearly never been outside.',
   ],
 
   // Never Have I Ever
   'nhie-only-guilty': [
-    '{name} was the only one who has. Go on then, tell the story.',
-    'Only {name} put a hand up. The table has questions.',
+    'Only {name} has. Everyone else would like the full story, with dates.',
+    'One guilty party and it is {name}. Nobody is shocked. Everybody is interested.',
+    '{name}, alone, hand up. The floor is yours.',
   ],
   'nhie-only-innocent': [
-    '{name} is the only one who never has. Sure.',
-    'Everyone has except {name}. Nobody believes {name}.',
+    '{name} is the only one who never has. A saint or a liar. The table has voted liar.',
+    'Everyone has done it except {name}, who was presumably at home.',
   ],
-  'nhie-all-guilty': ['Every single one of you has. This table has a type.'],
+  'nhie-all-guilty': [
+    'All of you. Every one. This is why you are friends.',
+    'Unanimous guilt. Nobody at this table should run for office.',
+  ],
 
   // Categories
   'cat-gave-up': [
-    '{name} could not name four {text}. They are everywhere.',
-    '{name} gave up on {text} with {n} stacked. Costly.',
+    '{name} could not name four {text}. There are more than four. There are loads.',
+    '{name} gave up on {text} with {n} on the pile. An expensive silence.',
+    'Four {text}. That was the whole job. {name} drinks.',
   ],
   'cat-stacked': [
-    'The table stacked {n} on {name} while they were thinking. Friends.',
-    '{name} got there in the end. It cost {n}.',
+    '{name} got there eventually. The table billed {n} for the wait.',
+    '{n} stacked on {name} while they thought about it. Lovely friends.',
   ],
-  'cat-clean': ['{name} named four {text} before anyone could stack a thing.'],
+  'cat-clean': [
+    '{name} rattled off four {text} before anyone found the button. Suspiciously prepared.',
+  ],
 
   // Poisoning the Drinks
   'poison-hit': [
-    '{name} looked at every cup and picked the poisoned one.',
-    '{name} sniffed, thought about it, and drank poison anyway.',
+    '{name} studied every cup like a sommelier and chose poison.',
+    '{name} had a sniff, had a think, and drank the bad one anyway.',
+    'One poisoned cup on the table and {name} found it first go. A gift, really.',
   ],
-  'poison-stacked': ['{n} of you poisoned the same cup and {name} still picked it.'],
+  'poison-stacked': [
+    '{n} of you poisoned the same cup and {name} picked it like it had their name on.',
+    'That cup had {n} doses in it. {name} is mostly poison now.',
+  ],
   'poison-clean': [
-    '{name} found the one clean cup. The poisoners drink to that.',
-    '{name} walked straight past the poison. Annoying.',
+    '{name} picked clean. The poisoners drink, and can think about what they did.',
+    '{name} strolled past the poison like it was not there. The plotters pay.',
   ],
-  'poison-antidote': ['{name} found the antidote. That one went back where it came from.'],
+  'poison-antidote': [
+    '{name} found the antidote. Whatever was coming went straight back to sender.',
+  ],
 
   // Fake It
   'fake-caught': [
-    '{name} lasted one round as the faker. A short career.',
-    'The table saw through {name} at the first attempt.',
+    '{name} was rumbled in round one. Do not take up poker.',
+    'The table clocked {name} immediately. It was the face. It is always the face.',
+    '{name} lasted one round as a liar, which is somehow a compliment.',
   ],
-  'fake-caught-late': ['{name} got to round {n} before anyone worked it out.'],
+  'fake-caught-late': [
+    '{name} made it to round {n} on pure nerve. Then the nerve ran out.',
+    'It took you {n} rounds to notice {name} had no idea what was going on.',
+  ],
   'fake-escaped': [
-    '{name} faked it for three rounds and none of you noticed. Think about that.',
-    '{name} had no idea what the prompt was and still fooled the lot of you.',
+    '{name} had no clue what the prompt was for three rounds and you all nodded along.',
+    'Three rounds, zero information, and {name} fooled every one of you. Worrying for everyone.',
   ],
-  'fake-innocent': ['The whole table convicted {name}, who had done nothing wrong.'],
+  'fake-innocent': [
+    'You all convicted {name}, who was innocent. Justice is a strong word for what happened here.',
+  ],
 
   // Horse Race
   'horse-lost-big': [
-    '{name} put {n} on {text}. {text} did not share the confidence.',
-    '{name} had {n} riding on {text}, a horse with other plans.',
-    '{n} on {text}. {name} will be thinking about that for a while.',
+    '{name} put {n} on {text}. {text} is still out there somewhere, having a lovely time.',
+    '{n} on {text}. {name} has now seen the horse run and would like to revise that.',
+    '{name} backed {text} with {n} and their whole chest. The horse felt none of it.',
+    '{text} thanks {name} for the {n} and the faith. Mostly the faith.',
   ],
   'horse-won-big': [
-    '{name} had {n} on {text} and is being unbearable about it.',
-    '{name} backed {text} for {n} and gets to ruin someone else\'s evening.',
+    '{name} had {n} on {text} and has not stopped talking since.',
+    '{text} came in for {name}. {n} to hand out and no humility whatsoever.',
   ],
-  'horse-nobody-won': ['{text} won and not one of you backed it.'],
+  'horse-nobody-won': ['{text} won and nobody backed it. {text} does not need your approval.'],
 
   // Wavelength
-  'wave-dead-on': ['{name} was dead on. Either a mind reader or a peeker.'],
-  'wave-miles-off': [
-    '{name} was {n} out. On a scale that only goes to 100.',
-    '{name} missed by {n}. Was that a guess or a protest?',
+  'wave-dead-on': [
+    '{name} landed dead on. Telepathy, or a reflective surface behind the clue-giver.',
   ],
-  'wave-bad-clue': ['{name} gave a clue so bad the whole table went the wrong way.'],
+  'wave-miles-off': [
+    '{name} was {n} out, on a scale of 100. That is not a guess, that is a different conversation.',
+    '{name} missed by {n}. Did you hear the clue, or just the vibe?',
+  ],
+  'wave-bad-clue': [
+    'The clue from {name} sent the whole table the wrong way. A tour guide of some skill.',
+  ],
 
   // Confessions
   'conf-caught': [
-    'The table knew it was {name} straight away. Nobody was surprised.',
-    '{name} wrote it, and everybody knew {name} wrote it.',
+    'Everyone knew it was {name}. The confession basically signed itself.',
+    '{name} wrote it, and the table said {name} before the card stopped moving.',
   ],
   'conf-fooled': [
-    '{name} wrote that and not one of you guessed. Worrying.',
-    'Nobody thought {name} had it in them.',
+    '{name} wrote that and not one of you suspected. You do not know {name} at all.',
+    'Nobody guessed {name}. {name} is taking that as a compliment. It was not one.',
   ],
 
   // Boom Cup
-  'boom-last-beer': ['{name} took the last beer and everything that came with it.'],
-  'boom-caught-most': ['{name} got caught {n} times. The cup knows where you live.'],
-  'boom-first-try': ['{name} sank it first try and chose violence.'],
+  'boom-last-beer': [
+    '{name} took the last beer and the boom that came with it. Greedy and unlucky is a tough combination.',
+  ],
+  'boom-caught-most': ['{name} was caught {n} times. At some point it stops being bad luck.'],
 
   // Chicken
   'chicken-bust': [
-    '{name} held on to {n} and it went off in their hand.',
-    '{name} was still holding at {n}. Greed has a price and it is {n}.',
+    '{name} was still holding at {n} when it went off. Nobody has ever needed {n} that badly.',
+    '{name} saw {n} and thought: one more. There was not one more.',
   ],
   'chicken-early': [
-    '{name} let go at {n}. That is not chicken, that is a different bird entirely.',
-    '{name} bailed at {n}. Brave.',
+    '{name} let go at {n}. That is not chicken. Chicken has more fight in it.',
+    '{name} bailed at {n}. The counter had barely sat down.',
   ],
-  'chicken-last': ['{name} was the last thumb down and walked away with {n} to give.'],
+  'chicken-last': [
+    '{name} held out longest and walks off with {n} to hand out. Nerves of steel, friends of fear.',
+  ],
 
   // Sketchy
   'sketch-nobody': [
-    'That was meant to be {text}. {name} drinks for the drawing.',
-    'Nobody got {text}. In fairness, {name} drew it.',
+    'That was {text}, apparently. {name} drinks for crimes against drawing.',
+    'Nobody got {text}. In the table\'s defence, have you seen it?',
+    '{name} drew {text}. The table saw several things. None of them were {text}.',
   ],
-  'sketch-everyone': ['Everyone got {text}. {name} can draw, apparently.'],
-  'sketch-one-missed': ['Everyone got {text} except {name}.'],
+  'sketch-everyone': ['Everyone got {text}. {name} has been hiding a talent, or it was very easy.'],
+  'sketch-one-missed': ['Everyone got {text} except {name}, who was looking at a different picture.'],
+
+  // Most Likely To
+  'mlt-unanimous': [
+    'Every single vote went to {name}: most likely to {text}. No debate, no appeal.',
+    'Unanimous. {name} is most likely to {text}, and {name} knows it.',
+  ],
+  'mlt-self-vote': [
+    '{name} voted for themselves as most likely to {text}, and won. Self-awareness is a gift.',
+  ],
+  'mlt-clean': ['Three prompts and not one vote for {name}. Either blameless or forgettable.'],
+  'mlt-magnet': ['{name} won all three with {n} votes. That is not a reputation, that is a file.'],
+
+  // Know Me
+  'know-best': [
+    '{name} got all {n} right about {text}. Best friend or stalker. It is a fine line.',
+  ],
+  'know-stranger': [
+    '{name} got {n} right about {text}. Have you two met?',
+    '{name} knows {text} about as well as the bar staff do. {n} right.',
+  ],
+  'know-open-book': ['Everybody got everything right about {name}. No mystery left. Sorry.'],
+  'know-mystery': ['Nobody at this table knows {name} at all. How long have you been friends?'],
 };
 
 function fill(line: Line, v: { name?: string; n?: number; text?: string }): string {
@@ -202,17 +259,17 @@ export function roastFor(o: RoastInput): string | null {
         0,
         o.spotPicked
           ? pick([
-              `${name} picked this game and drinks ${n} for it. Good choice.`,
-              `${name} chose the game. ${name} drinks ${n}. Nobody made them.`,
+              `${name} picked this game and drinks ${n} for it. Nobody to blame. Truly nobody.`,
+              `${name} chose the game. The game chose ${name}. ${n}.`,
             ])
-          : `${name} was on the spot and it cost ${n}.`,
+          : `${name} was on the spot and it cost ${n}. Catching up nicely.`,
       );
     } else {
       add(
         0,
         o.spotPicked
-          ? `${name} picked the game and walked away dry. Of course.`
-          : `${name} was on the spot and still got away with it.`,
+          ? `${name} picked the game and walked away dry. This is why nobody trusts ${name}.`
+          : `${name} was on the spot, drinks doubled, and still dodged it. Slippery.`,
       );
     }
   }
@@ -235,16 +292,16 @@ export function roastFor(o: RoastInput): string | null {
       add(
         2,
         pick([
-          `${name} has now drunk ${run} games running. Somebody check on them.`,
-          `That is ${run} in a row for ${name}. The games are not the problem.`,
+          `${name} has now drunk ${run} games running. The games are not cursed. Draw your own conclusions.`,
+          `That is ${run} in a row for ${name}. At this point it is a subscription.`,
         ]),
       );
     }
     if (sips > 0 && safe >= 3) {
-      add(2, `${name} had gone ${safe} games without a drink. That is over now.`);
+      add(2, `${name} went ${safe} games dry. It was a beautiful run. It is over.`);
     }
     if (sips === 0 && safe + 1 >= 4 && (o.totalsAfter[uid] ?? 0) === 0) {
-      add(2, `${name} has not had a drink in ${safe + 1} games. Suspicious.`);
+      add(2, `${name} has not had a drink in ${safe + 1} games. Check the glass. Check it is not water.`);
     }
   }
   // the lead on the tab changed hands
@@ -258,7 +315,7 @@ export function roastFor(o: RoastInput): string | null {
   if (leadAfter && leadAfter !== leadBefore && stats.rounds >= 2) {
     add(
       2,
-      `${o.nameOf(leadAfter)} takes the lead on the tab with ${o.totalsAfter[leadAfter]}. Not a race anyone wanted to win.`,
+      `${o.nameOf(leadAfter)} now leads the tab on ${o.totalsAfter[leadAfter]}. There is no trophy. There is a headache.`,
     );
   }
   // someone keeps picking on the same person
@@ -268,7 +325,7 @@ export function roastFor(o: RoastInput): string | null {
     if (total >= 5 && total > a.sips) {
       add(
         2,
-        `${o.nameOf(a.fromUid)} has now given ${o.nameOf(a.uid)} ${total} tonight. This is personal.`,
+        `${o.nameOf(a.fromUid)} has now given ${o.nameOf(a.uid)} ${total} tonight. Somebody did something to somebody.`,
       );
     }
   }
@@ -276,19 +333,22 @@ export function roastFor(o: RoastInput): string | null {
   /* tier 3: the plain shape of the round */
   const drinkers = [...drank.entries()].filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
   if (drinkers.length === 0) {
-    add(3, pick(['Nobody drinks. It will not last.', 'A whole game and nobody drank. Do better.']));
+    add(3, pick([
+        'Nobody drinks. Enjoy the peace. It is the last you will get.',
+        'A whole game and nobody drank. Whose idea was this one?',
+      ]));
   } else if (drinkers.length === o.roundUids.length && o.roundUids.length > 2) {
-    add(3, pick(['Everybody drinks. Democracy.', 'Nobody got out of that one.']));
+    add(3, pick(['Everybody drinks. At least you are doing it together.', 'Nobody escaped. Equality at last.']));
   } else {
     const [top, n] = drinkers[0];
     const sole = drinkers.length === 1 || drinkers[1][1] < n;
-    if (sole && n >= 5) add(3, `${o.nameOf(top)} drinks ${n}. That is most of a pint.`);
+    if (sole && n >= 5) add(3, `${o.nameOf(top)} drinks ${n}. That is not a penalty, that is a round.`);
     else if (sole && drinkers.length === 1 && o.roundUids.length > 2) {
-      add(3, `Just ${o.nameOf(top)}, then. ${n} of them.`);
-    } else if (sole && n >= 3) add(3, `${o.nameOf(top)} takes the worst of it with ${n}.`);
+      add(3, `Just ${o.nameOf(top)}, then. ${n}. Everyone else, look away politely.`);
+    } else if (sole && n >= 3) add(3, `${o.nameOf(top)} takes ${n}, the worst of it. Thoughts and prayers.`);
     const gift = o.assignments.find((a) => a.fromUid && a.fromUid !== a.uid && a.sips >= 3);
     if (gift?.fromUid) {
-      add(3, `${o.nameOf(gift.fromUid)} gave ${o.nameOf(gift.uid)} ${gift.sips}. Noted.`);
+      add(3, `${o.nameOf(gift.fromUid)} gave ${o.nameOf(gift.uid)} ${gift.sips}. ${o.nameOf(gift.uid)} will remember that.`);
     }
   }
 

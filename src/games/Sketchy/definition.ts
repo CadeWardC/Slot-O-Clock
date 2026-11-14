@@ -173,7 +173,7 @@ export const definition: GameDefinition<SkState, SkInput> = {
   name: 'Sketchy',
   emoji: '✏️',
   rules:
-    'One player picks a word and draws it with a finger. Everyone else types guesses. Miss it and you drink 1, and if nobody gets it the artist drinks 2.',
+    'One player picks a word and draws it with a finger. Everyone else types guesses. Miss it and you drink 1, and if nobody gets it the artist drinks 2. First to get it hands out 1.',
   minPlayers: 3,
   sharedInput: 'actor',
 
@@ -204,6 +204,11 @@ export const definition: GameDefinition<SkState, SkInput> = {
             note: state.note,
             recap: recapOf(state, ctx),
             highlights: highlightsOf(state, ctx),
+            // first to get it hands 1 out (party mode: shared has no guessers)
+            givers:
+              ctx.settings.mode !== 'shared' && (state.got ?? []).length > 0
+                ? [{ uid: (state.got ?? [])[0], sips: 1, why: 'First to get it' }]
+                : undefined,
           },
         ],
       };

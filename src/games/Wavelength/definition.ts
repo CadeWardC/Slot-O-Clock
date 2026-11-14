@@ -96,6 +96,22 @@ function highlightsOf(state: WlState, ctx: GameContext): Highlight[] {
 
 const BAD_CLUE_REASON = 'Useless clue';
 
+/**
+ * Closest guess hands drinks out: 2 when they were dead on, otherwise 1, and
+ * a tie for closest gives each of them 1. Only when there was more than one
+ * guess to beat.
+ */
+function giversOf(state: WlState): { uid: string; sips: number; why: string }[] | undefined {
+  const guesses = state.guesses ?? {};
+  if (Object.keys(guesses).length < 2) return undefined;
+  const closest = (state.closestUids ?? []).filter((uid) => typeof guesses[uid] === 'number');
+  if (closest.length === 0) return undefined;
+  if (closest.length > 1) return closest.map((uid) => ({ uid, sips: 1, why: 'Closest' }));
+  const uid = closest[0];
+  const deadOn = Math.abs(guesses[uid] - state.target) <= 2;
+  return [{ uid, sips: deadOn ? 2 : 1, why: deadOn ? 'Dead on' : 'Closest' }];
+}
+
 function reveal(state: WlState, ctx: GameContext): ReduceResult<WlState> {
   const target = Math.round(state.target);
   const entries = Object.entries(state.guesses ?? {}).map(([uid, value]) => ({
@@ -177,7 +193,7 @@ export const definition: GameDefinition<WlState, WlInput> = {
   name: 'Wavelength',
   emoji: '🎚️',
   rules:
-    'One player sees a hidden number on a scale and gives a clue out loud. Everyone else guesses where it sits. Furthest guess drinks 2, unless the whole table is miles off, in which case the clue-giver drinks 2. No timer.',
+    'One player sees a hidden number on a scale and gives a clue out loud. Everyone else guesses where it sits. Furthest guess drinks 2, unless the whole table is miles off, in which case the clue-giver drinks 2. Closest hands out 1, or 2 if dead on. No timer.',
   minPlayers: 3,
   sharedInput: 'all',
 
@@ -242,6 +258,7 @@ export const definition: GameDefinition<WlState, WlInput> = {
               assignments: state.assignments ?? [],
               note: state.note,
               highlights: highlightsOf(state, ctx),
+              givers: giversOf(state),
             },
           ],
         };

@@ -96,7 +96,16 @@ function finish(
         : [];
   return {
     state: { ...state, phase: 'done', gaveUp, resultLine },
-    effects: [{ type: 'END', assignments, note: resultLine, highlights }],
+    effects: [
+      {
+        type: 'END',
+        assignments,
+        note: resultLine,
+        highlights,
+        // a clean run, nothing stacked, earns a hand-out; giving up never does
+        givers: !gaveUp && state.pool === 0 ? [{ uid: actor.uid, sips: 2, why: 'Clean run' }] : undefined,
+      },
+    ],
   };
 }
 
@@ -105,7 +114,7 @@ export const definition: GameDefinition<CatState, CatInput> = {
   name: 'Categories',
   emoji: '🗂️',
   rules:
-    'Name 4 things in the category, out loud. You get 3 seconds to think, then the +1 drink button goes round the table and everyone stacks drinks on you. Say done and drink the stack, or give up and drink the stack plus 2.',
+    'Name 4 things in the category, out loud. You get 3 seconds to think, then the +1 drink button goes round the table and everyone stacks drinks on you. Say done and drink the stack, or give up and drink the stack plus 2. Finish before anything stacks and you hand out 2.',
   minPlayers: 2,
   sharedInput: 'actor',
 

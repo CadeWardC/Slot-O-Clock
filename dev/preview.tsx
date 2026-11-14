@@ -21,6 +21,8 @@ import { createRoot } from 'react-dom/client';
 import '../src/styles.css';
 import { allGames as games, gameById } from '../src/games';
 import { hashSeed, mulberry32 } from '../src/engine/rng';
+import { giftStageOf, reduceWithGifts } from '../src/engine/gifts';
+import { GiftStageView } from '../src/components/GiftStage';
 import type {
   DrinkAssignment,
   Effect,
@@ -118,7 +120,7 @@ function makeStore(def: GameDefinition) {
   const dispatch = (event: GameEvent) => {
     if (round.outcome) return;
     if (event.type === 'INPUT') round.inputs = [...round.inputs, { uid: event.uid, input: event.input }];
-    apply(def.reduce(round.state, event, ctx()));
+    apply(reduceWithGifts(def, round.state, event, ctx()));
   };
 
   const restart = (next = false) => {
@@ -127,7 +129,7 @@ function makeStore(def: GameDefinition) {
     if (next) roundNo += 1;
     round = { state: null, inputs: [], timerEndsAt: null, phaseNo: 0, roundNo, feed: [], outcome: null };
     round.state = def.createInitialState(ctx());
-    apply(def.reduce(round.state, { type: 'BEGIN' }, ctx()));
+    apply(reduceWithGifts(def, round.state, { type: 'BEGIN' }, ctx()));
   };
   restart();
 
@@ -217,6 +219,15 @@ function Preview({ def }: { def: GameDefinition }) {
                 {me.emoji} {me.name} ({me.uid}){me.uid === actorUid ? ' · actor' : ''}
               </div>
               <div className="pv-body">
+                {giftStageOf(round.state) ? (
+                  <GiftStageView
+                    stage={giftStageOf(round.state)!}
+                    me={me}
+                    players={players}
+                    timerEndsAt={round.timerEndsAt}
+                    submitInput={(input: unknown) => s.input(me.uid, input)}
+                  />
+                ) : (
                 <def.View
                   state={round.state}
                   me={me}
@@ -230,6 +241,7 @@ function Preview({ def }: { def: GameDefinition }) {
                   submitInput={(input: unknown) => s.input(me.uid, input)}
                   variant={mode}
                 />
+                )}
               </div>
             </div>
           );

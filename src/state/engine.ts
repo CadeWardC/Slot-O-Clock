@@ -9,6 +9,7 @@ import {
   type SpotInfo,
 } from '../engine/party';
 import { roastFor } from '../engine/roast';
+import { reduceWithGifts } from '../engine/gifts';
 import type {
   DrinkAssignment,
   Effect,
@@ -972,7 +973,7 @@ export class EngineWorker {
     const initial = def.createInitialState(ctx);
     // BEGIN arms the first timer. Computed here, before the transaction, so the
     // transaction callback stays pure: no clock, no randomness, no rng.
-    const res = def.reduce(initial, { type: 'BEGIN' }, ctx);
+    const res = reduceWithGifts(def, initial, { type: 'BEGIN' }, ctx);
     return this.transitionPlan({
       kind: 'launch',
       room,
@@ -1003,7 +1004,7 @@ export class EngineWorker {
     if (players.length === 0) return null;
     const ctx = this.buildCtx(room, players, now);
     const initial = def.createInitialState(ctx);
-    const res = def.reduce(initial, { type: 'BEGIN' }, ctx);
+    const res = reduceWithGifts(def, initial, { type: 'BEGIN' }, ctx);
     return this.transitionPlan({
       kind: 'reinit',
       room,
@@ -1031,7 +1032,7 @@ export class EngineWorker {
     const uid = entry.forUid ?? entry.uid;
     const ctx = this.buildCtx(room, roster, now);
     const before = engine.game.state;
-    const res = def.reduce(before, { type: 'INPUT', uid, input: entry.input, inputId }, ctx);
+    const res = reduceWithGifts(def, before, { type: 'INPUT', uid, input: entry.input, inputId }, ctx);
     return this.transitionPlan({
       kind: 'input',
       room,
@@ -1128,7 +1129,8 @@ export class EngineWorker {
     if (!game) return null;
     const roster = this.roster(room);
     const ctx = this.buildCtx(room, roster, now);
-    const res = def.reduce(
+    const res = reduceWithGifts(
+      def,
       game.state,
       { type: 'TIME_UP', now, timerId: timer.id, phaseId: timer.phaseId, roundId: timer.roundId },
       ctx,

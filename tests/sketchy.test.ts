@@ -1,4 +1,5 @@
 import { test } from 'node:test';
+import { GIFT_MS } from '../src/engine/gifts.ts';
 import assert from 'node:assert/strict';
 
 import { Harness } from './harness.ts';
@@ -144,7 +145,15 @@ test('Sketchy: the round ends early once everyone has it, and nobody drinks', as
 
   h.clock.advance(REVEAL_MS + 1);
   await h.settle();
+  // first to get it hands out 1 before the drinks screen
+  assert.equal(h.phase, 'playing');
+  assert.deepEqual(h.state.__gift?.givers, [{ uid: others[0], sips: 1, why: 'First to get it' }]);
+  await h.submit(others[0], { gift: { [others[1]]: 1 } });
   assert.equal(h.phase, 'outcome');
+  assert.deepEqual(
+    h.engine.outcome?.assignments.map((a) => [a.uid, a.sips, a.fromUid]),
+    [[others[1], 1, others[0]]],
+  );
   assert.deepEqual(h.mixedSnapshots(), []);
 });
 
@@ -162,6 +171,11 @@ test('Sketchy: whoever misses it drinks 1', async () => {
   assert.ok(!drinks.some((a) => a.uid === artist));
 
   h.clock.advance(REVEAL_MS + 1);
+  await h.settle();
+  // the hand-out runs out with nothing dealt: the round ends as it was
+  assert.equal(h.phase, 'playing');
+  assert.equal(h.state.__gift?.givers[0].uid, others[1]);
+  h.clock.advance(GIFT_MS + 1);
   await h.settle();
   assert.equal(h.phase, 'outcome');
   const recap = h.engine.outcome?.recap;

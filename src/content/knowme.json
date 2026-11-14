@@ -1,0 +1,709 @@
+{
+ "questions": [
+  {
+   "q": "Would rather",
+   "a": "lose their phone for a week",
+   "b": "lose their wallet for a day"
+  },
+  {
+   "q": "First move at a party",
+   "a": "find the dog",
+   "b": "find the drinks"
+  },
+  {
+   "q": "Would rather",
+   "a": "be an hour early",
+   "b": "be ten minutes late"
+  },
+  {
+   "q": "Texts back",
+   "a": "within a minute",
+   "b": "some time next week"
+  },
+  {
+   "q": "In a zombie film",
+   "a": "dies in the first ten minutes",
+   "b": "makes it to the credits"
+  },
+  {
+   "q": "Karaoke",
+   "a": "grabs the mic first",
+   "b": "has to be dragged up"
+  },
+  {
+   "q": "On a road trip",
+   "a": "drives",
+   "b": "controls the music"
+  },
+  {
+   "q": "Would rather give up",
+   "a": "cheese",
+   "b": "chocolate"
+  },
+  {
+   "q": "At a buffet",
+   "a": "one sensible plate",
+   "b": "four reckless ones"
+  },
+  {
+   "q": "Holiday style",
+   "a": "plan for every hour",
+   "b": "book the flight and wing it"
+  },
+  {
+   "q": "Would rather",
+   "a": "never use a lift again",
+   "b": "never use an escalator again"
+  },
+  {
+   "q": "When the bill comes",
+   "a": "splits it evenly",
+   "b": "itemises it"
+  },
+  {
+   "q": "Phone battery right now",
+   "a": "above half",
+   "b": "living dangerously"
+  },
+  {
+   "q": "Would rather fight",
+   "a": "one horse-sized duck",
+   "b": "a hundred duck-sized horses"
+  },
+  {
+   "q": "Morning",
+   "a": "up before the alarm",
+   "b": "snoozes four times"
+  },
+  {
+   "q": "In a group project",
+   "a": "does all of it",
+   "b": "turns up for the photo"
+  },
+  {
+   "q": "Would rather",
+   "a": "sing in front of strangers",
+   "b": "dance in front of friends"
+  },
+  {
+   "q": "Assembling furniture",
+   "a": "reads the instructions",
+   "b": "has screws left over"
+  },
+  {
+   "q": "Would rather live",
+   "a": "by the sea",
+   "b": "in the mountains"
+  },
+  {
+   "q": "Their camera roll is mostly",
+   "a": "food",
+   "b": "screenshots they'll never look at"
+  },
+  {
+   "q": "Last to leave the party",
+   "a": "yes, obviously",
+   "b": "gone by eleven without a word"
+  },
+  {
+   "q": "Would rather",
+   "a": "always be slightly too hot",
+   "b": "always be slightly too cold"
+  },
+  {
+   "q": "At the cinema",
+   "a": "sweet popcorn",
+   "b": "salty popcorn"
+  },
+  {
+   "q": "Lost in a new city",
+   "a": "asks a stranger",
+   "b": "walks confidently the wrong way"
+  },
+  {
+   "q": "Would rather have",
+   "a": "a personal chef",
+   "b": "a personal driver"
+  },
+  {
+   "q": "Cooking for friends",
+   "a": "follows the recipe",
+   "b": "makes it up and hopes"
+  },
+  {
+   "q": "In an argument",
+   "a": "has to win",
+   "b": "just wants it over"
+  },
+  {
+   "q": "Would rather",
+   "a": "never eat pizza again",
+   "b": "never eat chips again"
+  },
+  {
+   "q": "Unread notifications",
+   "a": "zero, always",
+   "b": "a number with a comma in it"
+  },
+  {
+   "q": "Packing for a trip",
+   "a": "a week before",
+   "b": "in the taxi"
+  },
+  {
+   "q": "Would rather be",
+   "a": "the funniest in the room",
+   "b": "the smartest in the room"
+  },
+  {
+   "q": "Scary film",
+   "a": "watches through their fingers",
+   "b": "laughs at the wrong moments"
+  },
+  {
+   "q": "Pet preference",
+   "a": "dogs",
+   "b": "cats"
+  },
+  {
+   "q": "Would rather",
+   "a": "meet their hero",
+   "b": "keep the fantasy"
+  },
+  {
+   "q": "At a wedding",
+   "a": "first on the dance floor",
+   "b": "guarding the buffet"
+  },
+  {
+   "q": "Gift giving",
+   "a": "planned months ahead",
+   "b": "petrol station on the way"
+  },
+  {
+   "q": "Would rather go",
+   "a": "back in time 100 years",
+   "b": "forward 100 years"
+  },
+  {
+   "q": "When they're ill",
+   "a": "carries on as normal",
+   "b": "writes a will"
+  },
+  {
+   "q": "Shower",
+   "a": "two minutes",
+   "b": "a full concert"
+  },
+  {
+   "q": "Would rather",
+   "a": "have no internet for a month",
+   "b": "have no music for a month"
+  },
+  {
+   "q": "Their room right now",
+   "a": "tidy",
+   "b": "a crime scene"
+  },
+  {
+   "q": "On a rollercoaster",
+   "a": "hands up, screaming",
+   "b": "eyes shut, regretting it"
+  },
+  {
+   "q": "Would rather",
+   "a": "cook",
+   "b": "wash up"
+  },
+  {
+   "q": "Pineapple on pizza",
+   "a": "yes",
+   "b": "absolutely not"
+  },
+  {
+   "q": "Group chat",
+   "a": "sends forty messages",
+   "b": "reads everything, says nothing"
+  },
+  {
+   "q": "Would rather be stuck in a lift with",
+   "a": "a crying baby",
+   "b": "a man with a guitar"
+  },
+  {
+   "q": "Supermarket",
+   "a": "has a list",
+   "b": "wanders and sees what happens"
+  },
+  {
+   "q": "Reality TV",
+   "a": "would win it",
+   "b": "out in week one"
+  },
+  {
+   "q": "Would rather",
+   "a": "know how they die",
+   "b": "know when they die"
+  },
+  {
+   "q": "Dancing",
+   "a": "has rhythm",
+   "b": "has enthusiasm"
+  },
+  {
+   "q": "Board games",
+   "a": "reads every rule first",
+   "b": "learns by losing"
+  },
+  {
+   "q": "Would rather have",
+   "a": "a rewind button",
+   "b": "a pause button"
+  },
+  {
+   "q": "Coffee order",
+   "a": "plain and quick",
+   "b": "needs a paragraph"
+  },
+  {
+   "q": "At the airport",
+   "a": "there three hours early",
+   "b": "running for the gate"
+  },
+  {
+   "q": "Would rather",
+   "a": "be famous and broke",
+   "b": "be rich and unknown"
+  },
+  {
+   "q": "Photos of themselves",
+   "a": "loves them",
+   "b": "deletes all of them"
+  },
+  {
+   "q": "Spiders",
+   "a": "deals with it",
+   "b": "leaves the house"
+  },
+  {
+   "q": "Would rather eat",
+   "a": "the same dinner forever",
+   "b": "never the same dinner twice"
+  },
+  {
+   "q": "A free Saturday",
+   "a": "out before nine",
+   "b": "still in bed at noon"
+  },
+  {
+   "q": "Their handwriting",
+   "a": "readable",
+   "b": "a medical mystery"
+  },
+  {
+   "q": "Would rather",
+   "a": "talk to animals",
+   "b": "speak every language"
+  },
+  {
+   "q": "Voicemail",
+   "a": "listens to it",
+   "b": "did not know they had one"
+  },
+  {
+   "q": "Tells a story",
+   "a": "gets to the point",
+   "b": "takes the scenic route"
+  },
+  {
+   "q": "Would rather lose",
+   "a": "their sense of taste",
+   "b": "their sense of smell"
+  },
+  {
+   "q": "Sports day at school",
+   "a": "came first",
+   "b": "held the coats"
+  },
+  {
+   "q": "Borrowed things",
+   "a": "returns them",
+   "b": "keeps them for years"
+  },
+  {
+   "q": "Would rather",
+   "a": "camp in a tent",
+   "b": "stay in a bad hotel"
+  },
+  {
+   "q": "New restaurant",
+   "a": "tries the weird thing",
+   "b": "orders what they always order"
+  },
+  {
+   "q": "Secrets",
+   "a": "takes them to the grave",
+   "b": "tells one person, then another"
+  },
+  {
+   "q": "Would rather be",
+   "a": "a great singer",
+   "b": "a great dancer"
+  },
+  {
+   "q": "When the waiter gets the order wrong",
+   "a": "says something",
+   "b": "eats it quietly"
+  },
+  {
+   "q": "Their alarm",
+   "a": "one",
+   "b": "a list of eleven"
+  },
+  {
+   "q": "Would rather",
+   "a": "always say what they think",
+   "b": "never speak again"
+  },
+  {
+   "q": "Spice level",
+   "a": "mild, thanks",
+   "b": "hurt me"
+  },
+  {
+   "q": "Birthdays",
+   "a": "wants a fuss",
+   "b": "wants it ignored"
+  },
+  {
+   "q": "Would rather have",
+   "a": "a pool",
+   "b": "a cinema room"
+  },
+  {
+   "q": "Hide and seek",
+   "a": "wins",
+   "b": "gives up and comes out"
+  },
+  {
+   "q": "Directions",
+   "a": "never needs a map",
+   "b": "gets lost in a car park"
+  },
+  {
+   "q": "Would rather",
+   "a": "give a speech to a thousand people",
+   "b": "spend a night in a haunted house"
+  },
+  {
+   "q": "Films",
+   "a": "cries at them",
+   "b": "has a heart of stone"
+  },
+  {
+   "q": "Online shopping",
+   "a": "buys it straight away",
+   "b": "leaves it in the basket for a month"
+  },
+  {
+   "q": "Would rather",
+   "a": "only whisper",
+   "b": "only shout"
+  },
+  {
+   "q": "Plants",
+   "a": "keeps them alive",
+   "b": "has killed a cactus"
+  },
+  {
+   "q": "Being ready to go out",
+   "a": "waiting by the door",
+   "b": "still in a towel"
+  },
+  {
+   "q": "Would rather",
+   "a": "be able to fly",
+   "b": "be invisible"
+  },
+  {
+   "q": "Quiz night",
+   "a": "carries the team",
+   "b": "is there for the snacks"
+  },
+  {
+   "q": "Sleep",
+   "a": "out in thirty seconds",
+   "b": "awake until three thinking"
+  },
+  {
+   "q": "Would rather meet",
+   "a": "their great-great-grandparents",
+   "b": "their great-great-grandchildren"
+  },
+  {
+   "q": "Tea or coffee",
+   "a": "tea",
+   "b": "coffee"
+  },
+  {
+   "q": "Compliments",
+   "a": "takes them well",
+   "b": "changes the subject"
+  },
+  {
+   "q": "Would rather",
+   "a": "live without a fridge",
+   "b": "live without a washing machine"
+  },
+  {
+   "q": "A wasp at a picnic",
+   "a": "sits perfectly still",
+   "b": "leaves the country"
+  },
+  {
+   "q": "Bedtime",
+   "a": "same time every night",
+   "b": "whenever the phone dies"
+  },
+  {
+   "q": "Would rather",
+   "a": "have hiccups for a year",
+   "b": "sneeze every time they laugh"
+  },
+  {
+   "q": "At a concert",
+   "a": "down the front",
+   "b": "at the back near the bar"
+  },
+  {
+   "q": "Losing a game",
+   "a": "laughs it off",
+   "b": "needs a minute"
+  },
+  {
+   "q": "Would rather own",
+   "a": "a boat",
+   "b": "a cabin"
+  },
+  {
+   "q": "Their laugh",
+   "a": "quiet",
+   "b": "heard three rooms away"
+  },
+  {
+   "q": "Leftovers",
+   "a": "eats them",
+   "b": "lets them evolve in the fridge"
+  },
+  {
+   "q": "Would rather",
+   "a": "be the driver",
+   "b": "be the passenger"
+  },
+  {
+   "q": "A surprise party for them",
+   "a": "would love it",
+   "b": "would never forgive you"
+  },
+  {
+   "q": "Small talk",
+   "a": "good at it",
+   "b": "would rather eat the lift"
+  },
+  {
+   "q": "Would rather",
+   "a": "read the book",
+   "b": "watch the film"
+  },
+  {
+   "q": "Apologising",
+   "a": "says sorry first",
+   "b": "waits it out"
+  },
+  {
+   "q": "Dessert",
+   "a": "always",
+   "b": "would rather have more chips"
+  },
+  {
+   "q": "Would rather be",
+   "a": "too honest",
+   "b": "too polite"
+  },
+  {
+   "q": "Maps app says 12 minutes",
+   "a": "leaves with 15 to spare",
+   "b": "leaves with 9"
+  },
+  {
+   "q": "On the dance floor",
+   "a": "knows the moves",
+   "b": "knows two moves"
+  },
+  {
+   "q": "Would rather",
+   "a": "win an Olympic medal",
+   "b": "win an Oscar"
+  },
+  {
+   "q": "Their fridge",
+   "a": "actual food",
+   "b": "condiments and hope"
+  },
+  {
+   "q": "Remembering names",
+   "a": "never forgets",
+   "b": "has forgotten yours"
+  },
+  {
+   "q": "Would rather",
+   "a": "always have wet socks",
+   "b": "always have a stone in their shoe"
+  },
+  {
+   "q": "Selfies",
+   "a": "one and done",
+   "b": "forty for one post"
+  },
+  {
+   "q": "Bargaining at a market",
+   "a": "haggles hard",
+   "b": "pays double to avoid it"
+  },
+  {
+   "q": "Would rather have",
+   "a": "a robot butler",
+   "b": "a talking dog"
+  },
+  {
+   "q": "Breakfast",
+   "a": "a proper one",
+   "b": "whatever is nearest"
+  },
+  {
+   "q": "Rain",
+   "a": "loves it",
+   "b": "takes it personally"
+  },
+  {
+   "q": "Would rather",
+   "a": "never be able to lie",
+   "b": "never be able to keep a secret"
+  },
+  {
+   "q": "On holiday",
+   "a": "museums",
+   "b": "sun lounger"
+  },
+  {
+   "q": "A long queue",
+   "a": "waits it out",
+   "b": "leaves immediately"
+  },
+  {
+   "q": "Would rather",
+   "a": "be a brilliant cook",
+   "b": "never have to cook again"
+  },
+  {
+   "q": "Passwords",
+   "a": "a different one for everything",
+   "b": "one password since 2012"
+  },
+  {
+   "q": "Driving",
+   "a": "calm",
+   "b": "narrates other drivers' failings"
+  },
+  {
+   "q": "Would rather",
+   "a": "sleep in a castle",
+   "b": "sleep in a treehouse"
+  },
+  {
+   "q": "Getting dressed",
+   "a": "plans the outfit",
+   "b": "first thing off the floor"
+  },
+  {
+   "q": "Weddings",
+   "a": "cries",
+   "b": "checks the time"
+  },
+  {
+   "q": "Would rather",
+   "a": "only eat breakfast food",
+   "b": "only eat dinner food"
+  },
+  {
+   "q": "A broken thing at home",
+   "a": "fixes it that day",
+   "b": "learns to live with it"
+  },
+  {
+   "q": "Texting style",
+   "a": "full sentences",
+   "b": "one letter at a time"
+  },
+  {
+   "q": "Would rather",
+   "a": "be a wizard",
+   "b": "be a superhero"
+  },
+  {
+   "q": "At the gym",
+   "a": "knows what they're doing",
+   "b": "copies the person next to them"
+  },
+  {
+   "q": "Losing their keys",
+   "a": "never happens",
+   "b": "weekly"
+  },
+  {
+   "q": "Would rather",
+   "a": "have the hiccups at their wedding",
+   "b": "trip on the way in"
+  },
+  {
+   "q": "Fancy dress",
+   "a": "goes all out",
+   "b": "a hat, at most"
+  },
+  {
+   "q": "New phone",
+   "a": "reads about it for a month",
+   "b": "buys whatever is in the shop"
+  },
+  {
+   "q": "Would rather",
+   "a": "live in a lighthouse",
+   "b": "live on a houseboat"
+  },
+  {
+   "q": "Staying in touch",
+   "a": "calls people",
+   "b": "waits to be called"
+  },
+  {
+   "q": "The last biscuit",
+   "a": "takes it",
+   "b": "offers it and hopes you say no"
+  },
+  {
+   "q": "Would rather",
+   "a": "be the first to arrive",
+   "b": "be the last to arrive"
+  },
+  {
+   "q": "Their music taste",
+   "a": "would play it to anyone",
+   "b": "headphones only"
+  },
+  {
+   "q": "Mornings after",
+   "a": "fine, somehow",
+   "b": "a cautionary tale"
+  }
+ ]
+}

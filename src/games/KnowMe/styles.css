@@ -1,0 +1,106 @@
+/* --- Know Me: one card about one person, and a scoresheet of who knows them --- */
+.gv.km { gap: 12px; justify-content: flex-start; align-items: stretch; text-align: left; padding-top: 6px; }
+
+.km-head { display: flex; align-items: center; justify-content: space-between; }
+.km-count { font-family: var(--font-display); font-size: 0.9rem; color: var(--muted); letter-spacing: 0.04em; }
+
+.km .km-card { position: relative; padding: 16px 16px 18px; transform: rotate(-1deg); }
+.km .km-card-seat { background: var(--gold); }
+.km-who {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+.gv .km-stem {
+  margin: 2px 0 12px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  font-size: 1.05rem;
+  text-transform: none;
+  color: #6b6452;
+}
+.km-card-seat .km-stem { color: var(--ink); }
+
+.km-opts { display: flex; flex-direction: column; gap: 9px; }
+.km-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.08rem;
+  line-height: 1.25;
+  color: var(--ink);
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 3px 4px 0 var(--ink);
+  padding: 13px 14px;
+  cursor: pointer;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+.km-opt:not(:disabled):active { transform: translateY(3px); box-shadow: none; }
+.km-opt:disabled { cursor: default; }
+.km-letter {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 6px;
+}
+.km-mine { background: var(--magenta); }
+.km-dim { opacity: 0.4; box-shadow: none; }
+.km-opt-shown { cursor: default; }
+.km-true { background: var(--green); }
+.km-false { opacity: 0.4; box-shadow: none; text-decoration: line-through; }
+
+.km .km-stamp {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 1.15rem;
+  padding: 6px 10px 4px;
+  border-width: 4px;
+  background: var(--paper);
+}
+
+.km-line { margin: 0; font-weight: 600; }
+.km-line-loud { font-weight: 800; font-size: 1.1rem; }
+.km-quiet { margin: 0; color: var(--muted); font-weight: 700; font-size: 0.9rem; }
+
+.km-in { display: flex; flex-wrap: wrap; gap: 6px; }
+.km-chip {
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 2px dashed var(--line);
+  border-radius: 8px;
+  padding: 5px 9px;
+  color: var(--muted);
+}
+.km-chip-in { border: 2px solid var(--ink); background: var(--paper); color: var(--ink); }
+
+.km-board { display: flex; flex-direction: column; }
+.km-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 2px dashed var(--line);
+  font-weight: 700;
+}
+.km-row-me .km-row-who { background: var(--gold); color: var(--ink); padding: 0 5px; margin-left: -5px; border-radius: 3px; }
+.km-row-who { flex: 1; }
+.km-verdict { font-size: 0.75rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: var(--red); }
+.km-verdict-ok { color: var(--green); }
+.km-ticks { display: flex; gap: 3px; }
+.km-ticks i { width: 11px; height: 11px; border: 2px solid var(--paper); border-radius: 2px; }
+.km-ticks i.on { background: var(--gold); border-color: var(--gold); }
