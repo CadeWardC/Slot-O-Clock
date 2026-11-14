@@ -41,22 +41,24 @@ export function View({
     const clean = !state.gaveUp && pool === 0;
     return (
       <div className="gv cat">
-        <div className="gate-emoji fx-pop">{state.gaveUp ? '💀' : clean ? '🏆' : '🎓'}</div>
-        <span className={`fx-stamp ${state.gaveUp ? '' : clean ? 'fx-stamp-gold' : 'fx-stamp-good'}`}>
-          {state.gaveUp ? 'gave up' : clean ? 'clean!' : 'done!'}
-        </span>
-        <h2>{state.resultLine}</h2>
+        <div className="fx-paper cat-card">
+          <p className="fx-kicker">{state.category}</p>
+          <span className={`fx-stamp cat-stamp ${state.gaveUp ? '' : 'fx-stamp-good'}`}>
+            {state.gaveUp ? 'gave up' : clean ? 'clean' : 'done'}
+          </span>
+          <p className="cat-result">{state.resultLine}</p>
+        </div>
         {clean && <Confetti />}
       </div>
     );
   }
 
   const card = (
-    <div className={`cat-card ${state.phase === 'think' ? 'cat-card-think' : ''}`}>
-      <p className="fx-kicker">name {TARGET} things in…</p>
-      <h2 className="fx-title cat-title">{state.category}</h2>
+    <div className="fx-paper cat-card">
+      <p className="fx-kicker">Name {TARGET}</p>
+      <h2 className="cat-title">{state.category}</h2>
       <p className="cat-namer">
-        {isActor && !shared ? '🎤 say them out loud' : `🎤 ${actor?.emoji ?? ''} ${actor?.name ?? 'the namer'} is up`}
+        {isActor && !shared ? 'Say them out loud.' : `${actor?.emoji ?? ''} ${actor?.name ?? 'The namer'} says them out loud.`}
       </p>
     </div>
   );
@@ -66,14 +68,14 @@ export function View({
     const n = Math.max(1, Math.ceil((thinkLeft ?? 0) / 1000));
     return (
       <div className="gv cat">
-        <span className="cat-badge">🧠 THINK…</span>
+        <span className="fx-tag fx-tag-ink">Think</span>
         {card}
-        <BigCount n={n} hotAt={1} />
-        <p className="muted">
-          {isActor && !shared
-            ? 'the +1 drink button is locked — use it'
-            : `🔒 +1 drink unlocks in ${n}…`}
-        </p>
+        <div className="cat-think">
+          <BigCount n={n} hotAt={1} />
+          <p className="cat-sub">
+            {isActor && !shared ? 'Nobody can add drinks yet.' : 'The +1 button is locked until zero.'}
+          </p>
+        </div>
       </div>
     );
   }
@@ -82,6 +84,7 @@ export function View({
   const iHoldTheButton = shared || punisher?.uid === me.uid;
   const ready = recharge <= 0;
   const pct = Math.min(100, Math.max(0, (1 - recharge / COOLDOWN_MS) * 100));
+  const secs = (recharge / 1000).toFixed(1);
   const punish = (
     <button
       className={`cat-punish ${ready ? 'cat-punish-live' : ''}`}
@@ -89,73 +92,71 @@ export function View({
       onClick={() => submitInput({ action: 'penalty' })}
     >
       <span className="cat-punish-fill" style={{ width: `${pct}%` }} />
-      <span className="cat-punish-label">{ready ? '+1 DRINK 🍺' : `recharging… ${(recharge / 1000).toFixed(1)}s`}</span>
+      <span className="cat-punish-label">{ready ? '+1 drink' : `Wait ${secs}`}</span>
     </button>
   );
   const actions = (
     <div className="cat-actions">
       <button className="btn btn-gold btn-lg" onClick={() => submitInput({ action: 'done' })}>
-        DONE ✅
+        Done
       </button>
       <button className="btn btn-danger btn-lg" onClick={() => submitInput({ action: 'giveup' })}>
-        GIVE UP (+{GIVE_UP_PENALTY}) 💀
+        Give up +{GIVE_UP_PENALTY}
       </button>
     </div>
   );
 
   return (
     <div className="gv cat">
-      <span className="cat-badge cat-badge-go">🔥 GO GO GO</span>
+      <span className="fx-tag fx-tag-red">Go</span>
       {card}
 
-      <div className="cat-stack" key={pool}>
-        <div className="cat-stack-beers">
-          {pool === 0 ? (
-            <span className="cat-stack-empty">no drinks stacked… yet</span>
-          ) : (
-            Array.from({ length: Math.min(pool, 12) }, (_, i) => (
-              <span key={i} className={`cat-beer ${i === Math.min(pool, 12) - 1 ? 'cat-beer-new' : ''}`}>
+      <div className="cat-mat">
+        <span className="cat-mat-n" key={pool}>
+          {pool}
+        </span>
+        <div className="cat-mat-side">
+          <span className="cat-mat-l">{pool === 1 ? 'drink stacked' : 'drinks stacked'}</span>
+          <div className="cat-beers">
+            {Array.from({ length: Math.min(pool, 12) }, (_, i) => (
+              <span key={i} className={i === Math.min(pool, 12) - 1 ? 'cat-beer-new' : ''}>
                 🍺
               </span>
-            ))
+            ))}
+          </div>
+          {lastHit && pool > 0 && !shared && (
+            <span className="cat-hit">
+              last one: {lastHit.emoji} {lastHit.name}
+            </span>
           )}
         </div>
-        <span className="cat-stack-n">×{pool}</span>
       </div>
-      {lastHit && pool > 0 && !shared && (
-        <p className="cat-hit fx-rise" key={`h${pool}`}>
-          {lastHit.emoji} {lastHit.name} stacked one!
-        </p>
-      )}
 
       {shared ? (
         <>
-          <p className="muted small">anyone at the table — hit it while they stall</p>
+          <p className="cat-sub">Anyone can hit it while they stall.</p>
           {punish}
           {actions}
         </>
       ) : isActor ? (
         <>
-          <p className="muted small">
+          <p className="cat-sub">
             {ready
-              ? `⚠️ ${punisher ? `${punisher.emoji} ${punisher.name} has` : 'someone has'} the +1 button — hurry`
-              : `the button is recharging (${(recharge / 1000).toFixed(1)}s) — keep naming`}
+              ? `${punisher ? `${punisher.emoji} ${punisher.name} has` : 'Someone has'} the +1 button. Hurry up.`
+              : `Button is recharging, ${secs}s. Keep going.`}
           </p>
           {actions}
         </>
       ) : iHoldTheButton ? (
         <>
-          <p className="cat-yours">👇 you hold the button</p>
+          <p className="cat-sub">You have the button.</p>
           {punish}
         </>
       ) : (
-        <div className="cat-holder">
-          <span className={ready ? 'fx-wiggle cat-holder-emoji' : 'cat-holder-emoji'}>{punisher?.emoji ?? '🍺'}</span>
-          <span>
-            {punisher ? `${punisher.name} holds the +1 button` : 'the group is stacking drinks'}
-            {ready ? ' — yell at them!' : ` · recharging ${(recharge / 1000).toFixed(1)}s`}
-          </span>
-        </div>
+        <p className="cat-sub">
+          {punisher ? `${punisher.emoji} ${punisher.name} has the +1 button.` : 'The table is stacking drinks.'}{' '}
+          {ready ? 'Tell them to press it.' : `Recharging, ${secs}s.`}
+        </p>
       )}
     </div>
   );

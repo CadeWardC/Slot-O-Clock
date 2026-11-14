@@ -71,16 +71,16 @@ function finish(
             uid: actor.uid,
             sips,
             reason: gaveUp
-              ? `Gave up 💀 (+${GIVE_UP_PENALTY} penalty)`
-              : `Named all ${TARGET}! 🎓`,
+              ? `Gave up, +${GIVE_UP_PENALTY} on top`
+              : `Named ${TARGET}, drinks what stacked`,
           },
         ]
       : [];
   const resultLine = gaveUp
-    ? `💀 ${actor.name} gave up — ${sips} drinks`
+    ? `${actor.name} gave up and drinks ${sips}.`
     : sips > 0
-      ? `🎓 ${actor.name} did it — ${sips} drinks`
-      : `🏆 ${actor.name} nailed it clean!`;
+      ? `${actor.name} named ${TARGET} and drinks ${sips}.`
+      : `${actor.name} named ${TARGET}. Nothing stacked.`;
   return {
     state: { ...state, phase: 'done', gaveUp, resultLine },
     effects: [{ type: 'END', assignments, note: resultLine }],
@@ -92,7 +92,7 @@ export const definition: GameDefinition<CatState, CatInput> = {
   name: 'Categories',
   emoji: '🗂️',
   rules:
-    'Name 4 things in the category out loud before the group buries you. You get a 3-second head start to think — then the +1 drink button goes live and jumps from player to player, stacking drinks on you (it needs a moment to recharge between taps). Done = drink what stacked. Give up = stacked + 2.',
+    'Name 4 things in the category, out loud. You get 3 seconds to think, then the +1 drink button goes round the table and everyone stacks drinks on you. Say done and drink the stack, or give up and drink the stack plus 2.',
   minPlayers: 2,
   sharedInput: 'actor',
 

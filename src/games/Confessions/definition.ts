@@ -149,7 +149,7 @@ function summaryNote(state: CfState, ctx: GameContext): string {
   const who = rounds
     .map(([, h]) => ctx.players.find((p) => p.uid === h.authorUid)?.name ?? '?')
     .join(', ');
-  return `You sniffed out ${caught}/${rounds.length} confessions — the cards belonged to ${who}`;
+  return `Caught ${caught} of ${rounds.length}. The cards on trial were ${who}.`;
 }
 
 function resolveRound(state: CfState, ctx: GameContext): ReduceResult<CfState> {
@@ -167,9 +167,9 @@ function resolveRound(state: CfState, ctx: GameContext): ReduceResult<CfState> {
     assignments = ctx.players.map((p) => ({
       uid: p.uid,
       sips: FOOLED_SIPS,
-      reason: 'Nobody confessed 🤐',
+      reason: 'Nobody wrote anything',
     }));
-    note = 'Nobody confessed in time 🤐 — everyone drinks 1';
+    note = 'Nobody wrote anything in time. Everyone drinks 1.';
   } else {
     const author = ctx.players.find((p) => p.uid === authorUid);
     const accusedUid = countVotes(votes);
@@ -177,16 +177,16 @@ function resolveRound(state: CfState, ctx: GameContext): ReduceResult<CfState> {
     caught = accusedUid === authorUid;
 
     assignments = caught
-      ? [{ uid: authorUid, sips: CAUGHT_SIPS, reason: 'Your confession got sniffed out 🤫' }]
+      ? [{ uid: authorUid, sips: CAUGHT_SIPS, reason: 'They worked out it was yours' }]
       : ctx.players
           .filter((p) => p.uid !== authorUid)
-          .map((p) => ({ uid: p.uid, sips: FOOLED_SIPS, reason: 'Fooled by a confession 🤫' }));
+          .map((p) => ({ uid: p.uid, sips: FOOLED_SIPS, reason: 'Wrong guess on the confession' }));
 
     note = caught
-      ? `🕵️ Card #${card.n} was ${author?.name ?? '?'}'s — caught red-handed!`
+      ? `No. ${card.n} was ${author?.name ?? '?'}. ${author?.name ?? '?'} drinks ${CAUGHT_SIPS}.`
       : accused
-        ? `🤫 Card #${card.n} was ${author?.name ?? '?'}'s — you all blamed ${accused.name}!`
-        : `🤐 Card #${card.n} was ${author?.name ?? '?'}'s — nobody could decide!`;
+        ? `No. ${card.n} was ${author?.name ?? '?'}. The table said ${accused.name}.`
+        : `No. ${card.n} was ${author?.name ?? '?'}. The vote was split.`;
 
     if (caught) {
       for (const [voter, target] of Object.entries(votes)) {
@@ -246,7 +246,7 @@ function finish(state: CfState, ctx: GameContext): ReduceResult<CfState> {
   }
   const assignments: DrinkAssignment[] =
     winners.length === 1 && giftUid
-      ? [{ uid: giftUid, sips: GIFT_SIPS, reason: `👑 ${nameOf(winners[0])} got off lightest and picked you` }]
+      ? [{ uid: giftUid, sips: GIFT_SIPS, reason: `${nameOf(winners[0])} drank least and picked you` }]
       : [];
 
   const rounds = Object.entries(state.history ?? {}).sort((a, b) => Number(a[0]) - Number(b[0]));
@@ -256,22 +256,22 @@ function finish(state: CfState, ctx: GameContext): ReduceResult<CfState> {
   if (winners.length > 0) {
     const n = tally[winners[0]] ?? 0;
     groups.push({
-      label: `👑 Fewest drinks (${n}) — ${winners.length === 1 ? 'the driest confessor' : 'tied for driest'}`,
+      label: winners.length === 1 ? `Fewest drinks (${n})` : `Fewest drinks (${n}), tied`,
       tone: 'good' as const,
       uids: winners,
     });
   }
-  if (caughtUids.length > 0) groups.push({ label: '🕵️ Sniffed out', tone: 'bad' as const, uids: caughtUids });
-  if (freeUids.length > 0) groups.push({ label: '🤫 Got away with it', tone: 'neutral' as const, uids: freeUids });
+  if (caughtUids.length > 0) groups.push({ label: 'Caught', tone: 'bad' as const, uids: caughtUids });
+  if (freeUids.length > 0) groups.push({ label: 'Got away with it', tone: 'neutral' as const, uids: freeUids });
 
   const crown =
     winners.length === 0
-      ? 'Dead heat — nobody stayed drier than anyone else'
-      : `👑 ${winners.map(nameOf).join(' & ')} took the fewest drinks`;
-  const note = `${crown} · ${summaryNote(state, ctx)}`;
+      ? 'Everyone drank the same.'
+      : `${winners.map(nameOf).join(' & ')} drank least.`;
+  const note = `${crown} ${summaryNote(state, ctx)}`;
   return {
     state: { ...state, phase: 'done', giftUid, assignments, note },
-    effects: [{ type: 'END', assignments, note, recap: { title: 'Who got away with what', groups } }],
+    effects: [{ type: 'END', assignments, note, recap: { title: 'How it went', groups } }],
   };
 }
 
@@ -301,7 +301,7 @@ export const definition: GameDefinition<CfState, CfInput> = {
   name: 'Anonymous Confessions',
   emoji: '🤫',
   rules:
-    "Everyone answers the same juicy prompt — anonymously. The confessions appear with no names on them, then one card goes on trial: who wrote it? A caught author drinks 2; fool the whole group and everyone else drinks 1. Two prompts per game — then every card is turned face up so you all see who wrote what, and whoever took the fewest drinks is crowned and hands one out.",
+    'Everyone answers the same prompt with no name on it. One answer goes on trial and you vote on who wrote it: a caught author drinks 2, a wrong table drinks 1 each. After two prompts every card gets its name back, and whoever drank least hands out a drink.',
   minPlayers: 3,
   sharedInput: 'all',
 

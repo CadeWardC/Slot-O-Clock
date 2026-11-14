@@ -1,71 +1,54 @@
-/* --- Poisoning the Drinks ☠️ --- */
-.ps { gap: 11px; }
-.ps .fx-title { font-size: 1.7rem; }
+/* --- Poisoning the Drinks --- */
+.ps { gap: 12px; align-items: stretch; text-align: left; justify-content: flex-start; padding-top: 4px; }
+.ps-head { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.ps-sub { margin: 0; font-size: 0.9rem; line-height: 1.35; color: var(--muted); }
+.ps-sub-c { text-align: center; }
 
-.ps-badge {
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 0.8rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  border: 1.5px solid var(--line);
-  color: var(--muted);
-}
-.ps-badge-poison {
-  color: var(--red);
-  border-color: rgba(255, 95, 110, 0.45);
-  background: rgba(255, 95, 110, 0.12);
-}
-.ps-badge-drink {
-  color: var(--green);
-  border-color: rgba(70, 224, 139, 0.45);
-  background: rgba(70, 224, 139, 0.12);
-}
-
-/* ---------- the table: cups in a ring ---------- */
+/* ---------- the table: a wooden top, cups in a ring ---------- */
 .ps-table {
   position: relative;
-  width: min(100%, 320px);
+  width: min(100%, 310px);
   aspect-ratio: 1;
   flex-shrink: 0;
+  align-self: center;
 }
 .ps-felt {
   position: absolute;
-  inset: 4%;
+  inset: 5%;
   border-radius: 50%;
-  background:
-    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.09), transparent 55%),
-    radial-gradient(circle, #3a1d5e 0%, #24123f 62%, #170b2b 100%);
-  border: 3px solid #5a3a8c;
-  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55), inset 0 0 40px rgba(0, 0, 0, 0.5);
-  transition: border-color 0.4s, box-shadow 0.4s;
+  background: #9a6a3c;
+  border: 3px solid var(--ink);
+  box-shadow: var(--hard-lg), inset 0 0 0 9px #84572f;
 }
-.ps-table-hit .ps-felt { border-color: var(--red); box-shadow: 0 0 46px rgba(255, 95, 110, 0.45), inset 0 0 50px rgba(255, 95, 110, 0.25); }
-.ps-table-clean .ps-felt { border-color: var(--gold); box-shadow: 0 0 46px rgba(255, 201, 77, 0.4), inset 0 0 50px rgba(255, 201, 77, 0.15); }
-.ps-table-antidote .ps-felt { border-color: var(--green); box-shadow: 0 0 46px rgba(70, 224, 139, 0.45), inset 0 0 50px rgba(70, 224, 139, 0.2); }
-.ps-table-sniffing .ps-felt { border-color: var(--cyan); box-shadow: 0 0 36px rgba(79, 216, 255, 0.35), inset 0 0 40px rgba(0, 0, 0, 0.5); }
-.ps-table-drum .ps-felt { animation: psThrob 0.5s ease-in-out infinite; }
+.ps-table-hit .ps-felt { background: var(--red); box-shadow: var(--hard-lg), inset 0 0 0 9px #d8402d; }
+.ps-table-clean .ps-felt { background: var(--gold); box-shadow: var(--hard-lg), inset 0 0 0 9px #dba01a; }
+.ps-table-antidote .ps-felt { background: var(--green); box-shadow: var(--hard-lg), inset 0 0 0 9px #57c283; }
+.ps-table-sniffing .ps-felt { box-shadow: var(--hard-lg), inset 0 0 0 9px var(--cyan); }
 
 .ps-center {
   position: absolute;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 44%;
+  width: 46%;
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  color: var(--ink);
+  text-align: center;
 }
 .ps-victim { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
-.ps-victim-emoji { font-size: 2.6rem; display: inline-block; }
-.ps-victim-name { font-weight: 900; font-size: 0.9rem; }
-.ps-victim-role { font-size: 0.62rem; font-weight: 900; letter-spacing: 0.16em; text-transform: uppercase; color: var(--green); }
-.ps-drum { font-size: 3rem; animation: psDrum 0.22s linear infinite; }
-.ps-stamp { font-size: 1.5rem; padding: 6px 10px 4px; border-width: 4px; }
+.ps-victim-emoji { font-size: 2.4rem; line-height: 1.1; }
+.ps-victim-name { font-weight: 800; font-size: 0.92rem; }
+.ps-victim-role { font-size: 0.66rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+.ps-wait { font-family: var(--font-display); font-size: 3rem; line-height: 1; color: var(--ink); opacity: 0.55; }
+.ps-stamp { font-size: 1.35rem; padding: 7px 10px 5px; border-width: 4px; background: var(--paper); }
+.ps-stamp.fx-stamp-good { color: #1c8a4c; }
+.ps-stamp.fx-stamp-gold { color: var(--ink); }
 .ps-sniffed { display: flex; flex-direction: column; align-items: center; line-height: 1; }
-.ps-sniffed-n { font-family: var(--font-display); font-size: 3.4rem; color: var(--cyan); text-shadow: 0 0 24px rgba(79, 216, 255, 0.6); }
-.ps-sniffed-l { font-size: 0.62rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cyan); margin-top: 4px; }
+.ps-sniffed-n { font-family: var(--font-display); font-size: 3.6rem; color: var(--paper); text-shadow: 4px 4px 0 var(--ink); }
+.ps-sniffed-l { font-size: 0.66rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 6px; }
 
 .ps-cup {
   position: absolute;
@@ -73,141 +56,137 @@
   height: calc(var(--ps-cup, 60px) * 1.12);
   margin: calc(var(--ps-cup, 60px) * -0.56) 0 0 calc(var(--ps-cup, 60px) * -0.5);
   padding: 0;
-  background: linear-gradient(180deg, var(--card2), var(--card));
-  border: 2px solid var(--line);
-  border-radius: 14px;
-  color: var(--text);
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  border-radius: 10px;
+  color: var(--ink);
   font-family: inherit;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0;
-  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.45);
-  transition: transform 0.18s ease, border-color 0.15s, box-shadow 0.15s, opacity 0.3s;
+  box-shadow: 2px 3px 0 var(--ink);
+  transition: transform 0.15s ease, background-color 0.15s, opacity 0.3s;
 }
 button.ps-cup { cursor: pointer; }
-button.ps-cup:active { transform: scale(0.92); }
+button.ps-cup:active { transform: translateY(3px); box-shadow: none; }
 .ps-cup-emoji { font-size: calc(var(--ps-cup, 60px) * 0.5); line-height: 1.1; }
-.ps-cup-num { font-size: 0.68rem; color: var(--muted); font-weight: 900; }
+.ps-cup-num { font-family: var(--font-display); font-size: 0.7rem; line-height: 1; }
 .ps-cup-tags {
   position: absolute;
-  top: -10px;
-  right: -8px;
+  top: -11px;
+  right: -9px;
   font-size: 0.85rem;
-  background: var(--bg0);
-  border: 1.5px solid var(--red);
+  background: var(--paper);
+  border: 2px solid var(--ink);
   border-radius: 999px;
-  padding: 1px 4px;
+  padding: 0 4px;
   white-space: nowrap;
-  animation: fxPop 0.35s ease both;
+  animation: fxPop 0.3s ease both;
 }
-/* the two grids are different actions and must never be mistaken for each other */
-.ps-cup-spike { border-color: rgba(255, 95, 110, 0.55); }
-.ps-cup-drink { border-color: rgba(255, 201, 77, 0.5); }
-.ps-cup-sel { transform: translateY(-5px) scale(1.08); border-color: var(--gold); box-shadow: 0 0 20px rgba(255, 201, 77, 0.55); z-index: 2; }
-.ps-cup-spike.ps-cup-sel { border-color: var(--red); background: rgba(255, 95, 110, 0.25); box-shadow: 0 0 20px rgba(255, 95, 110, 0.6); }
-/* the victim's hand: a finger hanging over the cup, on every phone */
+/* the cup under the victim's hand */
+.ps-cup-sel { transform: translateY(-5px) rotate(-3deg); background: var(--gold); box-shadow: 3px 6px 0 var(--ink); z-index: 2; }
 .ps-cup-hover::after {
-  content: '👇';
+  content: 'hand';
   position: absolute;
-  top: -26px;
+  top: -19px;
   left: 50%;
-  margin-left: -0.6em;
-  font-size: 1.3rem;
-  animation: fxFloat 0.9s ease-in-out infinite;
+  transform: translateX(-50%) rotate(-4deg);
+  font-family: var(--font-display);
+  font-size: 0.6rem;
+  line-height: 1;
+  text-transform: uppercase;
+  padding: 3px 5px 2px;
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: 4px;
 }
-/* my own poison — only ever drawn on my phone */
-.ps-cup-mine { border-color: var(--red); background: rgba(255, 95, 110, 0.18); }
+/* a poisoned cup: mine while it is still a secret, anyone's once it is out */
+.ps-cup-bad { background: var(--red); transform: rotate(-3deg); }
 /* the cups the sniff covered */
-.ps-cup-zone { border-style: dashed; border-color: var(--cyan); box-shadow: 0 0 14px rgba(79, 216, 255, 0.35); }
-.ps-cup-zone.ps-cup-sel { border-color: var(--gold); }
-.ps-cup-dim { opacity: 0.45; }
-.ps-cup-lift { z-index: 3; border-color: var(--gold); animation: psLift 0.35s ease-in-out infinite alternate; box-shadow: 0 16px 26px rgba(0, 0, 0, 0.6), 0 0 24px rgba(255, 201, 77, 0.5); }
-.ps-cup-picked { z-index: 3; transform: scale(1.22); animation: fxPop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both; }
-.ps-cup-picked.ps-cup-hit { border-color: var(--red); background: rgba(255, 95, 110, 0.3); box-shadow: 0 0 30px rgba(255, 95, 110, 0.7); }
-.ps-cup-picked.ps-cup-clean { border-color: var(--gold); box-shadow: 0 0 30px rgba(255, 201, 77, 0.6); }
-.ps-cup-picked.ps-cup-antidote { border-color: var(--green); background: rgba(70, 224, 139, 0.25); box-shadow: 0 0 30px rgba(70, 224, 139, 0.7); }
-.ps-cup-flip { animation: psFlip 0.5s ease both; }
-.ps-cup-wasbad { border-color: var(--red); background: rgba(255, 95, 110, 0.16); }
-.ps-cup-wasanti { border-color: var(--green); background: rgba(70, 224, 139, 0.14); }
+.ps-cup-zone { outline: 3px dashed var(--cyan); outline-offset: 2px; }
+.ps-cup-dim { opacity: 0.5; }
+.ps-cup-lift { z-index: 3; background: var(--gold); box-shadow: 4px 10px 0 var(--ink); animation: psLift 0.35s ease-in-out infinite alternate; }
+.ps-cup-picked { z-index: 3; transform: scale(1.2) rotate(-4deg); box-shadow: 3px 5px 0 var(--ink); }
+.ps-cup-picked.ps-cup-hit { background: var(--ink); color: var(--paper); border-color: var(--paper); }
+.ps-cup-picked.ps-cup-clean { background: var(--paper); }
+.ps-cup-picked.ps-cup-antidote { background: var(--paper); }
+.ps-cup-flip { animation: psFlip 0.4s ease both; }
+.ps-cup-wasbad { background: var(--red); }
+.ps-cup-wasanti { background: var(--green); }
 
 @keyframes psLift {
-  0% { transform: translateY(-10px) rotate(-7deg) scale(1.15); }
-  100% { transform: translateY(-16px) rotate(7deg) scale(1.2); }
+  0% { transform: translateY(-9px) rotate(-7deg) scale(1.12); }
+  100% { transform: translateY(-14px) rotate(7deg) scale(1.16); }
 }
 @keyframes psFlip {
   0% { transform: rotateY(90deg); }
   100% { transform: rotateY(0deg); }
 }
-@keyframes psDrum {
-  0%, 100% { transform: rotate(-9deg) scale(1); }
-  50% { transform: rotate(9deg) scale(1.12); }
-}
-@keyframes psThrob {
-  0%, 100% { box-shadow: 0 14px 36px rgba(0, 0, 0, 0.55), inset 0 0 40px rgba(0, 0, 0, 0.5); }
-  50% { box-shadow: 0 0 40px rgba(255, 79, 163, 0.5), inset 0 0 40px rgba(255, 79, 163, 0.2); }
-}
 
 /* ---------- under the table ---------- */
-.ps-sniffline { margin: 0; font-weight: 800; color: var(--cyan); font-size: 0.92rem; }
-.ps-verdict { margin: 0; font-size: 0.98rem; font-weight: 800; }
+.ps-sniffline { margin: 0; font-weight: 800; color: var(--cyan); font-size: 0.95rem; }
 .ps-actions { display: flex; gap: 10px; width: 100%; }
 .ps-actions .btn:last-child { flex: 1; }
-.ps-sniff-on { border-color: var(--cyan); color: var(--cyan); }
 
 .ps-reacts { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .ps-react {
-  font-size: 1.7rem;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: var(--card2);
-  border: 1.5px solid var(--line);
+  font-size: 1.6rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: var(--paper);
+  border: 2.5px solid var(--ink);
+  box-shadow: 2px 3px 0 var(--ink);
   cursor: pointer;
-  transition: transform 0.1s;
 }
-.ps-react:active { transform: scale(1.3) rotate(-10deg); border-color: var(--magenta); }
+.ps-react:active { transform: translateY(3px); box-shadow: none; }
 
-.ps-crew { display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: center; width: 100%; padding-top: 10px; }
+.ps-crew { display: flex; flex-wrap: wrap; gap: 8px 10px; width: 100%; padding-top: 12px; }
 .ps-crew-chip {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: var(--card);
-  border: 1.5px solid var(--line);
+  background: var(--card2);
+  border: 2px solid var(--line);
   border-radius: 999px;
-  padding: 5px 11px;
+  padding: 4px 11px;
   font-size: 0.85rem;
-  font-weight: 800;
+  font-weight: 700;
 }
-.ps-crew-done { border-color: rgba(70, 224, 139, 0.6); }
-.ps-crew-tick { color: var(--muted); font-size: 0.75rem; }
-.ps-crew-done .ps-crew-tick { color: var(--green); }
+.ps-crew-done { background: var(--paper); color: var(--ink); border-color: var(--ink); }
+.ps-crew-tick { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+.ps-crew-done .ps-crew-tick { color: #1c8a4c; }
 .ps-crew-react {
   position: absolute;
-  top: -20px;
+  top: -19px;
   right: -8px;
-  font-size: 1.6rem;
-  animation: psReact 0.5s cubic-bezier(0.2, 1.8, 0.4, 1) both;
+  font-size: 1.5rem;
+  animation: psReact 0.35s cubic-bezier(0.2, 1.8, 0.4, 1) both;
 }
 @keyframes psReact {
   0% { transform: scale(0.2) translateY(14px) rotate(-30deg); opacity: 0; }
   100% { transform: scale(1) translateY(0) rotate(8deg); opacity: 1; }
 }
 
-.ps-pairs { width: 100%; display: flex; flex-direction: column; gap: 6px; }
-.ps-pair {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  background: var(--card); border: 1.5px solid transparent; border-radius: 12px; padding: 8px 14px;
-  font-size: 0.9rem; font-weight: 700;
+/* the result slip: verdict on top, then who poured where */
+.ps-sheet { padding: 12px 14px; transform: rotate(-0.6deg); }
+.ps-verdict { margin: 0 0 4px; font-size: 1.02rem; font-weight: 800; line-height: 1.3; }
+.ps-row {
+  display: grid;
+  grid-template-columns: 1fr auto 5.2rem;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 2px dashed rgba(10, 20, 16, 0.25);
+  font-size: 0.92rem;
+  font-weight: 700;
 }
-.ps-pair-hit { border-color: var(--red); background: rgba(255, 95, 110, 0.12); }
-/* this pourer is drinking for it */
-.ps-pair-miss { border-color: var(--gold); background: rgba(255, 201, 77, 0.1); }
-.ps-vs { color: var(--muted); font-size: 0.8rem; }
+.ps-row-cup { color: #6b6452; }
+.ps-row-res { text-align: right; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.04em; font-weight: 800; }
+.ps-row-hit { color: #c9351f; }
 
 @media (prefers-reduced-motion: reduce) {
-  .ps-cup-lift, .ps-drum, .ps-table-drum .ps-felt, .ps-cup-flip, .ps-crew-react { animation: none; }
+  .ps-cup-lift, .ps-cup-flip, .ps-crew-react { animation: none; }
 }

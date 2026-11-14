@@ -107,7 +107,7 @@ function Crew({
           <span key={uid} className={`ps-crew-chip ${done?.(uid) ? 'ps-crew-done' : ''}`}>
             <span>{p?.emoji ?? '☠️'}</span>
             <span className="ps-crew-name">{p?.name ?? '?'}</span>
-            {done && <span className="ps-crew-tick">{done(uid) ? '✔' : '…'}</span>}
+            {done && <span className="ps-crew-tick">{done(uid) ? 'in' : '…'}</span>}
             {r && (
               <span key={r.at} className="ps-crew-react">
                 {r.e}
@@ -152,20 +152,33 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
   if (!drinkerUid) {
     return (
       <div className="gv">
-        <div className="gate-emoji pulse">☠️</div>
         <h2>This round is from an older version</h2>
-        <p className="muted">the host can skip it ⏭</p>
+        <p className="muted">The host can skip it.</p>
       </div>
     );
   }
 
   const sniff = state.sniff ?? null;
   const zone = sniff ? sniffZone(sniff.cup, cups) : [];
+  const doses = (n: number) => `${n} ${n === 1 ? 'dose' : 'doses'}`;
   const sniffLine = sniff
     ? cups <= 3
-      ? `${sniff.count} ${sniff.count === 1 ? 'dose' : 'doses'} on the table`
-      : `${sniff.count} ${sniff.count === 1 ? 'dose' : 'doses'} in cups ${zone.map((c) => c + 1).join(' · ')}`
+      ? `${doses(sniff.count)} on the table`
+      : `${doses(sniff.count)} in cups ${zone.map((c) => c + 1).join(', ')}`
     : null;
+  const sniffed = sniff && (
+    <span className="ps-sniffed fx-pop">
+      <span className="ps-sniffed-n">{sniff.count}</span>
+      <span className="ps-sniffed-l">{sniff.count === 1 ? 'dose' : 'doses'} nearby</span>
+    </span>
+  );
+  const victim = (line: string, role?: string) => (
+    <span className="ps-victim">
+      <span className="ps-victim-emoji">{drinker?.emoji ?? '🍷'}</span>
+      <span className="ps-victim-name">{line}</span>
+      {role && <span className="ps-victim-role">{role}</span>}
+    </span>
+  );
 
   /* ---------- the reveal ---------- */
 
@@ -180,19 +193,21 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
 
     return (
       <div className="gv ps">
-        <p className="fx-kicker">☠️ bottoms up</p>
-        <h2 className={`fx-title ${!verdict ? '' : outcome === 'hit' ? 'fx-title-red' : 'fx-title-green'}`}>
-          {!verdict
-            ? `${nameOf(drinkerUid)} lifts cup ${pick + 1}…`
-            : outcome === 'hit'
-              ? 'Poisoned!'
-              : outcome === 'antidote'
-                ? 'The antidote!'
-                : 'Clean!'}
-        </h2>
+        <div className="ps-head">
+          <span className="fx-tag fx-tag-ink">Cup {pick + 1}</span>
+          <h2 className={`fx-title ${!verdict ? '' : outcome === 'hit' ? 'fx-title-red' : 'fx-title-green'}`}>
+            {!verdict
+              ? `${nameOf(drinkerUid)} drinks`
+              : outcome === 'hit'
+                ? 'Poisoned'
+                : outcome === 'antidote'
+                  ? 'Antidote'
+                  : 'Clean'}
+          </h2>
+        </div>
         <Table
           cups={cups}
-          tone={verdict ? `ps-table-${outcome}` : 'ps-table-drum'}
+          tone={verdict ? `ps-table-${outcome}` : ''}
           look={(c) => {
             if (c === pick) {
               if (!verdict) return { emoji: '🍷', cls: 'ps-cup-lift' };
@@ -212,7 +227,7 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
           }}
           center={
             !verdict ? (
-              <span className="ps-drum">🥁</span>
+              <span className="ps-wait">…</span>
             ) : (
               <span
                 className={`fx-stamp ps-stamp ${outcome === 'hit' ? '' : outcome === 'antidote' ? 'fx-stamp-good' : 'fx-stamp-gold'}`}
@@ -222,31 +237,27 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
             )
           }
         />
-        {verdict && <p className="ps-verdict fx-rise">{state.note}</p>}
-        {verdict && (outcome === 'hit' ? <Confetti emojis={['💀', '☠️', '🧪']} count={18} /> : <Confetti />)}
+        {verdict && outcome !== 'hit' && <Confetti />}
 
-        {flipped && (
-          <div className="ps-pairs fx-rise">
-            {order.map((uid) => {
-              const cup = poisons[uid];
-              const mine = (state.assignments ?? []).find((a) => a.uid === uid);
-              return (
-                <div
-                  key={uid}
-                  className={`ps-pair ${cup === pick ? 'ps-pair-hit' : ''} ${mine ? 'ps-pair-miss' : ''}`}
-                >
-                  <span>
-                    {emojiOf(uid)} {nameOf(uid)}
-                  </span>
-                  <span className="ps-vs">→</span>
-                  <span>
-                    {cup == null ? 'never poured' : `cup ${cup + 1}`}
-                    {cup === pick ? ' 🎯' : ''}
-                    {mine ? ` 🍺 +${mine.sips}` : ''}
-                  </span>
-                </div>
-              );
-            })}
+        {verdict && (
+          <div className="fx-paper ps-sheet fx-rise">
+            <p className="ps-verdict">{state.note}</p>
+            {flipped &&
+              order.map((uid) => {
+                const cup = poisons[uid];
+                const mine = (state.assignments ?? []).find((a) => a.uid === uid);
+                return (
+                  <div key={uid} className="ps-row">
+                    <span className="ps-row-who">
+                      {emojiOf(uid)} {nameOf(uid)}
+                    </span>
+                    <span className="ps-row-cup">{cup == null ? 'no pour' : `cup ${cup + 1}`}</span>
+                    <span className={`ps-row-res ${cup === pick ? 'ps-row-hit' : ''}`}>
+                      {mine ? `drinks ${mine.sips}` : cup === pick ? 'hit' : 'miss'}
+                    </span>
+                  </div>
+                );
+              })}
           </div>
         )}
       </div>
@@ -266,25 +277,19 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
   if (myTurnToPour) {
     return (
       <div className="gv ps">
-        <span className="ps-badge ps-badge-poison">☠️ YOUR POUR</span>
-        <h2 className="fx-title fx-title-red">Spike a cup</h2>
-        <p className="muted small">
-          only you see this — pile onto a friend's cup and it hits harder (+{STACK_SIPS} each)
-        </p>
+        <div className="ps-head">
+          <span className="fx-tag fx-tag-red">Your pour</span>
+          <h2 className="fx-title">Spike a cup</h2>
+          <p className="ps-sub">Only you see this. Share a cup with someone and it hits +{STACK_SIPS} harder.</p>
+        </div>
         <Table
           cups={cups}
           onCup={(c) => select(selected === c ? null : c)}
           look={(c) => ({
             emoji: selected === c ? '☠️' : '🥃',
-            cls: `ps-cup-spike ${selected === c ? 'ps-cup-sel' : ''}`,
+            cls: selected === c ? 'ps-cup-bad' : '',
           })}
-          center={
-            <span className="ps-victim">
-              <span className="ps-victim-emoji fx-float">{drinker?.emoji ?? '🍷'}</span>
-              <span className="ps-victim-name">{nameOf(drinkerUid)}</span>
-              <span className="ps-victim-role">drinks</span>
-            </span>
-          }
+          center={victim(nameOf(drinkerUid), 'drinks')}
         />
         <Button
           variant="gold"
@@ -293,7 +298,7 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
           disabled={selected == null}
           onClick={() => submitInput({ cup: selected as number })}
         >
-          {selected == null ? 'TAP A CUP' : `POISON CUP ${selected + 1} 🔒`}
+          {selected == null ? 'Tap a cup' : `Poison cup ${selected + 1}`}
         </Button>
       </div>
     );
@@ -314,43 +319,27 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
     };
     return (
       <div className="gv ps">
-        <span className="ps-badge ps-badge-drink">🍷 YOU DRINK</span>
-        <h2 className="fx-title">{sniffing ? 'Sniff which cup?' : 'Pick your poison'}</h2>
-        <p className="muted small">
-          {order.length} {order.length === 1 ? 'dose is' : 'doses are'} in there. Everyone can see where your hand
-          is — watch their faces.
-        </p>
+        <div className="ps-head">
+          <span className="fx-tag fx-tag-green">You drink</span>
+          <h2 className="fx-title">{sniffing ? 'Sniff which?' : 'Pick a cup'}</h2>
+          <p className="ps-sub">
+            {doses(order.length)} in {cups} cups. They can all see where your hand is.
+          </p>
+        </div>
         <Table
           cups={cups}
           onCup={tap}
           tone={sniffing ? 'ps-table-sniffing' : ''}
           look={(c) => ({
             emoji: '🍷',
-            cls: `ps-cup-drink ${hover === c ? 'ps-cup-sel ps-cup-hover' : ''} ${zone.includes(c) ? 'ps-cup-zone' : ''}`,
+            cls: `${hover === c ? 'ps-cup-sel ps-cup-hover' : ''} ${zone.includes(c) ? 'ps-cup-zone' : ''}`,
           })}
-          center={
-            sniff ? (
-              <span className="ps-sniffed fx-pop">
-                <span className="ps-sniffed-n">{sniff.count}</span>
-                <span className="ps-sniffed-l">👃 {sniff.count === 1 ? 'dose' : 'doses'} nearby</span>
-              </span>
-            ) : (
-              <span className="ps-victim">
-                <span className="ps-victim-emoji fx-wiggle">🤔</span>
-              </span>
-            )
-          }
+          center={sniffed || <span className="ps-wait">?</span>}
         />
-        {sniffLine && <p className="ps-sniffline">👃 {sniffLine}</p>}
+        {sniffLine && <p className="ps-sniffline">Sniffed: {sniffLine}.</p>}
         <div className="ps-actions">
-          <Button
-            variant="ghost"
-            size="md"
-            disabled={!!sniff}
-            className={sniffing ? 'ps-sniff-on' : ''}
-            onClick={() => setSniffing(!sniffing)}
-          >
-            {sniff ? '👃 used' : sniffing ? 'cancel' : '👃 SNIFF ×1'}
+          <Button variant="ghost" size="lg" disabled={!!sniff} onClick={() => setSniffing(!sniffing)}>
+            {sniff ? 'Sniffed' : sniffing ? 'Cancel' : 'Sniff'}
           </Button>
           <Button
             variant="gold"
@@ -358,13 +347,13 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
             disabled={hover == null || sniffing}
             onClick={() => submitInput({ cup: hover as number })}
           >
-            {hover == null ? 'TAP A CUP' : `DRINK CUP ${hover + 1} 🍺`}
+            {hover == null ? 'Tap a cup' : `Drink cup ${hover + 1}`}
           </Button>
         </div>
         <Crew order={order} players={players} reactions={reactions} />
-        <p className="muted small">
-          poisoned → you drink {SIPS}+ · clean → they drink {MISS_SIPS} · antidote 💚 → it bounces back (
-          {ANTIDOTE_MISS_SIPS})
+        <p className="ps-sub">
+          Poisoned: you drink {SIPS} or more. Clean: they drink {MISS_SIPS} each. One cup is an antidote and sends
+          it back at them ({ANTIDOTE_MISS_SIPS} if it was clean).
         </p>
       </div>
     );
@@ -377,34 +366,25 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
   if (state.phase === 'pouring') {
     return (
       <div className="gv ps">
-        {iDrink ? (
-          <span className="ps-badge ps-badge-drink">🍷 YOU'RE DRINKING</span>
-        ) : myPour != null ? (
-          <span className="ps-badge ps-badge-poison">☠️ POURED — CUP {myPour + 1}</span>
-        ) : (
-          <span className="ps-badge">☠️ POISONER</span>
-        )}
-        <h2 className="fx-title fx-title-pink">
-          {iDrink ? "They're spiking your drinks…" : 'The crew is pouring…'}
-        </h2>
+        <div className="ps-head">
+          {iDrink ? (
+            <span className="fx-tag fx-tag-green">You drink</span>
+          ) : (
+            <span className="fx-tag fx-tag-red">{myPour != null ? `Yours: cup ${myPour + 1}` : 'Poisoner'}</span>
+          )}
+          <h2 className="fx-title">{iDrink ? 'Look away' : 'Pouring'}</h2>
+          <p className="ps-sub">
+            {pouredCount} of {order.length} poured.{iDrink ? ` Then you pick from ${cups} cups.` : ''}
+          </p>
+        </div>
         <Table
           cups={cups}
           look={(c) => ({
             emoji: myPour === c ? '☠️' : '🥃',
-            cls: myPour === c ? 'ps-cup-mine' : '',
+            cls: myPour === c ? 'ps-cup-bad' : '',
           })}
-          center={
-            <span className="ps-victim">
-              <span className="ps-victim-emoji fx-float">{iDrink ? '🙈' : (drinker?.emoji ?? '🍷')}</span>
-              <span className="ps-victim-name">{iDrink ? 'no peeking' : nameOf(drinkerUid)}</span>
-              {!iDrink && <span className="ps-victim-role">drinks</span>}
-            </span>
-          }
+          center={iDrink ? <span className="ps-wait">…</span> : victim(nameOf(drinkerUid), 'drinks')}
         />
-        <p className="muted">
-          {pouredCount}/{order.length} poured
-          {iDrink ? ` — then you choose from all ${cups} cups` : ''}
-        </p>
         <Crew order={order} players={players} done={(uid) => poisons[uid] != null} />
       </div>
     );
@@ -414,37 +394,25 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
   const hover = state.hover ?? null;
   return (
     <div className="gv ps">
-      <span className="ps-badge ps-badge-poison">
-        ☠️ {myPour != null ? `YOUR POISON — CUP ${myPour + 1}` : 'POISONER'}
-      </span>
-      <h2 className="fx-title fx-title-pink">{nameOf(drinkerUid)} is choosing…</h2>
+      <div className="ps-head">
+        <span className="fx-tag fx-tag-red">{myPour != null ? `Yours: cup ${myPour + 1}` : 'Poisoner'}</span>
+        <h2 className="fx-title">{nameOf(drinkerUid)} picks</h2>
+        <p className="ps-sub">
+          {sniffLine
+            ? `Sniffed: ${sniffLine}.`
+            : hover == null
+              ? 'No hand on a cup yet. One sniff left.'
+              : `Hand on cup ${hover + 1}. One sniff left.`}
+        </p>
+      </div>
       <Table
         cups={cups}
         look={(c) => ({
           emoji: myPour === c ? '☠️' : '🥃',
-          cls: `${myPour === c ? 'ps-cup-mine' : ''} ${hover === c ? 'ps-cup-sel ps-cup-hover' : ''} ${zone.includes(c) ? 'ps-cup-zone' : ''}`,
+          cls: `${myPour === c ? 'ps-cup-bad' : ''} ${hover === c ? 'ps-cup-sel ps-cup-hover' : ''} ${zone.includes(c) ? 'ps-cup-zone' : ''}`,
         })}
-        center={
-          sniff ? (
-            <span className="ps-sniffed fx-pop">
-              <span className="ps-sniffed-n">{sniff.count}</span>
-              <span className="ps-sniffed-l">👃 {sniff.count === 1 ? 'dose' : 'doses'} nearby</span>
-            </span>
-          ) : (
-            <span className="ps-victim">
-              <span className="ps-victim-emoji fx-wiggle">{drinker?.emoji ?? '🍷'}</span>
-              <span className="ps-victim-name">{hover == null ? 'thinking…' : `hand on cup ${hover + 1}`}</span>
-            </span>
-          )
-        }
+        center={sniffed || victim(hover == null ? 'thinking' : `cup ${hover + 1}?`)}
       />
-      {sniffLine ? (
-        <p className="ps-sniffline">
-          👃 {nameOf(drinkerUid)} sniffed: {sniffLine}
-        </p>
-      ) : (
-        <p className="muted small">they still have a sniff 👃 left</p>
-      )}
       <div className="ps-reacts">
         {REACTIONS.map((e) => (
           <button key={e} className="ps-react" onClick={() => submitInput({ react: e })}>
@@ -452,7 +420,7 @@ export function View({ state, me, players, submitInput, variant }: GameViewProps
           </button>
         ))}
       </div>
-      <p className="muted small">pull a face — bluff them onto your cup 🤫</p>
+      <p className="ps-sub ps-sub-c">Pull a face. Lying is allowed.</p>
       <Crew order={order} players={players} reactions={reactions} />
     </div>
   );

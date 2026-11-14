@@ -127,15 +127,15 @@ function reveal(state: PoisonState, ctx: GameContext): ReduceResult<PoisonState>
     if (hit) {
       // the poison bounces: whoever spiked this cup drinks their own dose
       for (const uid of hitters) {
-        assignments.push({ uid, sips: dose, reason: `Cup ${pick + 1} hid the antidote — your poison bounced 💚` });
+        assignments.push({ uid, sips: dose, reason: `Cup ${pick + 1} was the antidote. Your poison came back.` });
       }
       const who = hitters.map((uid) => nameOf(ctx.players, uid)).join(' & ');
-      note = `💚 ${drinker} found the antidote in cup ${pick + 1} — the poison bounces back on ${who} (${dose})`;
+      note = `${drinker} found the antidote in cup ${pick + 1}. ${who} ${hitters.length === 1 ? 'drinks' : 'drink'} ${dose} instead.`;
     } else {
       for (const uid of pourers) {
-        assignments.push({ uid, sips: ANTIDOTE_MISS_SIPS, reason: `Cup ${pick + 1} was the antidote — the whole crew pays 💚` });
+        assignments.push({ uid, sips: ANTIDOTE_MISS_SIPS, reason: `Cup ${pick + 1} was the antidote` });
       }
-      note = `💚 ${drinker} found the antidote in cup ${pick + 1} — every poisoner drinks ${ANTIDOTE_MISS_SIPS}`;
+      note = `${drinker} found the antidote in cup ${pick + 1}. Every poisoner drinks ${ANTIDOTE_MISS_SIPS}.`;
     }
     effects.push({ type: 'SCORE', uid: state.drinkerUid, delta: 1 });
   } else if (hit) {
@@ -147,29 +147,29 @@ function reveal(state: PoisonState, ctx: GameContext): ReduceResult<PoisonState>
       sips: dose,
       reason:
         hitters.length > 1
-          ? `Cup ${pick + 1} was poisoned ×${hitters.length} — ☠️ ${who}`
-          : `Cup ${pick + 1} was poisoned — ☠️ ${who}`,
+          ? `Cup ${pick + 1}, poisoned ${hitters.length} times by ${who}`
+          : `Cup ${pick + 1}, poisoned by ${who}`,
     });
     for (const uid of hitters) effects.push({ type: 'SCORE', uid, delta: 1 });
     note =
       hitters.length > 1
-        ? `☠️ ${drinker} drank cup ${pick + 1} — a ×${hitters.length} dose, ${dose} sips`
-        : `☠️ ${drinker} drank cup ${pick + 1} — ${dose} sips`;
+        ? `${drinker} drinks ${dose}. Cup ${pick + 1} had ${hitters.length} doses in it.`
+        : `${drinker} drinks ${dose}. Cup ${pick + 1} was poisoned.`;
   } else if (pourers.length > 0) {
     outcome = 'clean';
     // a clean cup means the whole table missed: everyone who poured drinks
     for (const uid of pourers) {
-      assignments.push({ uid, sips: MISS_SIPS, reason: `Cup ${pick + 1} was clean — the poison missed 🍷` });
+      assignments.push({ uid, sips: MISS_SIPS, reason: `Cup ${pick + 1} was clean` });
     }
     note =
       pourers.length === 1
-        ? `🍷 ${drinker} picked cup ${pick + 1} — clean! The poisoner drinks ${MISS_SIPS}`
-        : `🍷 ${drinker} picked cup ${pick + 1} — clean! All ${pourers.length} poisoners drink ${MISS_SIPS}`;
+        ? `Cup ${pick + 1} was clean. The poisoner drinks ${MISS_SIPS}.`
+        : `Cup ${pick + 1} was clean. All ${pourers.length} poisoners drink ${MISS_SIPS}.`;
     effects.push({ type: 'SCORE', uid: state.drinkerUid, delta: 1 });
   } else {
     outcome = 'clean';
     // nobody ever poured (round force-skipped) — nothing to punish
-    note = `🍷 ${drinker} picked cup ${pick + 1} — clean! Nobody drinks`;
+    note = `Cup ${pick + 1} was clean. Nobody drinks.`;
   }
 
   return {
@@ -183,7 +183,7 @@ export const definition: GameDefinition<PoisonState, PoisonInput> = {
   name: 'Poisoning the Drinks',
   emoji: '☠️',
   rules:
-    "One of you is picked at random to drink. Everyone else secretly poisons ONE cup in the ring — there's one more cup than players, and you can pile onto the same cup to make it hit harder. Then the drinker chooses while the table watches their hand: they get ONE sniff 👃 (how many doses are in that cup + its two neighbours), and the poisoners can heckle. Poisoned cup → the drinker drinks 2, +1 per extra poisoner in it. Clean cup → every poisoner drinks 1. And one cup secretly hides an antidote 💚 — land on it and the poison bounces back on the crew.",
+    'One of you drinks. Everyone else secretly poisons one cup, and there is one more cup than players. The drinker gets one sniff, then picks: a poisoned cup costs them 2 (more if it was hit twice), a clean cup costs every poisoner 1. One cup is an antidote that sends the poison back.',
   minPlayers: 2,
   sharedInput: 'all',
 

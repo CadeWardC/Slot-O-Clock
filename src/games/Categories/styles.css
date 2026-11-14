@@ -1,114 +1,109 @@
-/* --- Categories 🗂️ --- */
-.cat { gap: 14px; }
-.cat-badge {
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 0.8rem;
-  font-weight: 900;
-  letter-spacing: 0.1em;
-  color: var(--cyan);
-  border: 1.5px solid rgba(79, 216, 255, 0.45);
-  background: rgba(79, 216, 255, 0.1);
-}
-.cat-badge-go {
-  color: var(--orange);
-  border-color: rgba(255, 157, 60, 0.5);
-  background: rgba(255, 157, 60, 0.12);
-  animation: fxPulse 0.8s ease-in-out infinite;
-}
-.cat-card {
-  width: 100%;
-  padding: 18px 16px 14px;
-  border-radius: 22px;
-  background:
-    radial-gradient(120% 90% at 50% 0%, rgba(255, 201, 77, 0.16), transparent 60%),
-    linear-gradient(180deg, var(--card2), var(--card));
-  border: 2px solid var(--gold);
-  box-shadow: var(--shadow), 0 0 30px rgba(255, 201, 77, 0.18);
-  animation: fxPop 0.4s cubic-bezier(0.2, 1.5, 0.4, 1) both;
-}
-.cat-card-think { border-color: var(--cyan); box-shadow: var(--shadow), 0 0 30px rgba(79, 216, 255, 0.2); }
-.cat-title { font-size: 2.1rem; margin: 6px 0 8px; }
-.cat-namer { margin: 0; font-size: 0.85rem; font-weight: 800; color: var(--muted); }
+/* --- Categories --- */
+.cat { gap: 16px; align-items: stretch; text-align: left; justify-content: flex-start; padding-top: 6px; }
+.cat > .fx-tag { align-self: flex-start; margin-bottom: -6px; }
 
-/* the pile the namer is going to drink */
-.cat-stack {
+/* the category sits on an index card with a red rule across the top */
+.cat-card {
+  position: relative;
+  padding: 32px 18px 14px;
+  transform: rotate(-1deg);
+  animation: fxPop 0.3s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+.cat-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 20px;
+  border-top: 2px solid var(--red);
+}
+.cat-card .fx-kicker { margin-top: 2px; }
+.cat-title {
+  margin: 4px 0 6px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.9rem;
+  line-height: 1.12;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+.cat-namer { margin: 0; font-size: 0.9rem; font-weight: 700; color: #6b6452; }
+.cat-stamp { font-size: 1.9rem; margin: 10px 0 8px; }
+.cat-result { margin: 4px 0 0; font-size: 1.05rem; font-weight: 800; line-height: 1.3; }
+
+.cat-think { display: flex; align-items: center; gap: 16px; }
+.cat-sub { margin: 0; font-size: 0.95rem; line-height: 1.35; color: var(--muted); font-weight: 600; }
+
+/* the stack counter is a beer mat */
+.cat-mat { display: flex; align-items: center; gap: 14px; }
+.cat-mat-n {
+  flex-shrink: 0;
+  width: 92px;
+  height: 92px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 54px;
-}
-.cat-stack-beers { display: flex; flex-wrap: wrap; justify-content: center; max-width: 250px; }
-.cat-beer { font-size: 1.7rem; margin: 0 -3px; }
-.cat-beer-new { animation: catDrop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
-.cat-stack-empty { color: var(--muted); font-size: 0.9rem; }
-.cat-stack-n {
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--purple);
+  color: var(--ink);
+  border: 2.5px solid var(--ink);
+  box-shadow: var(--hard), inset 0 0 0 6px var(--paper), inset 0 0 0 8px var(--ink);
   font-family: var(--font-display);
-  font-size: 2.4rem;
-  color: var(--gold);
-  text-shadow: 0 0 22px rgba(255, 201, 77, 0.5);
-  animation: fxPop 0.35s ease both;
+  font-size: 2.6rem;
+  line-height: 1;
+  transform: rotate(-6deg);
+  animation: catMat 0.3s cubic-bezier(0.2, 1.6, 0.4, 1) both;
 }
+@keyframes catMat {
+  0% { transform: rotate(-6deg) scale(1.3); }
+  100% { transform: rotate(-6deg) scale(1); }
+}
+.cat-mat-side { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cat-mat-l { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.cat-beers { display: flex; flex-wrap: wrap; font-size: 1.35rem; line-height: 1.15; min-height: 1.6rem; }
+.cat-beers span { margin-right: -4px; }
+.cat-beer-new { animation: catDrop 0.35s cubic-bezier(0.2, 1.6, 0.4, 1) both; }
 @keyframes catDrop {
-  0% { transform: translateY(-46px) rotate(-25deg) scale(1.6); opacity: 0; }
-  100% { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+  0% { transform: translateY(-30px) rotate(-25deg); opacity: 0; }
+  100% { transform: translateY(0) rotate(0); opacity: 1; }
 }
-.cat-hit { margin: -6px 0 0; font-size: 0.85rem; font-weight: 800; color: var(--magenta); }
-.cat-yours { margin: 0; font-weight: 900; color: var(--gold); letter-spacing: 0.04em; }
+.cat-hit { font-size: 0.85rem; font-weight: 700; color: var(--text); }
 
 .cat-actions { display: flex; gap: 10px; width: 100%; }
 .cat-actions .btn { flex: 1; }
 .cat-name-btn { white-space: nowrap; }
 
-/* the +1 button: fills back up while it recharges, then goes hot */
+/* the +1 button: a bar fills while it recharges, then it turns mustard */
 .cat-punish {
   position: relative;
   overflow: hidden;
   width: 100%;
-  max-width: 340px;
-  padding: 24px 20px;
-  border: 2px solid var(--line);
-  border-radius: 22px;
-  background: var(--card);
-  color: var(--muted);
+  padding: 24px 20px 21px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  background: #47604f;
+  color: var(--ink);
+  box-shadow: var(--hard);
   font-family: var(--font-display);
-  font-size: 1.25rem;
-  letter-spacing: 0.04em;
+  font-size: 1.3rem;
+  text-transform: uppercase;
   cursor: not-allowed;
 }
-.cat-punish-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: linear-gradient(90deg, rgba(255, 201, 77, 0.18), rgba(255, 201, 77, 0.42));
-  transition: width 0.08s linear;
-}
+.cat-punish-fill { position: absolute; inset: 0 auto 0 0; background: var(--paper2); transition: width 0.08s linear; }
 .cat-punish-label { position: relative; }
 .cat-punish-live {
   cursor: pointer;
-  color: #3a2400;
-  border-color: #fff3c4;
-  background: linear-gradient(180deg, #ffe08a, var(--gold) 55%, var(--orange));
-  font-size: 1.7rem;
-  box-shadow: 0 0 44px rgba(255, 175, 60, 0.55), 0 7px 0 #a85e00;
-  animation: fxPulse 0.7s ease-in-out infinite;
+  background: var(--gold);
+  font-size: 1.9rem;
+  animation: catNudge 0.9s ease-in-out infinite;
 }
 .cat-punish-live .cat-punish-fill { display: none; }
-.cat-punish-live:active { transform: translateY(5px); box-shadow: 0 0 30px rgba(255, 175, 60, 0.5), 0 2px 0 #a85e00; animation: none; }
-
-.cat-holder {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 16px;
-  background: var(--card);
-  border: 1.5px solid var(--line);
-  font-weight: 800;
-  font-size: 0.92rem;
-  text-align: left;
+.cat-punish-live:active { transform: translateY(4px); box-shadow: none; animation: none; }
+@keyframes catNudge {
+  0%, 100% { transform: rotate(0); }
+  50% { transform: rotate(-1.2deg) scale(1.02); }
 }
-.cat-holder-emoji { font-size: 1.8rem; display: inline-block; }
 
 @media (prefers-reduced-motion: reduce) {
-  .cat-badge-go, .cat-card, .cat-beer-new, .cat-stack-n, .cat-punish-live { animation: none; }
+  .cat-card, .cat-mat-n, .cat-beer-new, .cat-punish-live { animation: none; }
 }

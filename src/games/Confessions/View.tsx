@@ -34,17 +34,17 @@ function Cards({
         return (
           <div
             key={card.id}
-            className={`cf-card ${trial ? 'cf-card-trial' : ''} ${reveal ? 'cf-card-open' : ''}`}
-            style={{ ['--cf-tilt' as string]: `${((i % 3) - 1) * 0.9}deg`, animationDelay: `${i * 0.07}s` }}
+            className={`cf-card ${trial ? 'cf-card-trial' : ''}`}
+            style={{ ['--cf-tilt' as string]: `${((i % 3) - 1) * 1.1}deg`, animationDelay: `${i * 0.06}s` }}
           >
             <span className="cf-card-num">
-              CARD #{card.n}
-              {trial && <b className="cf-card-flag"> · ⚖️ ON TRIAL</b>}
+              No. {card.n}
+              {trial && <b className="cf-card-flag">on trial</b>}
             </span>
-            <p className="cf-card-text">“{card.text}”</p>
+            <p className="cf-card-text">{card.text}</p>
             {reveal && (
               <p className="cf-card-author">
-                ✍️ {author?.emoji} {author?.name ?? '?'}
+                {author?.emoji} {author?.name ?? '?'}
               </p>
             )}
           </div>
@@ -77,26 +77,28 @@ export function View({
     setText('');
   }, [state.roundNo, me.uid]);
 
+  const round = `Round ${state.roundNo} of ${ROUNDS_COUNT}`;
+  const prompt = (
+    <div className="fx-paper cf-prompt">
+      <p className="fx-kicker">{round}</p>
+      <p className="cf-prompt-q">{state.prompt}</p>
+    </div>
+  );
+
   /* ---------- write it ---------- */
   if (state.phase === 'write') {
     const mine = myInput?.action === 'write' ? myInput.text : null;
     return (
-      <div className="gv">
-        <span className="cf-badge">
-          ROUND {state.roundNo}/{ROUNDS_COUNT} · 🤫 ANONYMOUS
-        </span>
-        <div className="cf-prompt">
-          <p className="fx-kicker">🤫 confess</p>
-          <p className="cf-prompt-q">{state.prompt}</p>
-        </div>
+      <div className="gv cf">
+        <span className="fx-tag fx-tag-pink">Anonymous</span>
+        {prompt}
         {mine ? (
-          <>
-            <div className="gate-emoji fx-pop">🤐</div>
-            <span className="fx-stamp fx-stamp-gold">sealed</span>
-            <p className="muted">
-              nobody will know it was you ({Object.keys(written).length}/{players.length} in){secs}
+          <div className="cf-sealed">
+            <span className="fx-stamp fx-stamp-gold cf-stamp">sealed</span>
+            <p className="cf-sub">
+              {Object.keys(written).length} of {players.length} in. No names go on it.
             </p>
-          </>
+          </div>
         ) : (
           <>
             <textarea
@@ -104,10 +106,10 @@ export function View({
               rows={3}
               maxLength={MAX_TEXT}
               value={text}
-              placeholder="type it — no names, keep it honest…"
+              placeholder="Write it here. No names."
               onChange={(e) => setText(e.target.value)}
             />
-            <p className="cf-count small muted">
+            <p className="cf-count">
               {text.length}/{MAX_TEXT}
             </p>
             <Button
@@ -117,11 +119,9 @@ export function View({
               disabled={text.trim().length === 0}
               onClick={() => submitInput({ action: 'write', text })}
             >
-              SEAL IT 🤫
+              Seal it
             </Button>
-            {variant === 'shared' && (
-              <p className="muted small">🙈 cover the screen while you type</p>
-            )}
+            {variant === 'shared' && <p className="cf-sub">Cover the screen while you type.</p>}
           </>
         )}
         <TimerBar deadline={timerEndsAt} totalMs={WRITE_MS} />
@@ -137,31 +137,27 @@ export function View({
 
     if (!trial) {
       return (
-        <div className="gv">
-          <span className="cf-badge">🤐 NO CONFESSIONS</span>
-          <div className="gate-emoji">🤐</div>
-          <h2>Nobody confessed in time…</h2>
-          <p className="muted">everyone drinks anyway</p>
+        <div className="gv cf">
+          <span className="fx-tag fx-tag-ink">{round}</span>
+          <h2 className="fx-title">Nobody wrote anything</h2>
+          <p className="cf-sub">Everyone drinks 1.</p>
         </div>
       );
     }
 
     return (
-      <div className="gv">
-        <span className="cf-badge">
-          ROUND {state.roundNo}/{ROUNDS_COUNT} · 🤫 WHO WROTE IT?
-        </span>
-        <p className="cf-prompt-q cf-prompt-small">{state.prompt}</p>
+      <div className="gv cf">
+        <span className="fx-tag fx-tag-pink">Who wrote No. {trial.n}?</span>
+        <p className="cf-q">{state.prompt}</p>
         <Cards cards={cards} trialCardId={state.trialCardId} players={players} reveal={false} />
         {myVote ? (
-          <p className="cf-voted fx-pop">
-            🗳️ you blamed {players.find((p) => p.uid === myVote)?.name ?? '?'} — waiting (
-            {voteCount}/{players.length}){secs}
+          <p className="cf-sub">
+            You said {players.find((p) => p.uid === myVote)?.name ?? '?'}. {voteCount} of {players.length} voted
+            {secs}.
           </p>
         ) : (
           <>
-            <p className="pick-call">⚖️ Card #{trial.n} — who wrote it?</p>
-            <div className="pick-people">
+            <div className="pick-people cf-pick">
               {players
                 .filter((p) => p.uid !== me.uid)
                 .map((p) => (
@@ -174,8 +170,8 @@ export function View({
                   </button>
                 ))}
             </div>
-            <p className="muted small">
-              {voteCount}/{players.length} voted{secs}
+            <p className="cf-sub">
+              {voteCount} of {players.length} voted{secs}.
             </p>
           </>
         )}
@@ -198,43 +194,36 @@ export function View({
     const live = state.phase === 'finale';
     const board = [...players].sort((a, b) => (tally[a.uid] ?? 0) - (tally[b.uid] ?? 0));
     return (
-      <div className="gv cf-finale">
-        <span className="cf-badge">🤫 THE TRUTH COMES OUT</span>
-        <div className="cf-crown fx-pop">
-          <div className="cf-crown-emoji fx-float">👑</div>
-          {winners.length === 0 ? (
-            <h2 className="fx-title">Dead heat</h2>
-          ) : (
-            <h2 className="fx-title">
-              {winners.map((uid) => `${emojiOf(uid)} ${nameOf(uid)}`).join(' & ')}
-            </h2>
-          )}
-          <p className="cf-crown-sub">
-            {winners.length === 0
-              ? 'everybody drank the same — no crown tonight'
-              : `fewest drinks this game (${tally[winners[0]] ?? 0})`}
-          </p>
-          <div className="cf-board">
-            {board.map((p) => (
-              <span key={p.uid} className={`cf-board-chip ${winners.includes(p.uid) ? 'cf-board-win' : ''}`}>
-                {p.emoji} {p.name} <b>🍺{tally[p.uid] ?? 0}</b>
-              </span>
-            ))}
-          </div>
-        </div>
-        {winners.length > 0 && <Confetti emojis={['👑', '✨', '🤫', '🎉']} />}
+      <div className="gv cf cf-finale">
+        <span className="fx-tag fx-tag-pink">Who wrote what</span>
 
-        {lone &&
-          (state.giftUid ? (
-            <p className="cf-gift fx-pop">
-              👑 {nameOf(lone)} hands a drink to {emojiOf(state.giftUid)} {nameOf(state.giftUid)} 🍺
+        <div className="fx-paper cf-sheet">
+          <p className="fx-kicker">Drinks this game</p>
+          {board.map((p) => (
+            <div key={p.uid} className={`cf-line ${winners.includes(p.uid) ? 'cf-line-win' : ''}`}>
+              <span className="cf-line-who">
+                {p.emoji} {p.name}
+              </span>
+              {winners.includes(p.uid) && <span className="cf-line-tag">fewest</span>}
+              <span className="cf-line-n">{tally[p.uid] ?? 0}</span>
+            </div>
+          ))}
+          {winners.length === 0 && <p className="cf-sheet-note">All level. Nobody wins.</p>}
+          {lone && state.giftUid && (
+            <p className="cf-sheet-note">
+              {nameOf(lone)} gives {GIFT_SIPS} to {emojiOf(state.giftUid)} {nameOf(state.giftUid)}.
             </p>
-          ) : iGive && live ? (
+          )}
+        </div>
+        {winners.length > 0 && <Confetti />}
+
+        {lone && !state.giftUid && live && (
+          iGive ? (
             <>
-              <p className="pick-call">
-                👑 {variant === 'shared' ? `${nameOf(lone)}, hand` : 'Hand'} out {GIFT_SIPS} drink — who gets it?
+              <p className="cf-q">
+                {variant === 'shared' ? `${nameOf(lone)}, give` : 'You drank least. Give'} {GIFT_SIPS} drink to:
               </p>
-              <div className="pick-people">
+              <div className="pick-people cf-pick">
                 {players
                   .filter((p) => p.uid !== lone)
                   .map((p) => (
@@ -249,17 +238,20 @@ export function View({
               </div>
             </>
           ) : (
-            live && <p className="muted small">👑 {nameOf(lone)} is choosing who drinks…</p>
-          ))}
+            <p className="cf-sub">{nameOf(lone)} drank least and is picking who drinks.</p>
+          )
+        )}
 
-        {archive.map((round, i) => (
+        {archive.map((r, i) => (
           <div key={i} className="cf-round">
-            <p className="fx-kicker">prompt {i + 1}</p>
-            <p className="cf-prompt-q cf-prompt-small">{round.prompt}</p>
-            {(round.cards ?? []).length === 0 ? (
-              <p className="muted small">nobody confessed 🤐</p>
+            <p className="cf-q">
+              <span className="cf-q-n">{i + 1}</span>
+              {r.prompt}
+            </p>
+            {(r.cards ?? []).length === 0 ? (
+              <p className="cf-sub">Nobody wrote anything.</p>
             ) : (
-              <Cards cards={round.cards ?? []} trialCardId={round.trialCardId} players={players} reveal={true} />
+              <Cards cards={r.cards ?? []} trialCardId={r.trialCardId} players={players} reveal={true} />
             )}
           </div>
         ))}
@@ -273,8 +265,8 @@ export function View({
             onClick={() => submitInput({ action: 'ok' })}
           >
             {oks[me.uid] && variant !== 'shared'
-              ? `waiting… ${Object.keys(oks).length}/${players.length}`
-              : 'SEEN ENOUGH ✅'}
+              ? `Waiting ${Object.keys(oks).length}/${players.length}`
+              : 'Seen enough'}
           </Button>
         )}
         {live && <TimerBar deadline={timerEndsAt} totalMs={FINALE_MS} />}
@@ -289,30 +281,25 @@ export function View({
   const hasTrial = cards.some((c) => c.id === state.trialCardId);
 
   return (
-    <div className="gv">
-      <span className="cf-badge">
-        ROUND {state.roundNo}/{ROUNDS_COUNT} · 🤫 REVEALED
-      </span>
-      <div className="gate-emoji fx-pop">{result?.caught ? '🕵️' : '🤫'}</div>
-      {hasTrial && (
-        <span className={`fx-stamp ${result?.caught ? '' : 'fx-stamp-good'}`}>
-          {result?.caught ? 'caught!' : 'got away'}
-        </span>
-      )}
-      <h2 className="cf-verdict">{result?.note}</h2>
-      {myCard && variant !== 'shared' && <p className="muted small">yours was card #{myCard.n}</p>}
+    <div className="gv cf">
+      <span className="fx-tag fx-tag-ink">{round}</span>
+      <div className="fx-paper cf-prompt cf-result">
+        {hasTrial && (
+          <span className={`fx-stamp cf-stamp ${result?.caught ? '' : 'fx-stamp-good'}`}>
+            {result?.caught ? 'caught' : 'got away'}
+          </span>
+        )}
+        <p className="cf-prompt-q">{result?.note}</p>
+        {assignments.length > 0 && (
+          <p className="cf-drinks">
+            Drinks: {assignments.map((a) => `${nameOf(a.uid)} ${a.sips}`).join(', ')}
+          </p>
+        )}
+      </div>
       <Cards cards={cards} trialCardId={state.trialCardId} players={players} reveal={true} />
-      {assignments.length > 0 && (
-        <div className="cf-drinks">
-          {assignments.map((a) => (
-            <span key={a.uid} className="cf-board-chip">
-              {emojiOf(a.uid)} {nameOf(a.uid)} <b>🍺×{a.sips}</b>
-            </span>
-          ))}
-        </div>
-      )}
-      <p className="muted small">
-        {state.roundNo >= ROUNDS_COUNT ? 'last one — the full reveal is next…' : 'next prompt coming up…'}
+      <p className="cf-sub">
+        {myCard && variant !== 'shared' ? `Yours was No. ${myCard.n}. ` : ''}
+        {state.roundNo >= ROUNDS_COUNT ? 'Every card gets a name next.' : 'Next prompt in a moment.'}
       </p>
     </div>
   );
