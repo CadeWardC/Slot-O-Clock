@@ -105,7 +105,7 @@ expect(p0Html.includes('bc-table'), 'a holder gets the table to flick on');
 expect(p0Html.includes('flick up'), 'the holder is told what to do');
 expect(!p1Html.includes('flick up') && p1Html.includes('bc-table-watch'), 'a player with no cup gets lanes to watch, not one to flick');
 expect(p1Html.includes('bc-watch-lanes'), 'the player with no cup watches both lanes live');
-expect(p1Html.includes('up next'), 'and is told the cup reaches them next');
+expect(p1Html.includes('comes to you'), 'and is told the cup reaches them next');
 expect((p0Html.match(/class="bc-tok bc-tok-/g) ?? []).length === 2, 'both cups sit on the table map');
 expect((p0Html.match(/class="bc-seat /g) ?? []).length === 4, 'every player has a seat at the table');
 expect(p0Html.includes('4 in the middle'), 'the middle reads out');
@@ -122,7 +122,7 @@ const missed = play('party', [() => ({ shot: { dx: 0, dy: IDEAL_SWIPE * 0.6, ms:
 const missedHtml = render(missed, 'p0');
 expect(missedHtml.includes('bc-mercy'), 'a missed cup quietly grows its mouth');
 expect(!missedHtml.includes('aim assist'), 'and the assist is never labelled');
-expect(missedHtml.includes('✕1'), 'the miss is counted on the table map, next to the cup');
+expect(missedHtml.includes('x1'), 'the miss is counted on the table map, next to the cup');
 
 /* ---- the pass moves the table to the next player ---- */
 const passed = play('party', [
@@ -139,12 +139,12 @@ expect(choosing.phase === 'handoff', 'a first-try sink opens the choice');
 const chooserHtml = render(choosing, 'p0');
 const otherHtml = render(choosing, 'p2');
 expect(chooserHtml.includes('bc-give'), 'the shooter gets the picker');
-expect(chooserHtml.includes('CATCH them!'), 'the other ball is marked as the catch');
-expect(chooserHtml.includes('next in line'), 'the default pass is marked');
+expect(chooserHtml.includes('drinks now'), 'the other ball is marked as the catch');
+expect(chooserHtml.includes('next seat'), 'the default pass is marked');
 expect((chooserHtml.match(/class="pick-person /g) ?? []).length === 3, 'the picker offers everyone but you');
 expect(!otherHtml.includes('bc-give'), 'nobody else can spend the choice');
-expect(otherHtml.includes('hold tight'), 'everyone else waits it out');
-expect(otherHtml.includes('FIRST TRY'), 'and the commentary says why');
+expect(otherHtml.includes('could land on anyone'), 'everyone else waits it out');
+expect(otherHtml.includes('first try'), 'and the commentary says why');
 expect(otherHtml.includes('timerbar'), 'the choice is visibly on a clock');
 
 /* ---- the catch: they drink, the ball plays on past them ---- */
@@ -161,8 +161,8 @@ const justCaught: BcState = {
   lastCatch: { ...caught.lastCatch!, at: Date.now() },
 };
 const caughtHtml = render(justCaught, 'p2');
-expect(caughtHtml.includes('CAUGHT!'), 'the caught player gets the stamp');
-expect(render(justCaught, 'p1').includes('got caught'), 'the catch is announced on every phone');
+expect(caughtHtml.includes('>CAUGHT<'), 'the caught player gets the stamp');
+expect(render(justCaught, 'p1').includes('>caught<'), 'the catch is announced on every phone');
 expect(caughtHtml.includes('bc-table'), 'the caught player still has their own cup to clear');
 expect(render(justCaught, 'p3').includes('bc-table'), 'and the ball is the next player\'s problem now');
 expect(!render(caught, 'p2').includes('bc-flash'), 'a catch from minutes ago stops shouting');

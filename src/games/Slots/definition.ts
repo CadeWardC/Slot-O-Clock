@@ -77,18 +77,18 @@ function spinFor(rng: () => number): SpinResult {
   const e = bestSym >= 0 ? SYMBOLS[bestSym] : '🎰';
 
   if (nonWild.length === 0) {
-    return { reels, line: '🎰🎰🎰 JACKPOT — safe!', sips: 0 };
+    return { reels, line: 'Triple 🎰. Safe.', sips: 0 };
   }
   if (effective >= 3) {
     if (bestSym === SKULL) {
-      return { reels, line: '💀💀💀 FINISH YOUR DRINK!', sips: 5 };
+      return { reels, line: 'Triple 💀. Finish your drink.', sips: 5 };
     }
-    return { reels, line: `${e}${e}${e} TRIPLE — safe!`, sips: 0 };
+    return { reels, line: `Triple ${e}. Safe.`, sips: 0 };
   }
   if (effective >= 2) {
-    return { reels, line: `Pair of ${e} — drink 2`, sips: 2 };
+    return { reels, line: `Pair of ${e}. Drink 2.`, sips: 2 };
   }
-  return { reels, line: 'No match — drink 1', sips: 1 };
+  return { reels, line: 'No match. Drink 1.', sips: 1 };
 }
 
 /**
@@ -117,7 +117,7 @@ function endRound(state: SlotsState, ctx: GameContext): ReduceResult<SlotsState>
       {
         type: 'END',
         assignments,
-        note: `${spun}/${ctx.players.length} spun the machine`,
+        note: `${spun} of ${ctx.players.length} pulled the lever`,
       },
     ],
   };
@@ -128,7 +128,7 @@ export const definition: GameDefinition<SlotsState, SlotsInput> = {
   name: 'Slot Machine',
   emoji: '🎰',
   rules:
-    'Everyone pulls their own lever and gets their own reels — no two machines roll the same. 💀💀💀 and you finish your drink, a pair costs 2, no match costs 1 — any other triple keeps you safe. 🎰 is wild.',
+    'Everyone pulls their own lever and gets their own reels. Three skulls and you finish your drink, a pair costs 2, no match costs 1. Any other triple is safe, and 🎰 is wild.',
   minPlayers: 1,
   sharedInput: 'actor', // shared phone: only the actor spins
 

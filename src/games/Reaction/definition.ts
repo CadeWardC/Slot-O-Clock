@@ -81,16 +81,16 @@ function finish(state: RxState, ctx: GameContext): ReduceResult<RxState> {
     // A false start IS the loss: whoever jumped takes the loser's drinks, and
     // the slowest honest finger walks away clean.
     for (const uid of dq) {
-      assignments.push({ uid, sips: DQ_SIPS, reason: 'DQ’d — tapped before green 🚨' });
+      assignments.push({ uid, sips: DQ_SIPS, reason: 'Tapped before green' });
     }
   } else if (asleep.length > 0 && valid.length > 0) {
     // nobody cheated, but somebody never tapped at all: slower than slow
     for (const uid of asleep) {
-      assignments.push({ uid, sips: SLOW_SIPS, reason: 'Never tapped 😴' });
+      assignments.push({ uid, sips: SLOW_SIPS, reason: 'Never tapped' });
     }
   } else if (valid.length >= 2) {
     const slowest = valid.reduce((a, b) => ((b[1].ms as number) > (a[1].ms as number) ? b : a));
-    assignments.push({ uid: slowest[0], sips: SLOW_SIPS, reason: 'Slowest finger 🐌' });
+    assignments.push({ uid: slowest[0], sips: SLOW_SIPS, reason: 'Slowest finger' });
   }
 
   const effects: Effect[] = [{ type: 'TIMER', ms: RESULTS_MS }];
@@ -98,10 +98,10 @@ function finish(state: RxState, ctx: GameContext): ReduceResult<RxState> {
   if (valid.length > 0) {
     const fastest = valid.reduce((a, b) => ((b[1].ms as number) < (a[1].ms as number) ? b : a));
     const who = ctx.players.find((p) => p.uid === fastest[0]);
-    note = `⚡ Fastest: ${who?.name ?? '?'} — ${Math.round(fastest[1].ms as number)} ms`;
+    note = `Fastest: ${who?.name ?? '?'}, ${Math.round(fastest[1].ms as number)} ms`;
     effects.push({ type: 'SCORE', uid: fastest[0], delta: 1 });
   } else {
-    note = dq.length > 0 ? 'Everyone jumped the gun 🚨' : 'Nobody tapped 🤷';
+    note = dq.length > 0 ? 'Everyone tapped early.' : 'Nobody tapped.';
   }
 
   return {
@@ -115,7 +115,7 @@ export const definition: GameDefinition<RxState, RxInput> = {
   name: 'Reaction Duel',
   emoji: '⚡',
   rules:
-    'Wait for GREEN, then tap as fast as you can — your own phone holds the stopwatch, so lag can’t cost you time. Tap before green and you’re DQ’d on the spot: you lose and drink 3. If nobody false-starts, the slowest finger drinks 2.',
+    'Wait for green, then tap as fast as you can. Tap before green and you are disqualified and drink 3. If nobody jumps, the slowest finger drinks 2.',
   minPlayers: 2,
 
   createInitialState(): RxState {

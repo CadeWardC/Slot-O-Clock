@@ -120,19 +120,19 @@ function final(state: TriviaState, ctx: GameContext): ReduceResult<TriviaState> 
   const assignments: DrinkAssignment[] = [];
 
   if (ctx.players.length < 2) {
-    note = `🧠 ${top}/${total(state)} right`;
+    note = `${top} of ${total(state)} right`;
   } else if (top === bottom) {
     // a dead heat has no top and no bottom: nobody hands out, nobody takes
-    note = top === 0 ? 'Nobody got a single one 🤯 — no drinks' : `Dead heat at ${top}/${total(state)} — no drinks 🎓`;
+    note = top === 0 ? 'Nobody got one. Nobody drinks.' : `Dead heat at ${top} of ${total(state)}. Nobody drinks.`;
   } else {
     winners = ctx.players.filter((p) => of(p.uid) === top).map((p) => p.uid);
     losers = ctx.players.filter((p) => of(p.uid) === bottom).map((p) => p.uid);
     sips = Math.max(MIN_SIPS, Math.min(MAX_SIPS, top - bottom));
     const from = winners.map(nameOf).join(' & ');
     for (const uid of losers) {
-      assignments.push({ uid, sips, reason: `Fewest right (${bottom}/${total(state)}) — from ${from} 🧠` });
+      assignments.push({ uid, sips, reason: `Fewest right, ${bottom} of ${total(state)}. From ${from}.` });
     }
-    note = `🏆 ${from} (${top}/${total(state)}) hand${winners.length === 1 ? 's' : ''} out ${sips}`;
+    note = `${from} got ${top} of ${total(state)} and hand${winners.length === 1 ? 's' : ''} out ${sips}.`;
   }
 
   return {
@@ -145,7 +145,7 @@ export const definition: GameDefinition<TriviaState, TriviaInput> = {
   id: 'trivia',
   name: 'Trivia',
   emoji: '🧠',
-  rules: `${ROUNDS} questions, everyone answers on their own phone, scoreboard after each. Whoever gets the MOST right hands out drinks — whoever gets the FEWEST takes them, one sip per question they trailed by. Ties share; a dead heat drinks nothing.`,
+  rules: `${ROUNDS} questions, everyone answers on their own phone. Most right hands out the drinks and fewest right takes them, one sip for every question between you. A dead heat drinks nothing.`,
   minPlayers: 1,
 
   createInitialState(ctx: GameContext): TriviaState {
@@ -210,10 +210,10 @@ export const definition: GameDefinition<TriviaState, TriviaInput> = {
               recap:
                 winners.length > 0
                   ? {
-                      title: 'Trivia standings',
+                      title: 'Final scores',
                       groups: [
-                        { label: '🏆 Most right — hands out', tone: 'good', uids: winners },
-                        { label: `🍺 Fewest right — drinks ${state.sips}`, tone: 'bad', uids: losers },
+                        { label: 'Most right, hands out', tone: 'good', uids: winners },
+                        { label: `Fewest right, drinks ${state.sips}`, tone: 'bad', uids: losers },
                       ],
                     }
                   : undefined,

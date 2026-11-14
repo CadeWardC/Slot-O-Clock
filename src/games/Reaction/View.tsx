@@ -4,8 +4,6 @@ import type { GameViewProps } from '../../engine/types';
 import { serverNow } from '../../state/serverTime';
 import { DQ_SIPS, type RxInput, type RxState } from './definition';
 
-const MEDALS = ['🥇', '🥈', '🥉'];
-
 export function View({ state, me, players, variant, myInput, submitInput }: GameViewProps<RxState, RxInput>) {
   const taps = state.taps ?? {};
   const assignments = state.assignments ?? [];
@@ -93,32 +91,32 @@ export function View({ state, me, players, variant, myInput, submitInput }: Game
     const iWon = rows[0]?.p.uid === me.uid && rows[0].t?.ms != null && !rows[0].t.early;
     return (
       <div className="gv rx">
-        {iWon && variant === 'party' && <Confetti emojis={['⚡', '✨', '🏆']} count={20} />}
-        <p className="fx-kicker">the stopwatch says</p>
-        <h2 className="fx-title fx-title-cyan">Results</h2>
-        <div className="rx-ladder">
+        {iWon && variant === 'party' && <Confetti />}
+        <div className="fx-paper rx-sheet">
+          <div className="rx-sheet-head">
+            <h2 className="fx-title">Times</h2>
+            <span className="rx-sheet-unit">ms</span>
+          </div>
           {rows.map(({ p, t }, i) => {
             const owes = assignments.find((a) => a.uid === p.uid);
             const legit = t && !t.early && t.ms != null;
             return (
               <div
                 key={p.uid}
-                className={`rx-row fx-rise ${owes ? 'rx-row-bad' : ''} ${t?.early ? 'rx-row-dq' : ''} ${
-                  i === 0 && legit ? 'rx-row-top' : ''
-                }`}
-                style={{ animationDelay: `${i * 0.12}s` }}
+                className={`rx-row fx-rise ${t?.early ? 'rx-row-dq' : ''}`}
+                style={{ animationDelay: `${i * 0.1}s` }}
               >
-                {legit && (
-                  <span className="rx-bar" style={{ width: `${Math.max(8, ((t.ms as number) / slowest) * 100)}%` }} />
-                )}
-                <span className="rx-rank">{t?.early ? '🚨' : legit ? MEDALS[i] ?? `${i + 1}` : '😴'}</span>
+                <span className="rx-rank">{legit ? i + 1 : ''}</span>
                 <span className="rx-who">
                   {p.emoji} {p.name}
+                  {owes && <span className="fx-tag fx-tag-red rx-owes">Drinks {owes.sips}</span>}
                 </span>
                 <span className="rx-time">
-                  {t?.early ? 'DQ’D' : legit ? `${Math.round(t.ms as number)} ms` : 'no tap'}
+                  {t?.early ? 'DQ' : legit ? Math.round(t.ms as number) : 'no tap'}
                 </span>
-                {owes && <span className="rx-owes">🍺×{owes.sips}</span>}
+                {legit && (
+                  <span className="rx-bar" style={{ width: `${Math.max(6, ((t.ms as number) / slowest) * 100)}%` }} />
+                )}
               </div>
             );
           })}
@@ -132,53 +130,52 @@ export function View({ state, me, players, variant, myInput, submitInput }: Game
   if (dq) {
     return (
       <div className="gv rx">
-        <div className="rx-pad rx-pad-dq fx-shake">
-          <span className="fx-stamp">DQ’D</span>
-          <p className="rx-pad-big">You tapped before green</p>
-          <p className="rx-pad-sub">False start — you lose this one. Drink {DQ_SIPS} 🍺</p>
+        <div className="fx-paper rx-dq fx-shake">
+          <span className="fx-stamp">DQ</span>
+          <p className="rx-dq-big">You tapped before green.</p>
+          <p className="rx-dq-sub">You lose this one. Drink {DQ_SIPS}.</p>
         </div>
-        <p className="muted small">no second chances — waiting for the others to finish…</p>
+        <p className="rx-foot">Waiting on the others.</p>
       </div>
     );
   }
 
-  const mood = submitted ? 'rx-pad-in' : isGreen ? 'rx-pad-go' : 'rx-pad-wait';
+  const lit = isGreen || submitted;
   return (
     <div className="gv rx">
-      <button className={`rx-pad ${mood}`} onPointerDown={tap} aria-label="tap target" disabled={submitted}>
-        <span className="rx-lights" aria-hidden="true">
-          <i className={!isGreen && !submitted ? 'on-red' : ''} />
-          <i className={!isGreen && !submitted ? 'on-red' : ''} />
-          <i className={isGreen || submitted ? 'on-green' : ''} />
-        </span>
-        {submitted ? (
-          <>
-            <span className="rx-pad-ms fx-pop">{myMs != null ? Math.round(myMs) : '✔'}</span>
-            <span className="rx-pad-big">{myMs != null ? 'milliseconds' : 'locked in'}</span>
-            <span className="rx-pad-sub">waiting for the others…</span>
-          </>
-        ) : isGreen ? (
-          <span className="rx-pad-huge">TAP!</span>
-        ) : (
-          <>
-            <span className="rx-pad-huge rx-hold">WAIT…</span>
-            <span className="rx-pad-sub">tap before green and you’re DQ’d</span>
-          </>
-        )}
-      </button>
-      <p className="muted small">⏱ timed on your own phone — lag can’t slow you down</p>
+      {submitted ? (
+        <div className="fx-paper rx-mine">
+          <p className="fx-kicker">Your time</p>
+          <p className="rx-mine-ms fx-pop">
+            {myMs != null ? Math.round(myMs) : 'In'}
+            {myMs != null && <small>ms</small>}
+          </p>
+          <p className="rx-dq-sub">Waiting on the others.</p>
+        </div>
+      ) : (
+        <button className={`rx-slab ${isGreen ? 'rx-slab-go' : 'rx-slab-wait'}`} onPointerDown={tap} aria-label="tap target">
+          <span className="rx-lights" aria-hidden="true">
+            <i className={lit ? '' : 'on'} />
+            <i className={lit ? '' : 'on'} />
+            <i className={lit ? 'on' : ''} />
+          </span>
+          <span className={`rx-slab-word ${isGreen ? '' : 'rx-hold'}`}>{isGreen ? 'TAP' : 'WAIT'}</span>
+          <span className="rx-slab-sub">{isGreen ? 'Now.' : 'Tap early and you are out.'}</span>
+        </button>
+      )}
       {variant === 'party' && (
         <div className="rx-table">
           {players.map((p) => {
             const t = taps[p.uid];
             return (
               <span key={p.uid} className={`rx-seat ${t ? (t.early ? 'rx-seat-dq' : 'rx-seat-in') : ''}`}>
-                {p.emoji} {t ? (t.early ? 'DQ’d 🚨' : '✔') : '…'}
+                {p.emoji} {p.name} {t ? (t.early ? 'DQ' : 'in') : ''}
               </span>
             );
           })}
         </div>
       )}
+      <p className="rx-foot">Timed on your own phone.</p>
     </div>
   );
 }

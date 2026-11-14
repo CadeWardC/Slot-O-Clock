@@ -9,6 +9,7 @@ import {
   readState,
   seatsBetween,
   BOOM_SIPS,
+  CATCH_SIPS,
   HANDOFF_MS,
   type BcFeed,
   type BcInput,
@@ -52,7 +53,7 @@ const FLASH_MS = 6000;
 /** how long "the cup just landed on you" stays up */
 const FRESH_MS = 4500;
 
-const CUP_NAME = ['GOLD', 'BLUE'] as const;
+const CUP_NAME = ['yellow', 'pink'] as const;
 const flipCup = (c: CupIndex): CupIndex => (c === 0 ? 1 : 0);
 
 /**
@@ -109,39 +110,34 @@ export function View({ state, me, players, variant, timerEndsAt, submitInput }: 
       <TableMap s={s} players={players} meUid={me.uid} />
 
       {flash && (
-        <div
-          className={`bc-flash ${flash.boom ? 'bc-flash-boom' : ''} ${flash.uid === me.uid ? 'bc-flash-me' : ''}`}
-          key={flash.at}
-        >
+        <div className={`bc-flash fx-paper ${flash.uid === me.uid ? 'bc-flash-me' : ''}`} key={flash.at}>
           {flash.uid === me.uid ? (
             <>
-              <span className="fx-stamp bc-flash-stamp">{flash.boom ? 'BOOM!' : 'CAUGHT!'}</span>
+              <span className="fx-stamp bc-flash-stamp">{flash.boom ? 'BOOM' : 'CAUGHT'}</span>
               <span className="bc-flash-text">
-                {flash.byUid ? `${nameOf(players, flash.byUid)} caught you — ` : ''}
-                <b>drink 🍺</b>
-                {flash.boom ? ' and the BOOM' : ''}. You keep your cup: keep flicking!
+                {flash.byUid ? `${nameOf(players, flash.byUid)} caught you. ` : ''}
+                <b>Drink {flash.boom ? CATCH_SIPS + BOOM_SIPS : CATCH_SIPS}.</b> You keep your cup.
               </span>
             </>
           ) : (
             <>
-              <span className="bc-flash-bang">💥</span>
+              <span className="fx-tag fx-tag-red">{flash.boom ? 'boom' : 'caught'}</span>
               <span className="bc-flash-text">
-                <b>{nameOf(players, flash.uid)}</b> got caught
-                {flash.byUid ? ` by ${flash.byUid === me.uid ? 'YOU' : nameOf(players, flash.byUid)}` : ''} — drink
-                {flash.boom ? ' the BOOM!' : '!'}
+                <b>{nameOf(players, flash.uid)}</b>
+                {flash.byUid ? ` by ${flash.byUid === me.uid ? 'you' : nameOf(players, flash.byUid)}` : ''}.{' '}
+                {flash.boom ? `Drinks ${CATCH_SIPS + BOOM_SIPS}.` : `Drinks ${CATCH_SIPS}.`}
               </span>
             </>
           )}
         </div>
       )}
-      {flash && flash.byUid === me.uid && <Confetti key={`cf${flash.at}`} emojis={['🎯', '🍺', '💥', '✨']} count={18} />}
+      {flash && flash.byUid === me.uid && <Confetti key={`cf${flash.at}`} count={18} />}
 
       {laneCup != null ? (
         <div className="bc-tablewrap">
           {fresh && holding && flash?.uid !== me.uid && (
             <p className="bc-arrival fx-pop" key={fresh.id}>
-              🥤 {nameOf(players, fresh.uid)} {fresh.kind === 'give' ? 'picked YOU for' : 'passed you'} the{' '}
-              <b className={`bc-c${laneCup}`}>{CUP_NAME[laneCup]}</b> cup
+              {nameOf(players, fresh.uid)} {fresh.kind === 'give' ? 'picked you for' : 'passed you'} the {CUP_NAME[laneCup]} cup
             </p>
           )}
           <Lane
@@ -197,34 +193,32 @@ function Headline({
   let sub = '';
 
   if (iChoose) {
-    kicker = 'first try!';
-    title = 'Pick your victim';
+    kicker = 'first try';
+    title = 'Pick someone';
     tone = 'fx-title-green';
-    sub = 'you sank it in one — the cup goes to anyone you like';
+    sub = 'Sunk in one. The cup goes to anyone you like.';
   } else if (s.phase === 'handoff' && s.give) {
-    kicker = 'first try!';
-    title = `${nameOf(players, s.give.uid)} is choosing…`;
-    tone = 'fx-title-pink';
-    sub = 'hold tight — the cup could land on anyone, including you';
+    kicker = 'first try';
+    title = `${nameOf(players, s.give.uid)} is picking`;
+    sub = 'The cup could land on anyone.';
   } else if (cup != null) {
     const other = flipCup(cup);
     const otherUid = s.hold[other] ?? '';
     const behind = otherUid && otherUid !== meUid ? seatsBetween(s, otherUid, meUid) : 0;
     const ahead = otherUid && otherUid !== meUid ? seatsBetween(s, meUid, otherUid) : 0;
-    kicker = `you hold the ${CUP_NAME[cup].toLowerCase()} cup`;
+    kicker = `you have the ${CUP_NAME[cup]} cup`;
     if (behind === 1) {
-      title = 'Sink it or drink!';
+      title = 'Sink it or drink';
       tone = 'fx-title-red';
-      sub = `${nameOf(players, otherUid)}'s cup is right behind you — one sink and you're caught`;
+      sub = `${nameOf(players, otherUid)}'s cup is one seat behind you.`;
     } else if (ahead === 1) {
-      title = 'Go for the catch!';
+      title = 'Go for the catch';
       tone = 'fx-title-green';
-      sub = `sink it and it lands on ${nameOf(players, otherUid)} — they drink`;
+      sub = `Sink it and ${nameOf(players, otherUid)} drinks.`;
     } else {
-      title = 'Flick it in!';
-      sub = otherUid
-        ? `${nameOf(players, otherUid)}'s cup is ${seats(behind)} behind you · sink first try to pick anyone`
-        : 'sink first try to pick anyone';
+      title = 'Flick it in';
+      tone = 'fx-title-gold';
+      sub = otherUid ? `${nameOf(players, otherUid)}'s cup is ${seats(behind)} behind you.` : 'First try and you pick who gets it.';
     }
   } else {
     // no cup: which one reaches me first?
@@ -232,15 +226,14 @@ function Headline({
       .map((c) => ({ c, uid: s.hold[c] ?? '', d: s.hold[c] ? seatsBetween(s, s.hold[c], meUid) : 99 }))
       .sort((a, b) => a.d - b.d);
     const near = dists[0];
-    kicker = "you're clear";
+    kicker = 'no cup';
     if (near && near.d === 1) {
-      title = "You're up next!";
-      tone = 'fx-title-pink';
-      sub = `when ${nameOf(players, near.uid)} sinks the ${CUP_NAME[near.c]} cup it comes to you`;
+      title = "You're next";
+      tone = 'fx-title-gold';
+      sub = `${nameOf(players, near.uid)}'s cup comes to you when it drops.`;
     } else {
-      title = 'Watch the chase 👀';
-      tone = 'fx-title-cyan';
-      sub = near && near.d < 99 ? `nearest cup is ${seats(near.d)} away — you're clear, for now` : 'the next cup that reaches you is yours to flick';
+      title = 'Watch the table';
+      sub = near && near.d < 99 ? `Nearest cup is ${seats(near.d)} away.` : 'The next cup that reaches you is yours.';
     }
   }
 
@@ -296,9 +289,9 @@ function TableMap({ s, players, meUid }: { s: BcState; players: PlayerInfo[]; me
         </span>
         <span className="bc-middlenum">{s.middle} in the middle</span>
         {s.middle === 1 ? (
-          <span className="bc-lastbeer fx-pulse">💣 last beer = BOOM +{BOOM_SIPS}</span>
+          <span className="bc-lastbeer">last beer: BOOM +{BOOM_SIPS}</span>
         ) : (
-          <span className="bc-map-dir">cups travel ↻</span>
+          <span className="bc-map-dir">clockwise</span>
         )}
       </div>
 
@@ -318,8 +311,8 @@ function TableMap({ s, players, meUid }: { s: BcState; players: PlayerInfo[]; me
           >
             <span className="bc-seat-emoji">{p?.emoji ?? '👤'}</span>
             <span className="bc-seat-name">{uid === meUid ? 'YOU' : (p?.name ?? '?')}</span>
-            {caught > 0 && <span className="bc-seat-caught">🍺{caught}</span>}
-            {hunted.includes(uid) && <span className="bc-seat-warn">⚠</span>}
+            {caught > 0 && <span className="bc-seat-caught">{caught}</span>}
+            {hunted.includes(uid) && <span className="bc-seat-warn">!</span>}
           </div>
         );
       })}
@@ -336,13 +329,13 @@ function TableMap({ s, players, meUid }: { s: BcState; players: PlayerInfo[]; me
             key={c}
             className={`bc-tok bc-tok-${c} ${choosing ? 'bc-tok-choosing' : ''}`}
             style={{ ...pos, marginLeft: nudge }}
-            title={`${CUP_NAME[c]} cup — ${nameOf(players, uid)}`}
+            title={`${CUP_NAME[c]} cup: ${nameOf(players, uid)}`}
           >
             <i className="bc-tok-cup" />
             {choosing ? (
               <b className="bc-tok-badge">?</b>
             ) : misses > 0 ? (
-              <b className="bc-tok-badge bc-tok-miss">✕{misses}</b>
+              <b className="bc-tok-badge bc-tok-miss">x{misses}</b>
             ) : null}
           </div>
         );
@@ -354,21 +347,22 @@ function TableMap({ s, players, meUid }: { s: BcState; players: PlayerInfo[]; me
 /* ---------- the cup: a real solo cup, in SVG ---------- */
 
 const CUP_TINT = [
-  { hi: '#fff3c9', a: '#ffc23d', b: '#e08a00', c: '#9a5600', d: '#5a3000', rib: '#5a3000', rimA: '#fffbea', rimB: '#d9b25c' },
-  { hi: '#d9f6ff', a: '#36c2ff', b: '#1483d6', c: '#0c549a', d: '#06305f', rib: '#062a52', rimA: '#f1fcff', rimB: '#7fb6d6' },
+  { fill: '#f6b92b', side: '#c98f12' },
+  { fill: '#ff7fa8', side: '#d9557f' },
 ] as const;
+const INK = '#0a1410';
 
 /**
- * Drawn so the mouth's centre lands on the element's own origin, with the
- * mouth's radii exactly the ones the shot is judged against (w/d) — what you
- * see is literally the target.
+ * A party cup, drawn like a sticker: flat fill, ink outline. The mouth's
+ * centre lands on the element's own origin, with the mouth's radii exactly
+ * the ones the shot is judged against (w/d): what you see is the target.
  */
-function CupArt({ w, d, cup, uid }: { w: number; d: number; cup: CupIndex; uid: string }) {
+function CupArt({ w, d, cup }: { w: number; d: number; cup: CupIndex }) {
   const bw = w * 2.16;
   const bodyH = w * 2.1;
   const cx = bw / 2;
-  const id = `bc-${uid}`;
   const t = CUP_TINT[cup];
+  const sw = Math.max(2, w * 0.075);
   return (
     <svg
       className="bc-cup-art"
@@ -377,32 +371,16 @@ function CupArt({ w, d, cup, uid }: { w: number; d: number; cup: CupIndex; uid: 
       viewBox={`0 0 ${bw} ${d + bodyH}`}
       style={{ transform: `translate(-50%, ${-d}px)` }}
     >
-      <defs>
-        <linearGradient id={`${id}-body`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={t.hi} />
-          <stop offset="18%" stopColor={t.a} />
-          <stop offset="52%" stopColor={t.b} />
-          <stop offset="80%" stopColor={t.c} />
-          <stop offset="100%" stopColor={t.d} />
-        </linearGradient>
-        <linearGradient id={`${id}-rim`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={t.rimA} />
-          <stop offset="100%" stopColor={t.rimB} />
-        </linearGradient>
-        <radialGradient id={`${id}-hole`} cx="50%" cy="20%" r="80%">
-          <stop offset="0%" stopColor="#2a1a10" />
-          <stop offset="70%" stopColor="#140a06" />
-          <stop offset="100%" stopColor="#060302" />
-        </radialGradient>
-        <radialGradient id={`${id}-floor`} cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="rgba(0,0,0,0.62)" />
-          <stop offset="100%" stopColor="rgba(0,0,0,0)" />
-        </radialGradient>
-      </defs>
-
-      {/* contact shadow */}
-      <ellipse cx={cx} cy={d + bodyH * 0.98} rx={w * 1.2} ry={d * 0.55} fill={`url(#${id}-floor)`} />
-
+      {/* hard shadow thrown to the right */}
+      <path
+        d={`M ${cx - w + sw * 1.6} ${d + sw * 1.6}
+            L ${cx + w + sw * 1.6} ${d + sw * 1.6}
+            L ${cx + w * 0.78 + sw * 1.6} ${d + bodyH + sw * 1.2}
+            Q ${cx + sw * 1.6} ${d + bodyH * 1.07 + sw * 1.2} ${cx - w * 0.78 + sw * 1.6} ${d + bodyH + sw * 1.2}
+            Z`}
+        fill={INK}
+        opacity="0.45"
+      />
       {/* tapered body */}
       <path
         d={`M ${cx - w} ${d}
@@ -410,28 +388,29 @@ function CupArt({ w, d, cup, uid }: { w: number; d: number; cup: CupIndex; uid: 
             L ${cx + w * 0.78} ${d + bodyH}
             Q ${cx} ${d + bodyH * 1.07} ${cx - w * 0.78} ${d + bodyH}
             Z`}
-        fill={`url(#${id}-body)`}
+        fill={t.fill}
+        stroke={INK}
+        strokeWidth={sw}
+        strokeLinejoin="round"
       />
-      {/* ribs */}
-      <g stroke={t.rib} strokeWidth={Math.max(1, w * 0.035)} opacity="0.22">
-        {[-0.5, -0.17, 0.17, 0.5].map((f) => (
-          <line key={f} x1={cx + f * w} y1={d + bodyH * 0.04} x2={cx + f * w * 0.78} y2={d + bodyH * 0.96} />
-        ))}
-      </g>
-      {/* sheen down the left */}
+      {/* the shaded side */}
       <path
-        d={`M ${cx - w * 0.72} ${d + bodyH * 0.04}
-            L ${cx - w * 0.44} ${d + bodyH * 0.04}
-            L ${cx - w * 0.52} ${d + bodyH * 0.94}
-            L ${cx - w * 0.66} ${d + bodyH * 0.94}
+        d={`M ${cx + w * 0.45} ${d + d * 0.9}
+            L ${cx + w - sw * 0.5} ${d + d * 0.4}
+            L ${cx + w * 0.78 - sw * 0.5} ${d + bodyH - sw * 0.3}
+            L ${cx + w * 0.38} ${d + bodyH + sw * 0.2}
             Z`}
-        fill="rgba(255,255,255,0.3)"
+        fill={t.side}
       />
-
-      {/* the opening, the beer in it, and its rolled rim */}
-      <ellipse className="bc-mouth-art" cx={cx} cy={d} rx={w} ry={d} fill={`url(#${id}-hole)`} />
-      <ellipse cx={cx} cy={d + d * 0.45} rx={w * 0.8} ry={d * 0.5} fill="rgba(255, 190, 70, 0.22)" />
-      <ellipse cx={cx} cy={d} rx={w} ry={d} fill="none" stroke={`url(#${id}-rim)`} strokeWidth={Math.max(2, w * 0.07)} />
+      {/* two ribs, like the real thing */}
+      <g stroke={INK} strokeWidth={sw * 0.5} opacity="0.55" fill="none">
+        <path d={`M ${cx - w * 0.9} ${d + bodyH * 0.42} Q ${cx} ${d + bodyH * 0.52} ${cx + w * 0.9} ${d + bodyH * 0.42}`} />
+        <path d={`M ${cx - w * 0.85} ${d + bodyH * 0.66} Q ${cx} ${d + bodyH * 0.76} ${cx + w * 0.85} ${d + bodyH * 0.66}`} />
+      </g>
+      {/* the opening, the beer in it, and the white lip */}
+      <ellipse className="bc-mouth-art" cx={cx} cy={d} rx={w} ry={d} fill="#2a1d10" stroke={INK} strokeWidth={sw} />
+      <ellipse cx={cx} cy={d + d * 0.38} rx={w * 0.76} ry={d * 0.5} fill="#d9951a" />
+      <ellipse cx={cx} cy={d} rx={Math.max(0, w - sw * 0.9)} ry={Math.max(0, d - sw * 0.9)} fill="none" stroke="#f7efdc" strokeWidth={sw * 0.7} />
     </svg>
   );
 }
@@ -453,8 +432,8 @@ interface Flight {
 }
 
 const CALL: Record<Verdict, string> = {
-  in: 'SPLASH!',
-  rim: 'RIMMED!',
+  in: 'IN',
+  rim: 'RIM',
   short: 'SHORT',
   long: 'LONG',
   wide: 'WIDE',
@@ -541,7 +520,6 @@ function Lane({
   const [prog, setProg] = useState(0);
   const waitLeft = useCountdown(readyAt) ?? 0;
   const shotNo = useRef(0);
-  const uid = useRef(`${cup}-${Math.random().toString(36).slice(2, 7)}`).current;
 
   /* the lane's real size in px — every position is derived from it */
   useEffect(() => {
@@ -740,8 +718,7 @@ function Lane({
             style={{ width: 2 * mouthR * (1 + mercy), height: 2 * mouthD * (1 + mercy) }}
           />
         )}
-        <span className="bc-cup-glow" style={{ width: mouthR * 4, height: mouthR * 4 }} />
-        <CupArt w={mouthR} d={mouthD} cup={cup} uid={uid} />
+        <CupArt w={mouthR} d={mouthD} cup={cup} />
       </div>
 
       {/* splash when it drops in */}
@@ -771,7 +748,7 @@ function Lane({
               width: ballD * 1.1,
               height: ballD * 0.4,
               transform: `translate(-50%,-50%) scale(${scale * (1 - 0.35 * (lift / arc))})`,
-              opacity: alpha * 0.6 * (1 - 0.6 * (lift / arc)),
+              opacity: alpha * 0.4 * (1 - 0.5 * (lift / arc)),
             }}
           />
           {prog < 1 &&
@@ -796,7 +773,7 @@ function Lane({
       )}
       {((interactive && !locked) || flight) && (
         <span
-          className={`bc-ball ${!flight && canShoot ? 'bc-ball-ready' : ''}`}
+          className="bc-ball"
           style={{
             left: bx,
             top: by,
@@ -810,7 +787,7 @@ function Lane({
 
       {/* the call: what the shot did, once it has done it */}
       {flight && landed && v && (
-        <span className={`bc-call bc-call-${v}`} key={`c${flight.key}`}>
+        <span className={`bc-call fx-stamp bc-call-${v}`} key={`c${flight.key}`}>
           {CALL[v]}
         </span>
       )}
@@ -828,7 +805,7 @@ function Lane({
         />
       )}
 
-      {canShoot && !flight && <span className="bc-table-hint">flick up ⬆</span>}
+      {canShoot && !flight && <span className="bc-table-hint">flick up</span>}
     </div>
   );
 }
@@ -860,10 +837,8 @@ function GivePicker({
         seatsBetween(s, meUid, a.uid) - seatsBetween(s, meUid, b.uid),
     );
   return (
-    <div className="bc-give fx-panel fx-pop">
-      <p className="pick-call">
-        Who gets the <b className={`bc-c${cup}`}>{CUP_NAME[cup]}</b> cup?
-      </p>
+    <div className="bc-give fx-pop">
+      <p className="pick-call">Who gets the {CUP_NAME[cup]} cup?</p>
       <div className="bc-give-list">
         {order.map((p) => (
           <button
@@ -873,12 +848,14 @@ function GivePicker({
           >
             <span className="pick-person-emoji">{p.emoji}</span>
             <span className="bc-give-name">{p.name}</span>
-            {p.uid === otherUid && <em className="bc-tag bc-tag-snipe">CATCH them!</em>}
-            {p.uid === nextUid && <em className="bc-tag">next in line</em>}
+            {p.uid === otherUid && <em className="fx-tag fx-tag-red bc-tag">drinks now</em>}
+            {p.uid === nextUid && <em className="bc-tag-next">next seat</em>}
           </button>
         ))}
       </div>
-      <p className="muted small">hand it to whoever holds the other ball and they drink right now</p>
+      {otherUid && otherUid !== meUid && (
+        <p className="muted small">{nameOf(players, otherUid)} has the other cup. Give them this one and they drink.</p>
+      )}
     </div>
   );
 }
@@ -907,17 +884,9 @@ function Watching({ s, players, meUid }: { s: BcState; players: PlayerInfo[]; me
                 }
               />
               <p className="bc-watch-note">
-                {choosing
-                  ? '🎯 first try — choosing…'
-                  : misses > 0
-                    ? `${misses} ${misses === 1 ? 'miss' : 'misses'} · cup's getting easier`
-                    : 'first try = free pick'}
+                {choosing ? 'sunk first try, picking' : misses > 0 ? `${misses} ${misses === 1 ? 'miss' : 'misses'}` : 'no misses yet'}
+                {uid !== meUid && <b className="bc-watch-away"> · {away === 1 ? 'you are next' : `${seats(away)} away`}</b>}
               </p>
-              {uid !== meUid && (
-                <p className={`bc-watch-away ${away === 1 ? 'bc-watch-away-next' : ''}`}>
-                  {away === 1 ? 'you are next ⚡' : `${seats(away)} from you`}
-                </p>
-              )}
             </div>
           );
         })}
@@ -940,30 +909,30 @@ function Feed({
   newestId: number;
 }) {
   const who = (uid: string | undefined) => (uid === meUid ? 'You' : nameOf(players, uid));
-  const whom = (uid: string | undefined) => (uid === meUid ? 'YOU' : nameOf(players, uid));
+  const whom = (uid: string | undefined) => (uid === meUid ? 'you' : nameOf(players, uid));
   if (feed.length === 0) {
-    return <p className="bc-feed-empty">sink it → cup moves on · catch the other ball → they drink 🍺</p>;
+    return <p className="bc-feed-empty">Sink it and the cup moves on. Catch the other cup and they drink.</p>;
   }
   const line = (e: BcFeed) => {
-    const cupName = <b className={`bc-c${e.cup}`}>{CUP_NAME[e.cup]}</b>;
+    const cupName = CUP_NAME[e.cup];
     switch (e.kind) {
       case 'first':
-        return <>🎯 {who(e.uid)} sank {cupName} FIRST TRY — picking a victim…</>;
+        return `${who(e.uid)} sank ${cupName} first try.`;
       case 'give':
-        return <>👉 {who(e.uid)} handed {cupName} to {whom(e.to)}</>;
+        return `${who(e.uid)} gave ${cupName} to ${whom(e.to)}.`;
       case 'catch':
-        return <>🍺 {whom(e.to)} got CAUGHT{e.uid ? ` by ${whom(e.uid)}` : ''} — drink!</>;
+        return `${who(e.to)} got caught${e.uid ? ` by ${whom(e.uid)}` : ''}. Drinks ${CATCH_SIPS}.`;
       case 'boom':
-        return <>💥 {whom(e.to)} took the BOOM</>;
+        return `${who(e.to)} took the BOOM. Drinks ${CATCH_SIPS + BOOM_SIPS}.`;
       default:
-        return <>✅ {who(e.uid)} sank {cupName} → on to {whom(e.to)}</>;
+        return `${who(e.uid)} sank ${cupName}. On to ${whom(e.to)}.`;
     }
   };
   return (
     <ul className="bc-feed">
       {[...feed]
         .reverse()
-        .slice(0, 3)
+        .slice(0, 2)
         .map((e) => (
           <li
             key={e.id}
@@ -971,7 +940,7 @@ function Feed({
               e.to === meUid || e.uid === meUid ? 'bc-feed-mine' : ''
             }`}
           >
-            {line(e)}
+            <i className={`bc-dot bc-dot-${e.cup}`} /> {line(e)}
           </li>
         ))}
     </ul>

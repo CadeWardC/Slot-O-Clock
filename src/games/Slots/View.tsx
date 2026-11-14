@@ -70,17 +70,13 @@ function Machine({
   return (
     <div className={`slots-machine ${tone} ${rolling ? 'slots-rolling' : ''}`}>
       <div className="slots-cabinet">
-        <div className="slots-marquee">
+        <div className="slots-sign">
           <span className="slots-bulbs" aria-hidden="true">
-            {Array.from({ length: 7 }, (_, i) => (
-              <i key={i} style={{ animationDelay: `${i * 0.12}s` }} />
-            ))}
+            <i /><i /><i />
           </span>
-          <span className="slots-brand">SLOT-O-MATIC</span>
+          <span className="slots-brand">Slot-O-Matic</span>
           <span className="slots-bulbs" aria-hidden="true">
-            {Array.from({ length: 7 }, (_, i) => (
-              <i key={i} style={{ animationDelay: `${(7 - i) * 0.12}s` }} />
-            ))}
+            <i /><i /><i />
           </span>
         </div>
         <div className="slots-reels">
@@ -90,10 +86,10 @@ function Machine({
           <span className="slots-payline" aria-hidden="true" />
         </div>
         <div className="slots-pays">
-          <span>💀💀💀 finish</span>
+          <span>💀💀💀 finish it</span>
           <span>pair 2</span>
           <span>miss 1</span>
-          <span>triple safe</span>
+          <span>triple 0</span>
         </div>
       </div>
       <button
@@ -126,7 +122,7 @@ function Floor({
   if (rest.length === 0) return null;
   return (
     <div className="slots-floor">
-      <p className="fx-kicker">the rest of the floor</p>
+      <p className="fx-kicker">The other machines</p>
       {rest.map((p) => {
         const sp = spins[p.uid];
         const landed = landedCount(sp, now);
@@ -149,7 +145,7 @@ function Floor({
                 : '· · ·'}
             </span>
             <span className="slots-seat-pay">
-              {!sp ? 'hasn’t pulled' : !done ? 'spinning…' : sp.sips > 0 ? `🍺 ×${sp.sips}` : '✅ safe'}
+              {!sp ? 'not yet' : !done ? 'spinning' : sp.sips > 0 ? `drinks ${sp.sips}` : 'safe'}
             </span>
           </div>
         );
@@ -207,32 +203,27 @@ export function View({
     <div className="gv slots">
       <Machine spin={mine} landed={landed} pulled={pulled} canPull={canPull} onPull={pull} />
 
-      {settled && mine.sips === 0 && <Confetti emojis={['🪙', '✨', '🎰', '🍒', '💰']} />}
-      {settled && mine.sips >= 5 && <Confetti emojis={['💀', '🍺', '☠️']} count={18} />}
+      {settled && mine.sips === 0 && <Confetti />}
 
       <div className="slots-readout">
         {settled ? (
-          <>
-            <h2 key="line" className="slots-line fx-pop">
-              {mine.line}
-            </h2>
-            <p className={`slots-pay fx-rise ${mine.sips > 0 ? 'slots-owe' : 'slots-safe'}`}>
-              {mine.sips > 0
-                ? `🍺 ${mine.sips} sip${mine.sips === 1 ? '' : 's'} — that’s you`
-                : '✅ safe — nothing to drink'}
-            </p>
-          </>
+          <div key="line" className="fx-paper slots-slip fx-pop">
+            <span className={`fx-tag slots-slip-tag ${mine.sips > 0 ? 'fx-tag-red' : 'fx-tag-green'}`}>
+              {mine.sips === 0 ? 'Safe' : mine.sips >= 5 ? 'Finish it' : `Drink ${mine.sips}`}
+            </span>
+            <p className="slots-line">{mine.line}</p>
+          </div>
         ) : pulled ? (
-          <h2 className={`slots-line ${tease ? 'slots-line-tease fx-pulse' : ''}`}>
-            {tease ? 'ooooh… one more!' : 'rolling…'}
-          </h2>
+          <p className={`slots-rolling-line ${tease ? 'slots-line-tease' : ''}`}>
+            {tease ? 'Two the same. One to go.' : 'Rolling'}
+          </p>
         ) : holding ? (
-          <p className="slots-no-spin">you never pulled the lever — no result this round</p>
+          <p className="slots-no-spin">You never pulled. Nothing to drink.</p>
         ) : !myTurn ? (
-          <p className="muted">only {actor?.name ?? 'the actor'} spins this round</p>
+          <p className="muted">{actor?.name ?? 'Someone else'} spins this one.</p>
         ) : (
-          <button className="btn btn-gold btn-lg btn-full slots-lever fx-pulse" onClick={pull}>
-            PULL THE LEVER 🎰
+          <button className="btn btn-gold btn-lg btn-full slots-lever" onClick={pull}>
+            PULL
           </button>
         )}
       </div>
@@ -240,15 +231,13 @@ export function View({
       {holding ? (
         <>
           <TimerBar deadline={timerEndsAt} totalMs={HOLD_MS} />
-          <p className="slots-hold-note">
-            reels held so everyone can read them{left != null ? ` — ${Math.ceil(left / 1000)}s` : ''}
-          </p>
+          <p className="slots-hold-note">{left != null ? `Next round in ${Math.ceil(left / 1000)}` : ''}</p>
         </>
       ) : (
         variant === 'party' && (
-          <p className="muted small">
-            {Object.keys(spins).length}/{players.length} pulled
-            {left != null ? ` · ${Math.ceil(left / 1000)}s` : ''}
+          <p className="slots-hold-note">
+            {Object.keys(spins).length} of {players.length} pulled
+            {left != null ? `. ${Math.ceil(left / 1000)}s left.` : ''}
           </p>
         )
       )}

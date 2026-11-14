@@ -245,11 +245,11 @@ function endOfRound(s: BcState, note: string): Effect[] {
   const caughtOrder = (s.caughtOrder ?? []).filter((u) => (s.caught ?? {})[u]);
   const catchers = [...new Set(s.catchers ?? [])];
   const groups: OutcomeRecapGroup[] = [];
-  if (s.boomUid) groups.push({ label: '💥 Took the BOOM', tone: 'bad', uids: [s.boomUid] });
+  if (s.boomUid) groups.push({ label: 'Took the BOOM', tone: 'bad', uids: [s.boomUid] });
   if (caughtOrder.length > 0) {
-    groups.push({ label: '🍺 Caught — drank from the middle', tone: 'bad', uids: caughtOrder });
+    groups.push({ label: 'Caught', tone: 'bad', uids: caughtOrder });
   }
-  if (catchers.length > 0) groups.push({ label: '🎯 Catchers', tone: 'good', uids: catchers });
+  if (catchers.length > 0) groups.push({ label: 'Catchers', tone: 'good', uids: catchers });
   // Every sip was already applied the moment it landed (the table drinks as
   // it plays), so this effect only closes the round and recaps it.
   return [
@@ -257,7 +257,7 @@ function endOfRound(s: BcState, note: string): Effect[] {
       type: 'END',
       assignments: [],
       note,
-      recap: groups.length > 0 ? { title: 'how the table got caught', groups } : undefined,
+      recap: groups.length > 0 ? { title: 'Who got caught', groups } : undefined,
     },
   ];
 }
@@ -314,7 +314,7 @@ function passTo(
         {
           uid: targetUid,
           sips: CATCH_SIPS,
-          reason: byUid ? `Caught by ${nameOf(ctx.players, byUid)} — 🍺 from the middle` : 'Caught 🍺',
+          reason: byUid ? `Caught by ${nameOf(ctx.players, byUid)}` : 'Caught',
         },
       ],
     });
@@ -323,7 +323,7 @@ function passTo(
       boomUid = targetUid;
       effects.push({
         type: 'DRINKS',
-        assignments: [{ uid: targetUid, sips: BOOM_SIPS, reason: 'BOOM — the middle ran dry 💥' }],
+        assignments: [{ uid: targetUid, sips: BOOM_SIPS, reason: 'BOOM: took the last beer' }],
       });
     }
   }
@@ -345,7 +345,7 @@ function passTo(
   };
 
   if (boom) {
-    effects.push(...endOfRound(next, `💥 ${nameOf(ctx.players, boomUid)} took the BOOM — the middle is dry`));
+    effects.push(...endOfRound(next, `${nameOf(ctx.players, boomUid)} took the BOOM. The middle is empty.`));
   }
 
   return { state: next, effects };
@@ -423,7 +423,7 @@ export const definition: GameDefinition<BcState, BcInput> = {
   name: 'Boom Cup',
   emoji: '💥',
   rules:
-    'Two of you start with a cup and a ball — everyone else is next in line. Flick up to shoot: miss and you keep flicking; sink it and the cup goes to the next player, unless it was your FIRST try, and then you hand it to anyone at the table, order be damned. If your cup comes down on whoever is still holding the other ball they are CAUGHT: they drink a beer from the middle, and your ball plays straight on to the player after them. They keep their own cup, fresh, and the chase carries on. The middle holds a beer per player — when the last one is drained, whoever is caught taking it drinks the BOOM.',
+    'Two cups go round the table. Flick up to sink your ball and the cup moves on; sink it first try and you give it to anyone you like. If a cup lands on someone still holding the other one, they drink a beer from the middle. Whoever takes the last beer drinks 2 more.',
   minPlayers: 2,
   sharedInput: 'all',
 
@@ -460,7 +460,7 @@ export const definition: GameDefinition<BcState, BcInput> = {
 
     // everyone else's phone died / walked off — close the round rather than hang
     if (ctx.players.length < 2 || (s.ring ?? []).length < 2) {
-      return { state: s, effects: endOfRound(s, '🥤 not enough players left — round over') };
+      return { state: s, effects: endOfRound(s, 'Not enough players left. Round over.') };
     }
 
     if (event.type === 'BEGIN') {
@@ -487,8 +487,8 @@ export const definition: GameDefinition<BcState, BcInput> = {
         effects: endOfRound(
           s,
           caught > 0
-            ? `⏱ the table stopped shooting — ${caught} caught this round`
-            : '⏱ nobody sank a ball — no drinks 🥤',
+            ? `The table stopped shooting. ${caught} caught this round.`
+            : 'The table stopped and nobody sank a ball. No drinks.',
         ),
       };
     }
