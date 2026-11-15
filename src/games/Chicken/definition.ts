@@ -31,7 +31,7 @@ export const TICK_MS = 1500;
 export const MAX_VALUE = 10;
 /** the earliest and latest the counter can bust, measured from the climb's start */
 export const BUST_MIN_MS = 3000;
-export const BUST_MAX_MS = 14000;
+export const BUST_MAX_MS = 11000;
 /** how far back a bail's own timestamp is trusted, so lag costs nobody a drink */
 export const BAIL_GRACE_MS = 1500;
 /** what the last thumb standing gets on top of the counter */
@@ -44,7 +44,7 @@ export const GIFT_MS = 25_000;
 /**
  * The counter `ms` after the climb started: 1 after a second and a half, then
  * quicker and quicker, flat at MAX_VALUE from about ten and a half seconds in
- * (roughly half of all rounds bust before it gets there).
+ * (nearly every round busts before it gets there: see bustMsOf).
  */
 export function valueAt(ms: number): number {
   if (!(ms > 0)) return 0;
@@ -57,12 +57,14 @@ export function timeOf(value: number): number {
 }
 
 /**
- * When this round busts. Skewed late (sqrt) so a three-second bust happens,
- * just not often. The engine reseeds `ctx.rng` from the round id on every
- * reducer call, so the first draw is the same number each time it is asked.
+ * When this round busts: anywhere in the window, evenly. The counter only
+ * shows 10 from about 10.6 seconds in and the window shuts at 11, so a round
+ * that gets all the way there is about one in twenty. The engine reseeds
+ * `ctx.rng` from the round id on every reducer call, so the first draw is the
+ * same number each time it is asked.
  */
 export function bustMsOf(ctx: GameContext): number {
-  return Math.round(BUST_MIN_MS + (BUST_MAX_MS - BUST_MIN_MS) * Math.sqrt(ctx.rng()));
+  return Math.round(BUST_MIN_MS + (BUST_MAX_MS - BUST_MIN_MS) * ctx.rng());
 }
 
 export interface CkState {

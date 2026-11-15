@@ -3,9 +3,10 @@
  *  POISONING THE DRINKS — one victim, everybody else pours
  * ============================================================
  * One player is picked at random to drink. The cups sit in a ring on
- * the table — ONE MORE CUP than there are players — and every other
- * player secretly poisons exactly one of them. Poisoners may pile
- * onto the same cup, and a stacked cup hits harder.
+ * the table — ONE CUP PER PLAYER — and every other player secretly
+ * poisons exactly one of them. With one cup fewer poisoners than cups,
+ * a table that spreads out leaves exactly one clean cup; poisoners may
+ * still pile onto the same cup, and a stacked cup hits harder.
  *
  * Then the table watches the victim sweat:
  *   - their hand hovering over a cup is public, live;
@@ -43,8 +44,11 @@ export const STACK_SIPS = 1;
 export const MISS_SIPS = 1;
 /** landing on the antidote makes the crew's miss cost this instead */
 export const ANTIDOTE_MISS_SIPS = 2;
-/** cups on the table = players + this */
-export const CUP_BONUS = 1;
+/**
+ * Cups on the table = players + this. Zero: one cup each, so when every
+ * poisoner picks a different cup there is exactly one clean one left.
+ */
+export const CUP_BONUS = 0;
 /** the staged reveal: lift → verdict → every cup turned over */
 export const REVEAL_MS = 13_000;
 /** heckles the poisoners can throw while the victim chooses */
@@ -202,7 +206,7 @@ export const definition: GameDefinition<PoisonState, PoisonInput> = {
   name: 'Poisoning the Drinks',
   emoji: '☠️',
   rules:
-    'One of you drinks. Everyone else secretly poisons one cup, and there is one more cup than players. The drinker gets one sniff, then picks: a poisoned cup costs them 2 (more if it was hit twice), a clean cup costs every poisoner 1. One cup is an antidote that sends the poison back.',
+    'One of you drinks. Everyone else secretly poisons one cup, and there is one cup per player, so at best one is clean. The drinker gets one sniff, then picks: a poisoned cup costs them 2 (more if it was hit twice), a clean cup costs every poisoner 1. One cup is an antidote that sends the poison back.',
   minPlayers: 2,
   sharedInput: 'all',
 

@@ -11,6 +11,7 @@ import chicken, {
   MAX_VALUE,
   READY_MS,
   TICK_MS,
+  bustMsOf,
   timeOf,
   valueAt,
 } from '../src/games/Chicken/definition.ts';
@@ -59,7 +60,7 @@ test('Chicken: the counter climbs faster as it goes and stops at 10', () => {
 test('Chicken: the bust moment is armed as the timer and is not in the state', async () => {
   const h = await climbing();
   const bustIn = (h.timer?.endsAt ?? 0) - h.state.climbAt;
-  assert.ok(bustIn >= 3000 && bustIn <= 14000, `bust lands in the 3-14s window (${bustIn})`);
+  assert.ok(bustIn >= 3000 && bustIn <= 11000, `bust lands in the 3-11s window (${bustIn})`);
   assert.ok(!JSON.stringify(h.state).includes(String(h.timer?.endsAt)), 'no phone can read it');
 });
 
@@ -71,11 +72,11 @@ test('Chicken: a bail banks the counter at the moment the thumb came off', async
   assert.equal(h.state.banks.p2, 1, 'banked what the counter showed when they let go');
 
   // but not further back than the grace, and never from the future
-  await at(h, BAIL_GRACE_MS + timeOf(2) + 50);
+  await at(h, BAIL_GRACE_MS + timeOf(1) + 50);
   await h.submit('p3', { action: 'bail', at: h.state.climbAt + 1 });
-  assert.equal(h.state.banks.p3, valueAt(timeOf(2) + 50), 'an old timestamp is pulled up to the grace');
+  assert.equal(h.state.banks.p3, valueAt(timeOf(1) + 50), 'an old timestamp is pulled up to the grace');
   await h.submit('p3', { action: 'bail', at: h.clock.now });
-  assert.equal(h.state.banks.p3, valueAt(timeOf(2) + 50), 'and one bail is all you get');
+  assert.equal(h.state.banks.p3, valueAt(timeOf(1) + 50), 'and one bail is all you get');
   assert.equal(h.state.phase, 'climb', 'two thumbs are still down');
 });
 
@@ -250,4 +251,20 @@ test('Chicken: nobody drinks more than 10 from one round, however many bankers p
   const rb = chicken.reduce(bust, { type: 'TIME_UP', now: 0 }, tableCtx(2_000_000));
   const endB = (rb.effects ?? []).find((fx): fx is Extract<Effect, { type: 'END' }> => fx.type === 'END');
   assert.equal((endB?.assignments ?? []).filter((x) => x.uid === 'd').reduce((n, x) => n + x.sips, 0), MAX_VALUE);
+});
+
+test('Chicken: the counter very rarely gets all the way to 10', () => {
+  const rng = mulberry32(2024);
+  const rounds = 20_000;
+  let full = 0;
+  let sum = 0;
+  for (let i = 0; i < rounds; i++) {
+    const v = valueAt(bustMsOf({ rng } as GameContext));
+    sum += v;
+    if (v >= MAX_VALUE) full++;
+  }
+  const share = full / rounds;
+  assert.ok(share > 0.01 && share < 0.08, `about one round in twenty reaches 10 (${(share * 100).toFixed(1)}%)`);
+  const mean = sum / rounds;
+  assert.ok(mean > 4 && mean < 7, `a typical bust is mid-counter (${mean.toFixed(1)})`);
 });

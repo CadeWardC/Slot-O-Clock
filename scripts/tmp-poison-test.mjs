@@ -22,9 +22,9 @@ const run = (st, uid, input, ctx) => definition.reduce(st, { type: 'INPUT', uid,
 // ---- party: everyone pours at once, in any order ----
 let ctx = mkCtx(4);
 let st = definition.createInitialState(ctx);
-assert.equal(st.cups, 5);
+assert.equal(st.cups, 4);
 assert.equal(st.order.length, 3);
-const safe = [0, 1, 2, 3, 4].find((c) => c !== st.antidoteCup && c !== 0);
+const safe = [0, 1, 2, 3].find((c) => c !== st.antidoteCup && c !== 0);
 const [a, b, c] = st.order;
 st = run(st, c, { cup: 0 }, ctx).state; // out of order is fine in party mode
 st = run(st, a, { cup: 0 }, ctx).state;
@@ -33,7 +33,7 @@ assert.equal(st.poisons[a], 0);
 assert.equal(st.phase, 'pouring');
 st = run(st, st.drinkerUid, { cup: 1 }, ctx).state; // the victim can't act yet
 assert.equal(st.pick, null);
-st = run(st, b, { cup: safe === 4 ? 3 : 4 }, ctx).state;
+st = run(st, b, { cup: safe === 3 ? 2 : 3 }, ctx).state;
 assert.equal(st.phase, 'drinking');
 
 // hover is public, the sniff works once, heckles only come from the crew
