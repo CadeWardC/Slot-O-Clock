@@ -162,7 +162,7 @@ export function View({
       <div className="gv ck">
         {iGive && !myGift && <Confetti />}
         <span className={`fx-tag ${iGive ? 'fx-tag-green' : ''}`}>
-          {state.lastThumb === me.uid ? `Last thumb +${LAST_THUMB_BONUS}` : iGive ? 'Banked' : 'Paying out'}
+          {state.lastThumb === me.uid ? (mine >= MAX_VALUE ? `Last thumb, the full ${MAX_VALUE}` : `Last thumb +${LAST_THUMB_BONUS}`) : iGive ? 'Banked' : 'Paying out'}
         </span>
         <h2 className="fx-title">{iGive ? `You have ${mine} to give` : 'They got out'}</h2>
         {busted.length > 0 && (

@@ -2,9 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { Harness } from './harness.ts';
+import type { Effect, GameContext, PlayerInfo } from '../src/engine/types.ts';
+import { mulberry32 } from '../src/engine/rng.ts';
+import type { CkState } from '../src/games/Chicken/definition.ts';
 import chicken, {
   BAIL_GRACE_MS,
   LAST_THUMB_BONUS,
+  MAX_VALUE,
   READY_MS,
   TICK_MS,
   timeOf,
@@ -174,4 +178,76 @@ test('Chicken: on a shared phone only the actor plays, alone', async () => {
   await h.submit('host', { action: 'bail', at: h.clock.now }, actor);
   assert.equal(h.state.phase, 'gift');
   assert.equal(h.state.banks[actor], 2, 'no last-thumb bonus for playing alone');
+});
+
+/* ---------- nothing in Chicken goes past 10 ---------- */
+
+const table: PlayerInfo[] = ['a', 'b', 'c', 'd'].map((uid, i) => ({
+  uid,
+  name: uid.toUpperCase(),
+  emoji: '🍺',
+  isHost: i === 0,
+  connected: true,
+  local: false,
+  drinkCount: 0,
+  score: 0,
+  joinedAt: i,
+}));
+function tableCtx(now: number): GameContext {
+  return {
+    players: table,
+    actorUid: 'a',
+    turnOrder: table.map((p) => p.uid),
+    settings: { mode: 'party', pointsMode: false, sipMultiplier: 1, enabledGames: [] },
+    rng: mulberry32(7),
+    now,
+    roundId: 'r1',
+    phaseId: 'ph1',
+    revision: 1,
+  } as GameContext;
+}
+const base: CkState = {
+  phase: 'climb',
+  climbAt: 1_000_000,
+  banks: {},
+  lastThumb: null,
+  bustValue: null,
+  busted: [],
+  gifts: {},
+};
+
+test('Chicken: the last thumb at a full counter banks 10, not 12', () => {
+  // the counter has been flat at 10 for a while; three have let go, one is left
+  const now = base.climbAt! + 60_000;
+  const state: CkState = { ...base, banks: { b: 4, c: 6 } };
+  const r = chicken.reduce(state, { type: 'INPUT', uid: 'd', input: { action: 'bail', at: now } }, tableCtx(now));
+  assert.equal(r.state.lastThumb, 'a');
+  assert.equal(r.state.banks.d, MAX_VALUE);
+  assert.equal(r.state.banks.a, MAX_VALUE, 'the bonus does not push a bank past the cap');
+  // one tick below the cap, the bonus still only reaches it
+  const at9 = base.climbAt! + timeOf(9) + 5;
+  const r9 = chicken.reduce(state, { type: 'INPUT', uid: 'd', input: { action: 'bail', at: at9 } }, tableCtx(at9));
+  assert.equal(r9.state.banks.d, 9);
+  assert.equal(r9.state.banks.a, MAX_VALUE);
+});
+
+test('Chicken: nobody drinks more than 10 from one round, however many bankers pick on them', () => {
+  const state: CkState = {
+    ...base,
+    phase: 'gift',
+    banks: { a: 10, b: 8, c: 6 },
+    gifts: { a: { d: 10 }, b: { d: 8 }, c: { d: 3, a: 3 } },
+  };
+  const r = chicken.reduce(state, { type: 'TIME_UP', now: 0 }, tableCtx(2_000_000));
+  const end = (r.effects ?? []).find((fx): fx is Extract<Effect, { type: 'END' }> => fx.type === 'END');
+  assert.ok(end);
+  const total = (uid: string) => (end.assignments ?? []).filter((x) => x.uid === uid).reduce((n, x) => n + x.sips, 0);
+  assert.equal(total('d'), MAX_VALUE);
+  assert.equal(total('a'), 3, 'everyone else is untouched');
+  assert.ok((end.assignments ?? []).every((x) => x.sips > 0), 'no empty lines on the drinks screen');
+  // a bust on top of gifts is capped the same way
+  const bust: CkState = { ...state, busted: ['d'], bustValue: 9, gifts: { a: { d: 10 } } };
+  const rb = chicken.reduce(bust, { type: 'TIME_UP', now: 0 }, tableCtx(2_000_000));
+  const endB = (rb.effects ?? []).find((fx): fx is Extract<Effect, { type: 'END' }> => fx.type === 'END');
+  assert.equal((endB?.assignments ?? []).filter((x) => x.uid === 'd').reduce((n, x) => n + x.sips, 0), MAX_VALUE);
 });

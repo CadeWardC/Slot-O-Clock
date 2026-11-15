@@ -27,7 +27,7 @@ import { View } from './View';
 export const READY_MS = 3000;
 /** how long the first drink takes to show; every one after comes a little quicker */
 export const TICK_MS = 1500;
-/** the counter never goes past this */
+/** the counter never goes past this, and neither does anything the game charges or banks */
 export const MAX_VALUE = 10;
 /** the earliest and latest the counter can bust, measured from the climb's start */
 export const BUST_MIN_MS = 3000;
@@ -125,6 +125,18 @@ function finish(state: CkState, ctx: GameContext): ReduceResult<CkState> {
     }
   }
 
+  // Nobody drinks more than MAX_VALUE from one round of Chicken, however many
+  // bankers pick on them: once a player is at the cap, the rest is dropped.
+  const taken: Record<string, number> = {};
+  for (let i = 0; i < assignments.length; i++) {
+    const a = assignments[i];
+    const room = Math.max(0, MAX_VALUE - (taken[a.uid] ?? 0));
+    const sips = Math.min(a.sips, room);
+    taken[a.uid] = (taken[a.uid] ?? 0) + sips;
+    assignments[i] = { ...a, sips };
+  }
+  for (let i = assignments.length - 1; i >= 0; i--) if (assignments[i].sips <= 0) assignments.splice(i, 1);
+
   const bailed = Object.keys(banks);
   const recap: OutcomeRecap = {
     title: 'Who let go',
@@ -179,7 +191,7 @@ export const definition: GameDefinition<CkState, CkInput> = {
   name: 'Chicken',
   emoji: '🐔',
   rules:
-    'Hold your thumb down while the drink counter climbs. Let go and you hand out whatever it says. If it busts while you are still holding, you drink it yourself.',
+    'Hold your thumb down while the drink counter climbs to 10. Let go and you hand out whatever it says. If it busts while you are still holding, you drink it yourself. Nobody hands out or drinks more than 10.',
   minPlayers: 2,
   sharedInput: 'actor',
 
@@ -245,7 +257,8 @@ export const definition: GameDefinition<CkState, CkInput> = {
         if (holding.length === 1 && seats.length > 1) {
           // one thumb left: they win it on the spot, before it can bust
           const last = holding[0];
-          const won = valueAt(ctx.now - state.climbAt) + LAST_THUMB_BONUS;
+          // the bonus never takes a bank past the cap: 10 is the most anyone hands out
+          const won = Math.min(MAX_VALUE, valueAt(ctx.now - state.climbAt) + LAST_THUMB_BONUS);
           next = { ...next, banks: { ...nextBanks, [last]: won }, lastThumb: last };
           return afterClimb(next, ctx);
         }
